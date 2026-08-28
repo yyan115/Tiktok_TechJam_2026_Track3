@@ -51,3 +51,22 @@ Source: https://arxiv.org/html/2606.09682
    evaluation, tournament-style (CudaForge).
 4. TRIED.md ledger = evolutionary memory (AlphaEvolve class).
 5. Frozen-referee philosophy already matches AutoMegaKernel — keep.
+
+## CORRECTIONS (from blind external review, 29 Aug — see audits/strategy/strategy_review1_raw.log)
+- cuPilot: strategy = an EVOLVABLE IR with population init, strategy/code
+  alignment, tournament selection, crossover — NOT a periodic reviewer; its
+  RAG stores kernel/strategy/performance exemplars, not literature citations.
+  Ablations were on 4 kernels; the 3.09x headline used a much larger budget
+  on 100 KernelBench tasks. Do not over-infer.
+- CudaForge: dumping ALL NCU metrics DEGRADED judge quality; the
+  selected-metric variant won ⇒ compact semantic diagnoses, not raw dumps.
+  (Primary: arxiv 2511.01884.)
+- TritonForge: 131/184 kernels runnable, 42.7% success, 1.76x mean AMONG
+  SUCCESSES; more rounds sometimes degraded results ⇒ targeted profiling,
+  not universal churn.
+- AlphaEvolve/OpenEvolve: real evolutionary memory = program DB + parent
+  selection + populations/islands/quality-diversity. A flat negatives file
+  is NOT it; keep live elites + lineage + revisit conditions.
+- Mind the Blind Spots: validity-over-novelty finding is about PAPER review;
+  applying it to kernel strategy selection is analogy, not evidence.
+- See kernelagent.md — the strongest template, organizer-shown.

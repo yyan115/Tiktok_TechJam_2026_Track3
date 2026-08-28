@@ -49,3 +49,21 @@ CUDA 13.0 officially supports GCC 15 hosts
 and Fedora 44 ships gcc15-c++ in updates. LIVE as of 29 Aug ~04:30: owner installed gcc15-c++; probe kernel compiled
 and ran via load_inline with -ccbin g++-15. Multi-CTA persistent kernels are
 now locally buildable.
+
+## CORRECTIONS (blind external review, 29 Aug)
+- AutoMegaKernel consumer "win" was W8A16 vs BF16 graphed cuBLAS at batch-1
+  decode — precision-asymmetric; equal-precision AMK TRAILED graphed cuBLAS.
+  Its safety needs one-block-per-SM cooperative residency + static DAG /
+  wait-satisfiability / happens-before validation — not a one-day atomics
+  transplant.
+- Mirage/MPK: all-SM task-graph runtime for LLM serving; current paper ~1.7x
+  (not a general 6.7x), and it is NOT evidence for one-CTA whole-model
+  kernels.
+- SHAPE-2 SINGLE-CTA PLAY IS DEAD (arithmetic): 117.44 MFLOP at a single
+  SM's share of fp16 peak (32.5 TF / 38 SMs) floors at ~137 us; the current
+  champion is already 144.4 us. One CTA cannot beat it at fp32-acc. My
+  earlier 200 KB weight estimate was also wrong (768 KiB fp16).
+- Correct cheap alternative for small shapes (3/4/12): SEQUENCE-PERSISTENT
+  INDEPENDENT CTAs — one program per batch sequence runs all 4 layers for
+  its own sequence; no cross-CTA sync needed at all (sequences independent
+  under causal attention); Triton-expressible. Timeboxed, after 14/6/8/11/13.
