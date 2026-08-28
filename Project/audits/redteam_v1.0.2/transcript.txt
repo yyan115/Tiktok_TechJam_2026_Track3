@@ -1,0 +1,15 @@
+# Red-team evidence, runner v1.0.2 (pin 203aba8d2a09...)
+# Commands + full output, run 2026-08-28T11:07:45+08:00. rt01 leaves NO ledger entry BY DESIGN (tamper aborts before recording).
+
+$ python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt01_monkeypatch.py --ledger Project/audits/redteam_v1.0.2/ledger.jsonl
+TAMPER DETECTED (after candidate load): baseline output on the stashed probe input changed after candidate code was loaded. The candidate has modified trusted state (official module, baseline, or torch math). Run aborted; nothing recorded as a result.
+exit=1
+
+$ python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt02_addrcache.py --ledger Project/audits/redteam_v1.0.2/ledger.jsonl
+{
+  "entry_id": "20260828-110749-79d525",
+  "correct": false,
+  "promoted": false,
+  "note": "timing skipped: correctness failed"
+}
+exit=2

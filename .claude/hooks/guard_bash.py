@@ -50,20 +50,34 @@ WRITE_PATTERNS = [pat.replace("--hard", "--ha\\S*").replace("--recursive", "--re
 
 
 def recursive_rm_outside_tmp(command: str) -> bool:
-    """True when an rm with a recursive flag targets ANY operand outside /tmp
-    (codex round 4: a /tmp operand must not exempt the rest of the command)."""
+    """Best-effort accident catch, deny-biased — NOT an invariant (a regex/split
+    seatbelt cannot fully parse shell; the real protections are the manifest
+    pin, deny rules, and git history). Flags any rm-like invocation (rm,
+    /bin/rm, sudo rm, env X= rm) carrying a recursive flag whose targets are
+    not plainly, safely under /tmp. Quotes or .. anywhere → deny outright."""
     for segment in re.split(r"[|;&]+", command):
         tokens = segment.strip().split()
-        if not tokens or tokens[0] != "rm":
+        rm_index = next((i for i, tok in enumerate(tokens)
+                         if tok.split("/")[-1] == "rm"), None)
+        if rm_index is None:
             continue
-        flags = [t for t in tokens[1:] if t.startswith("-")]
-        operands = [t for t in tokens[1:] if not t.startswith("-")]
+        rest = tokens[rm_index + 1:]
+        flags = [t for t in rest if t.startswith("-") and t != "--"]
+        operands = [t for t in rest if not t.startswith("-") or
+                    (rest.index(t) > rest.index("--") if "--" in rest else False)]
+        operands = [t for t in rest if t == "--" or not t.startswith("-")]
+        operands = [t for t in operands if t != "--"]
         recursive = any(
             ("recursive".startswith(t[2:]) and len(t) > 2) if t.startswith("--")
             else any(c in "rR" for c in t[1:])
             for t in flags
         )
-        if recursive and any(not op.startswith("/tmp/") for op in operands):
+        if not recursive:
+            continue
+        suspicious = ('"' in segment or "'" in segment or ".." in segment)
+        if suspicious:
+            return True
+        if any(not op.startswith("/tmp/") for op in operands):
             return True
     return False
 

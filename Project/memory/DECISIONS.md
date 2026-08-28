@@ -48,6 +48,12 @@ Also adopted its recorder caveat: record-verdict now requires the source log to 
 - "Zero edits ever" wording contradicted runner-written results and planned amendments — checklist now states the exact post-approval write surface (Claude tools: none; pinned runner: results files; amendments: formal re-freeze procedure).
 - Its epistemics adopted: "a verifier inside modifiable code cannot support an absolute never-self-certify claim" — wording softened to the cooperative-model claim with the external git/manifest audit as the absolute layer. Docstring version header also fixed (was stale v0.9.3).
 
+**Codex round 5 (on 7ad64de/81e077b): NO — 2 blockers, both adopted:**
+- Its shell-bypass proofs (sudo rm, /bin/rm, quoted operands, /tmp/.. escapes) were conceded on principle: a regex seatbelt cannot parse shell, so the "recursive deletes allowed only under /tmp" INVARIANT claim was deleted everywhere and the guard is now documented as best-effort + deny-biased (basename matching, quote/.. auto-deny) — while the load-bearing protections remain the pin, deny rules, and git.
+- The write-surface contract now lists the runner's COMPLETE output set (journal, leaderboard, scratch ledgers, packets, verdicts) and is scoped to the lifetime of the current freeze.
+- Its evidence standard adopted: red-team runs under v1.0.2 are now committed as durable artifacts (Project/audits/redteam_v1.0.2/ — transcript + ledger; rt01 leaves no ledger entry by design, the transcript records its abort).
+- Stale STATE line (v1.0.1) corrected; frozen commits named in STATE as the checklist promises.
+
 ## 28 Aug 2026 — overnight build (user asleep, gave 5h go)
 
 Scope granted: build all infrastructure + ONE demo test through the pipeline. Do NOT start the full optimization grind.

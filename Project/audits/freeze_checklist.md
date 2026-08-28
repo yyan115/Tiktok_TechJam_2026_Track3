@@ -16,8 +16,8 @@
 - Enforcement, stated precisely: your deny rules lock Claude's file-editing tools; they
   do NOT cover writes by arbitrary subprocesses (per Claude Code's own docs). What covers
   those: the manifest pin (a changed runner refuses to run), committed hashes + git
-  history (any tamper is visible and provable), and the Bash guard hook (an accident
-  seatbelt only).
+  history (any tamper is visible and provable), and the Bash guard hook — which is a best-effort
+  accident seatbelt, explicitly NOT an invariant (it cannot fully parse shell).
 
 ## Your steps
 1. Open `.claude/settings.json`, add inside `"deny": [...]` (comma after previous entry):
@@ -30,13 +30,16 @@
 2. Restart the Claude session (`claude --continue` works). This arms ALL locks.
 3. Verify: ask Claude to try editing `torch_transformer_benchmark.py` AND
    `Project/harness/runner.py` — both must be blocked. If not, stop and say so.
-4. Say **"freeze approved"**. After that, the write surface is exactly this:
-   - Claude's tools: NO edits to the harness or any protected file, ever. The one
+4. Say **"freeze approved"**. From then on, FOR THE LIFETIME OF THIS FREEZE (i.e.
+   until a formal re-freeze you approve), the write surface is exactly this:
+   - Claude's tools: NO edits to the harness or any protected file. The one
      post-approval write is the approval note in `Project/memory/DECISIONS.md` (the
      memory diary — deliberately outside the protected set).
-   - The pinned runner itself: continues to append the journal and regenerate the
-     leaderboard under `Project/results/` — that is its job and those files are
-     runner-written by design.
+   - The pinned runner (its complete write surface, all by design): appends
+     `Project/results/JOURNAL.jsonl`, regenerates `Project/results/LEADERBOARD.md`,
+     appends any explicitly-passed `--ledger` scratch file, writes evidence packets
+     under `Project/audits/packets/`, and appends `Project/audits/verdicts.jsonl`
+     via `record-verdict`.
    - Future harness amendments (shape-14 oracle, official-acceptance subcommand): only
      via the formal re-freeze procedure — you approve a pin update, then full
      re-validation and re-audit before further results count.
