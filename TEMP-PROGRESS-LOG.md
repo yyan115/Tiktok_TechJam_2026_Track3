@@ -5,7 +5,7 @@
 ## Where things stand (10-second version)
 
 Everything is built, tested, and committed on branch `initial-architecture` (pushed to GitHub).
-The referee works and already has one verified result: **1.61x speedup on test size 1**.
+The referee works and already has one verified result: **1.61x speedup on test size 1** (measurement auditor-certified genuine; flagged as development-reference-only for the final answer, since the webinar's custom-kernels-only rule excludes its PyTorch-builtin approach from shipping — the grind's own kernels are what ship).
 It survived 4 rounds of independent AI review — flaws were found, fixed, and re-verified each time.
 Nothing can start until you do the steps below.
 

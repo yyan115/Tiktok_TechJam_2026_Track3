@@ -27,6 +27,13 @@ python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/r
 python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt02_addrcache.py  --ledger /tmp/rt.jsonl   # MUST print correct:false, promoted:false
 ```
 
+**Auto-audit (mechanical):** a PostToolUse hook runs `Project/tools/champion_watch.py` after
+every shell command; each NEWLY crowned champion launches a detached blind codex audit
+(`Project/tools/audit_champion.py`) whose verdict self-records via `record-verdict`.
+Logs: `Project/audits/auto/` (gitignored). Verdicts: `Project/audits/verdicts.jsonl`
+(committed) → leaderboard audit column. RULE_VIOLATION = ineligible to ship (stays a
+development datapoint); JUDGE_ERROR/TIMEOUT never block. Manual recording, same recorder:
+
 Recording an audit verdict against a journal entry (binds auditor output to the entry;
 the leaderboard's audit column reads this):
 ```
