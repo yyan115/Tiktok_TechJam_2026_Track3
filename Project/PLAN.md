@@ -17,6 +17,7 @@ Fable (Claude) invents faster implementations → a deterministic trusted runner
 - **Sol verdicts:** one JSON schema — PASS · RETEST (one round, fixed test menu executed by the trusted runner) · NEEDS_CONTEXT (missing *factual* evidence only) · RULE_VIOLATION; infrastructure failures are JUDGE_ERROR / TIMEOUT and **never block continued optimization**. First-pass audits are blind (neutral runner-generated evidence packet, no Fable commentary).
 - **Dtype policy:** the primary official leaderboard uses the default FP32 baseline (script defaults, TF32 as shipped). Candidates may use reduced precision internally if they pass against that FP32 reference. Whole-benchmark FP16/BF16 runs are secondary profiles, never compared against FP32 runs.
 - **Timebox:** Stage 0 + Stage 1 ≤ half a day combined; infrastructure is minimal. The deadline that matters is the first real optimized candidate measured on the GPU.
+- **Scoring reality (webinar, 28 Aug):** the organizers score a weighted sum of per-shape MFUs (bandwidth considered), and a shape that fails precision scores ZERO. So: every shape must pass; MFU gets measured and reported per result (via the amendment bundle); the RTX 3060 Ti is the primary device ("your own machine" is the stated spirit — consumer cards named on their slide); rental is minimal, for shape 14 only. Custom implementations only — no open-source kernel wrapping (their explicit rule).
 
 ## Stages
 
