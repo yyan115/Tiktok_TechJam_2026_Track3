@@ -162,7 +162,11 @@ def _make_block_forward(otb):
         k = k.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
         v = v.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
 
-        if attn.head_dim <= 64 and seq_len % 32 == 0:
+        # The graphed path always passes valid_token_mask=None; a real (padded)
+        # mask only arrives via the eager fallback and must mask invalid keys
+        # before softmax, exactly like the baseline. The Triton kernel has no
+        # key-mask support, so any real mask takes the matmul path.
+        if valid_token_mask is None and attn.head_dim <= 64 and seq_len % 32 == 0:
             context = triton_attention(q, k, v, attn.scale, causal)  # fp16 in/out, fp32 accum
         else:
             scores = torch.matmul(q, k.transpose(-2, -1)) * attn.scale
@@ -170,10 +174,15 @@ def _make_block_forward(otb):
                 cm = torch.ones((seq_len, seq_len), device=x.device,
                                 dtype=torch.bool).triu(diagonal=1)
                 scores = scores.masked_fill(cm, float("-inf"))
+            if valid_token_mask is not None:
+                scores = scores.masked_fill(
+                    ~valid_token_mask[:, None, None, :], float("-inf"))
             context = torch.matmul(
                 torch.softmax(scores.float(), dim=-1).half(), v)
         context = context.transpose(1, 2).contiguous().view(batch, seq_len, d)
         attn_out = F.linear(context, cache["out_proj"][0], cache["out_proj"][1])
+        if valid_token_mask is not None:
+            attn_out = attn_out.masked_fill(~valid_token_mask[..., None], 0)
         x = x + attn_out.float()                           # residual fp32
 
         h = self.norm2(x)                                  # fp32
@@ -204,7 +213,7 @@ def build(otb, config):
         def _eager(self, x, valid_token_mask):
             return otb.BaselineTransformer.forward(self, x, valid_token_mask)
 
-        def forward(self, x, valid_token_mask=None, training=False):
+        def forward(self, x, valid_token_mask=None):
             if valid_token_mask is not None and not bool(valid_token_mask.all()):
                 return self._eager(x, valid_token_mask)
             state = getattr(self, "_graph_state", None)

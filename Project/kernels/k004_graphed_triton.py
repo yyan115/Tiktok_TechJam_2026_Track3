@@ -188,7 +188,7 @@ def build(otb, config):
         def _eager(self, x, valid_token_mask):
             return otb.BaselineTransformer.forward(self, x, valid_token_mask)
 
-        def forward(self, x, valid_token_mask=None, training=False):
+        def forward(self, x, valid_token_mask=None):
             if valid_token_mask is not None and not bool(valid_token_mask.all()):
                 return self._eager(x, valid_token_mask)
 
