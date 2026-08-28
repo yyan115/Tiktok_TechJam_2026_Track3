@@ -30,9 +30,10 @@ def model_flops(shape: Dict[str, Any]) -> float:
     return L * per_layer                 # norms/GELU negligible, stated
 ```
 
-**Device peak**: new file `Project/harness/device_peaks.json` mapping GPU name
-substring → fp32 peak TFLOPS (RTX 3060 Ti: 16.2; extend on rental day). If the
-device is unmapped, record `"mfu": null` — never guess a peak.
+**Device peak**: `Project/device_peaks.json` (CREATED 29 Aug, outside the
+locked harness dir) mapping GPU name substring → fp32 peak TFLOPS (RTX 3060
+Ti: 16.2 + common rental cards, spec-sheet sourced). If the device is
+unmapped, record `"mfu": null` — never guess a peak.
 
 **Insertion**: in `cmd_run` after line 770 (`entry["timing"] = timing`):
 

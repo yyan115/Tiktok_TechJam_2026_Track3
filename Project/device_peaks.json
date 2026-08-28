@@ -1,0 +1,13 @@
+{
+  "_comment": "fp32 peak TFLOPS per GPU (name substring match), for MFU reporting per amendment v1.1. Sources: NVIDIA spec sheets. Extend on rental day; never guess — an unmapped device records mfu=null.",
+  "peaks_fp32_tflops": {
+    "RTX 3060 Ti": 16.2,
+    "RTX 3090": 35.6,
+    "RTX 4090": 82.6,
+    "RTX A5000": 27.8,
+    "RTX A6000": 38.7,
+    "A100": 19.5,
+    "L40S": 91.6,
+    "H100": 67.0
+  }
+}
