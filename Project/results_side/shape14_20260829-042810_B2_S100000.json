@@ -1,0 +1,68 @@
+{
+  "candidate": {
+    "name": "k014_shape14",
+    "path": "Project/kernels/k014_shape14.py",
+    "sha256": "68d6204532e7041a11304748dd067cb0bb737b9ecd8aeb723c112eeb76b72a50"
+  },
+  "correctness": {
+    "passed": true,
+    "reference": "streamed fp32 oracle (validated vs pinned dense)",
+    "trials": [
+      {
+        "max_abs_err": 0.0009046792984008789,
+        "seed": 1234,
+        "violations": 0
+      }
+    ]
+  },
+  "env": {
+    "cuda": "13.0",
+    "driver": "610.57.04",
+    "evaluator_sha256": "621e98bbcbd4573cf1820d5e77b67c4f6cd33f60655011eb50853da9ce461a8a",
+    "gpu": "NVIDIA GeForce RTX 3060 Ti",
+    "hostname": "admin",
+    "python": "3.14.7",
+    "torch": "2.12.0+cu130"
+  },
+  "limitation": "official dense baseline infeasible at this shape; reference is the validated streamed oracle",
+  "memory": {
+    "peak_allocated_gib": 4.738025665283203,
+    "peak_reserved_gib": 5.431640625
+  },
+  "official": {
+    "official_commit": "31c1a27",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e"
+  },
+  "seeds": [
+    1234
+  ],
+  "shape": {
+    "batch_size": 2,
+    "causal": true,
+    "d_model": 1024,
+    "ffn_dim": 1024,
+    "id": 14,
+    "num_heads": 16,
+    "num_layers": 2,
+    "seq_len": 100000
+  },
+  "submission_sha256": "f2d373420b203e19b3b51072370522353c2ebc2ed182307ebe62a562eedab601",
+  "timestamp": "2026-08-29T04:28:10+0800",
+  "timing": {
+    "median_ms": 3656.92919921875,
+    "raw_samples_ms": [
+      3432.544922,
+      3484.1875,
+      3656.929199,
+      3977.842773,
+      3836.559326
+    ],
+    "repeats": 5,
+    "warmup": 2
+  },
+  "tolerance": {
+    "atol": 0.002,
+    "rtol": 0.02
+  },
+  "type": "shape14_side_evaluation"
+}
