@@ -15,6 +15,6 @@
     "Project/harness/ (from Stage-1 freeze onward)",
     "Project/results/ (runner-written only)"
   ],
-  "frozen_runner_sha256": "4fdfb97e1bf2859532064d0f0e64335c6cfa449fa7d239dfc2da3d9785725d95",
-  "_frozen_runner_note": "Pinned at freeze-candidate v1.0.1 on 2026-08-28. The runner refuses to run if its bytes differ from this pin. Any authorized harness change requires a user-approved update of this pin plus re-validation and re-audit."
+  "frozen_runner_sha256": "203aba8d2a0955d6f8bb0044812ba6f78d3cc147983dc26230c5811b2345c462",
+  "_frozen_runner_note": "Pinned at freeze-candidate v1.0.2 on 2026-08-28. Every runner subcommand verifies these hashes AND this pin before producing any output; under the cooperative trust model this makes accidental or self-modified drift self-defeating. The absolute guarantee is external: git history + this manifest let anyone re-verify the exact bytes. Authorized harness changes follow the re-freeze procedure: user-approved pin update + full re-validation + re-audit."
 }

@@ -1,12 +1,12 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-28 ~11:30 (v1.0.1 freeze candidate, review round 4 pending)
+Updated: 2026-08-28 ~12:00 (v1.0.2 freeze candidate, review round 5 pending)
 
 ## Where things stand
-- **Referee: v1.0.1, sha-PINNED in manifest.json (freeze candidate).** The pin makes tampering self-defeating: a modified runner refuses to run. Review history: Sol rejected v0.9.0 → Sol PASS (v0.9.2) → codex 14-finding review → v0.9.3 → codex confirmation (3 blockers) → v1.0.0 → codex round 3 (4 defects: freeze wording, guard holes, calibration-key gaps, stale state) → **v1.0.1** with manifest pin, threshold-checked champions, full-env calibration keys (python+triton included), flag-tolerant guard patterns, provenance-checked verdict recorder.
+- **Referee: v1.0.2, sha-PINNED in manifest.json (freeze candidate).** EVERY subcommand (measuring AND reporting) verifies the pin before producing output; under the cooperative trust model drift is self-defeating, and the absolute guarantee is external (git + manifest re-verification). Review history: Sol rejected v0.9.0 → Sol PASS (v0.9.2) → codex 14-finding review → v0.9.3 → codex confirmation (3 blockers) → v1.0.0 → codex round 3 (4 defects: freeze wording, guard holes, calibration-key gaps, stale state) → v1.0.1 (manifest pin) → codex round 4 (3 blockers: reporting subcommands bypassed the pin; /tmp-exemption + abbreviated-option guard holes; write-surface wording) → **v1.0.2** (all subcommands gated, tokenizing rm guard, precise write-surface documentation).
 - Current champion (re-validated under v1.0.1): k001_sdpa on shape 1, FP32 primary profile — see Project/results/LEADERBOARD.md for the exact number; both red-team attacks re-verified caught.
 - Both repos on branch `initial-architecture`, pushed. Track 2: lab bench v0.2.0 rebuilt after its own codex round 1 (8 findings), re-review pending.
-- Freeze-candidate commit: ddd89db + this hash-recording commit on top. Codex round 4 verdict lands in Project/audits/ + scratchpad logs.
+- Freeze-candidate commit: recorded in freeze_checklist.md bottom line after the v4 commit. Codex round 5 pending.
 
 ## User's next steps → TEMP-PROGRESS-LOG.md (repo root), then Project/audits/freeze_checklist.md
 Short version: paste 2 deny lines → restart → verify locks → "freeze approved" → "grind" → "go track 2".

@@ -1,10 +1,12 @@
 # Runner freeze — your approval steps (IN THIS ORDER)
 
 ## What you are approving, identified exactly
-- The referee: `Project/harness/runner.py`, **v1.0.1**, sha256 `4fdfb97e1bf2859532064d0f0e64335c6cfa449fa7d239dfc2da3d9785725d95`.
-  This same hash is PINNED in `Project/manifest.json` — from now on the runner refuses to
-  run at all if its bytes differ from the pin, so a modified referee can never bless its
-  own results. Changing the pin requires editing manifest.json, which your locks forbid
+- The referee: `Project/harness/runner.py`, **v1.0.2**, sha256 `203aba8d2a0955d6f8bb0044812ba6f78d3cc147983dc26230c5811b2345c462`.
+  This hash is PINNED in `Project/manifest.json`; EVERY runner subcommand (measuring and
+  reporting alike) verifies the pin before producing output, so under our cooperative
+  trust model, drifted referee bytes are self-defeating rather than self-certifying. The
+  absolute guarantee is external: git history + the manifest let anyone re-verify the
+  exact bytes. Changing the pin requires editing manifest.json, which your locks forbid
   to Claude's tools.
 - The frozen commit hash is recorded at the bottom of this file and in STATE.md.
 - Scope: shapes 1–13 (shape 14 refused until its chunked-oracle amendment, re-audited).
@@ -28,16 +30,22 @@
 2. Restart the Claude session (`claude --continue` works). This arms ALL locks.
 3. Verify: ask Claude to try editing `torch_transformer_benchmark.py` AND
    `Project/harness/runner.py` — both must be blocked. If not, stop and say so.
-4. Say **"freeze approved"**. After that, zero edits to the harness or any protected
-   file, ever. The single post-approval write is the approval note appended to
-   `Project/memory/DECISIONS.md` — the memory diary, which is deliberately OUTSIDE the
-   protected set (it's where approvals are supposed to be recorded).
+4. Say **"freeze approved"**. After that, the write surface is exactly this:
+   - Claude's tools: NO edits to the harness or any protected file, ever. The one
+     post-approval write is the approval note in `Project/memory/DECISIONS.md` (the
+     memory diary — deliberately outside the protected set).
+   - The pinned runner itself: continues to append the journal and regenerate the
+     leaderboard under `Project/results/` — that is its job and those files are
+     runner-written by design.
+   - Future harness amendments (shape-14 oracle, official-acceptance subcommand): only
+     via the formal re-freeze procedure — you approve a pin update, then full
+     re-validation and re-audit before further results count.
 
 ## Review trail
 Sol rounds 1–3: rejected v0.9.0 → PASS on v0.9.2. Codex handoff review: 14 findings →
 v0.9.3. Codex confirmation: 3 blockers + 1 overrule overturned → v1.0.0. Codex round 3:
-4 defects (freeze-wording contradiction, guard holes, calibration-key gaps, stale
-injected state) → fixed in v1.0.1 with the manifest pin added. Verdicts + raw-log
-hashes: `Project/audits/`.
+4 defects → v1.0.1 (manifest pin). Codex round 4: 3 blockers (pin didn't gate reporting
+subcommands; /tmp exemption hole + abbreviated-option bypasses in the guard; write-surface
+wording) → fixed in v1.0.2. Verdicts + raw-log hashes: `Project/audits/`.
 
-FROZEN COMMIT: ddd89db (branch initial-architecture)
+FROZEN COMMIT: (appended after the v4 commit)

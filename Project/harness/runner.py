@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trusted runner ("the referee"), v0.9.3.
+"""Trusted runner ("the referee"), v1.0.2.
 
 v0.9.2/v0.9.3 hardening (Sol round-3 minors + codex handoff review): candidate
 code executes from the exact hashed bytes; anti-cache pass re-randomizes values
@@ -69,7 +69,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-HARNESS_VERSION = "1.0.1"
+HARNESS_VERSION = "1.0.2"
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "Project"
@@ -889,13 +889,17 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    # Every subcommand — including reporting (leaderboard/packet/record-verdict)
+    # — verifies official files AND the runner pin before doing anything
+    # (codex round 4, blocker 1: no output may be produced under drifted bytes).
+    integrity = verify_hashes()
+
     if args.cmd == "env":
-        verify_hashes()
         import torch  # noqa: PLC0415
         print(json.dumps(env_fingerprint(torch), indent=2))
         return 0
     if args.cmd == "check":
-        print(json.dumps(verify_hashes(), indent=2))
+        print(json.dumps(integrity, indent=2))
         return 0
     if args.cmd == "calibrate":
         args.impl = None

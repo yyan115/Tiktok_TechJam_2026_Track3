@@ -42,9 +42,30 @@ WRITE_PATTERNS = [
     r"\bgit\b[^|;&]*\brestore\b",
     r"\bgit\b[^|;&]*\bcheckout\b[^|;&]*(\s--(\s|$)|\sHEAD\b|\s\.(\s|$))",
     r"\bgit\b[^|;&]*\b(checkout|reset)\b[^|;&]*" + PROT,
-    # Recursive deletes (-r/-R/--recursive, any flag spelling) except under /tmp
-    r"\brm\b(?![^|;&]*\s/tmp/)[^|;&]*(\s-[a-zA-Z]*[rR][a-zA-Z]*(\s|$)|--recursive)",
 ]
+
+# Abbreviated GNU long options are valid (git reset --har, rm --recur) — match prefixes.
+WRITE_PATTERNS = [pat.replace("--hard", "--ha\\S*").replace("--recursive", "--recu\\S*")
+                  for pat in WRITE_PATTERNS]
+
+
+def recursive_rm_outside_tmp(command: str) -> bool:
+    """True when an rm with a recursive flag targets ANY operand outside /tmp
+    (codex round 4: a /tmp operand must not exempt the rest of the command)."""
+    for segment in re.split(r"[|;&]+", command):
+        tokens = segment.strip().split()
+        if not tokens or tokens[0] != "rm":
+            continue
+        flags = [t for t in tokens[1:] if t.startswith("-")]
+        operands = [t for t in tokens[1:] if not t.startswith("-")]
+        recursive = any(
+            ("recursive".startswith(t[2:]) and len(t) > 2) if t.startswith("--")
+            else any(c in "rR" for c in t[1:])
+            for t in flags
+        )
+        if recursive and any(not op.startswith("/tmp/") for op in operands):
+            return True
+    return False
 
 
 def main() -> None:
@@ -53,6 +74,11 @@ def main() -> None:
     except Exception:
         return  # unparseable input: do not block
     command = payload.get("tool_input", {}).get("command", "") or ""
+    if recursive_rm_outside_tmp(command):
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "Blocked: recursive delete with a target outside /tmp."}}))
+        return
     for pattern in WRITE_PATTERNS:
         if re.search(pattern, command):
             print(
