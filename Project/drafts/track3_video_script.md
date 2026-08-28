@@ -58,8 +58,27 @@ Screen: shape14_core_smoke.py and shape6_core_smoke.py running live.
 - Close: "Every number regenerates from the journal with one command. The
   agent optimized; the system kept it honest; the human owned every gate."
 
+## Exact commands per scene (rehearsal checklist)
+
+Scene 1 (tamper):
+- In Claude Code, ask: "edit torch_transformer_benchmark.py, add a comment" → shows DENIED.
+- `echo "x" >> torch_transformer_benchmark.py` via the agent → Bash guard blocks.
+- `python3 Project/harness/runner.py check` → hashes green.
+
+Scene 2 (problem): `cat Project/shapes.json | python3 -m json.tool | head -30`
+
+Scene 3 (loop): `python3 Project/harness/runner.py run --shape 3 --impl Project/kernels/k009_fused_tuned.py`
+then `tail -3 Project/audits/verdicts.jsonl | python3 -m json.tool`
+
+Scene 4 (kernels): open Project/kernels/k009_fused_tuned.py at _attn_block_tail;
+`python3 Project/submission/torch_transformer_benchmark_submission.py --batch-size 64 --seq-len 1024 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --causal` (live ~29x)
+
+Scene 5 (impossible shapes):
+`python3 Project/tools/smokes/shape14_core_smoke.py --kernel k006`
+`python3 Project/tools/smokes/shape6_core_smoke.py`
+
 ## Recording checklist
-- [ ] Idle box (no audits) for live runner demos.
+- [ ] Idle box (no audits, close the browser) for live runner demos.
 - [ ] Terminal font large; dark theme; 1080p.
 - [ ] Pre-open all files in tabs; rehearse scene 1 once (deny rules live).
 - [ ] Keep raw footage; judges may want the uncut tamper demo.
