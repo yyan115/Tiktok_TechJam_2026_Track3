@@ -37,7 +37,11 @@ WRITE_PATTERNS = [
     r"\bchmod\b[^|;&]*" + PROT,
     r"\bln\b[^|;&]*" + PROT,
     r"\bgit\s+clean\b",                      # removes untracked files wholesale
-    r"\bgit\s+(checkout|restore|reset)\b[^|;&]*" + PROT,  # reverts protected files
+    r"\bgit\s+reset\s+--hard\b",            # discards tracked changes wholesale
+    r"\bgit\s+restore\b",                   # reverts files (any target)
+    r"\bgit\s+checkout\s+(\.|--\s)",        # checkout-as-revert forms
+    r"\bgit\s+(checkout|reset)\b[^|;&]*" + PROT,  # reverts naming protected files
+    r"\brm\s+-\S*r\S*\s+(\.|/|Project\b)",   # recursive delete of tree roots
 ]
 
 

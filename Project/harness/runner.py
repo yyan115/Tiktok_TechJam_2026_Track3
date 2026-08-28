@@ -69,7 +69,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-HARNESS_VERSION = "0.9.3-unfrozen"
+HARNESS_VERSION = "1.0.0"
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "Project"
@@ -613,11 +613,19 @@ def regenerate_leaderboard() -> str:
         # file (version AND sha) — any harness edit retires prior champions to
         # "legacy" until re-measured (codex handoff review finding 9).
         current_runner_sha = sha256_file(Path(__file__).resolve())
+        cals = [e for e in entries if e.get("type") == "calibration"
+                and (e["shape_id"], e["env"]["gpu"], e["dtype"]) == (shape_id, gpu, dtype)]
+        latest_cal_key = calibration_match_key(cals[-1]) if cals else None
         promoted = [
             e for e in group
             if e.get("promoted")
             and e.get("env", {}).get("harness_version") == HARNESS_VERSION
             and e.get("env", {}).get("runner_sha256") == current_runner_sha
+            # full-environment like-for-like: same key as the group's latest
+            # calibration (codex confirmation review: grouping must not let
+            # unlike environments compete for champion)
+            and latest_cal_key is not None
+            and calibration_match_key(e) == latest_cal_key
         ]
         champion_id = None
         if promoted:
@@ -851,6 +859,15 @@ def main() -> int:
     p_pk = sub.add_parser("packet", help="write a neutral evidence packet")
     p_pk.add_argument("--id", required=True)
 
+    p_rv = sub.add_parser("record-verdict",
+                          help="bind an auditor verdict to a journal entry")
+    p_rv.add_argument("--id", required=True, help="journal entry_id the audit covered")
+    p_rv.add_argument("--verdict", required=True,
+                      choices=("PASS", "RETEST", "NEEDS_CONTEXT", "RULE_VIOLATION",
+                               "JUDGE_ERROR", "TIMEOUT"))
+    p_rv.add_argument("--source", required=True,
+                      help="path of the raw auditor log this verdict came from")
+
     args = parser.parse_args()
 
     if args.cmd == "env":
@@ -872,6 +889,20 @@ def main() -> int:
         return 0
     if args.cmd == "packet":
         return cmd_packet(args)
+    if args.cmd == "record-verdict":
+        entries = read_journal()
+        if not any(e.get("entry_id") == args.id for e in entries):
+            raise SystemExit(f"entry {args.id} not found in journal")
+        VERDICTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(VERDICTS_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "entry_id": args.id, "verdict": args.verdict,
+                "source_log": args.source,
+                "recorded": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            }, sort_keys=True) + "\n")
+        regenerate_leaderboard()
+        print(f"recorded {args.verdict} for {args.id}")
+        return 0
     return 1
 
 

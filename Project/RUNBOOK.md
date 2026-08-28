@@ -15,8 +15,23 @@ python3 Project/harness/runner.py leaderboard               # regenerate LEADERB
 python3 Project/harness/runner.py packet --id ENTRYID       # neutral evidence packet for audits
 ```
 Add `--ledger /tmp/somewhere.jsonl` to any run to keep test/red-team results OUT of the
-production journal. Red-team suite: run both files in `Project/harness/redteam/` with a
-scratch ledger; rt01 must abort with TAMPER, rt02 must fail correctness.
+production journal.
+
+**Serialization rule: exactly ONE runner process at a time.** The journal has no file
+locking by deliberate decision (single-operator project); running two evaluations
+concurrently voids the ledger's integrity assumptions.
+
+Red-team suite (run after any harness change; expected results shown):
+```
+python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt01_monkeypatch.py --ledger /tmp/rt.jsonl   # MUST abort: TAMPER DETECTED
+python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt02_addrcache.py  --ledger /tmp/rt.jsonl   # MUST print correct:false, promoted:false
+```
+
+Recording an audit verdict against a journal entry (binds auditor output to the entry;
+the leaderboard's audit column reads this):
+```
+python3 Project/harness/runner.py record-verdict --id ENTRYID --verdict PASS --source Project/audits/<which_review>.log
+```
 
 ## Candidate contract (files in Project/kernels/)
 `build(otb, config) -> torch.nn.Module` — fresh model, parameter names identical to the
@@ -41,3 +56,7 @@ session transcripts).
   auto-retire to "legacy" → re-run champions to re-establish.
 - Fresh session lost? `Project/memory/STATE.md` is auto-injected on start; CLAUDE.md points
   everywhere else.
+- Enforcement layers, honestly ranked: (1) deny rules in `.claude/settings.json` — the
+  actual lock; (2) committed hashes + git history — makes tampering visible and provable;
+  (3) the Bash guard hook — a seatbelt that catches accidents, never the load-bearing
+  protection.
