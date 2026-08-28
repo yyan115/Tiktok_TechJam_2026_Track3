@@ -1,8 +1,9 @@
-# Outer-loop proposal, DRAFT 3 — post review round 2
+# Outer-loop proposal, DRAFT 4 — post review round 3 ("narrow REVISE; strategy converged")
 
-29 Aug ~06:00. Round 2 returned REVISE(6); every item is applied below.
-Residual-disagreement resolutions accepted as reworded by the reviewer.
-No implementation until convergence + owner approval.
+29 Aug ~06:40. Round 3 accepted the strategy and both prior disagreement
+resolutions; its two remaining contract gaps are closed below (sections 1
+and 3), and its minor operational notes are applied. No implementation
+until convergence + owner approval.
 
 ## 0. Corrections of record (round-2 item 1) — DONE, not promised
 - Research notes rewritten IN PLACE as source-of-truth (stale 6.7x framing,
@@ -15,26 +16,36 @@ No implementation until convergence + owner approval.
   leftover deleted; strategy prompts + verdict extracts committed, raw
   reviewer logs gitignored per LESSONS 14.
 
-## 1. Experiment-card outer loop (binding rules, round-2 item 2)
-Cards in Project/loop/cards.jsonl, schema as draft 2, PLUS binding rules:
-- Budget counts CUMULATIVE DIRECTION-FAMILY spend (a family = card + its
-  descendants/renames); >= 60 min of family spend requires a critic pass —
-  splitting or renaming cards cannot evade it.
-- Prediction = a PREREGISTERED quantitative range on a named metric in the
-  card; a miss is decided by the recorded range, not judgment after the
-  fact. TWO independent quantitative misses in a family (regardless of
-  interleaving) => review_required.
-- Hitting kill-criteria, requesting a budget extension, or reaching the
-  organizer-answer cutoff each TRIGGER review_required on their own.
-- review_required BLOCKS descendant cards until every critic recommendation
-  is disposed: accept | reject-with-evidence | defer-until-condition (the
-  condition recorded). Critic verdicts are continue | narrow | kill; killed
-  directions reopen only on their recorded changed-premise or explicit
-  owner override. All dispositions logged in the card (decision closure).
-- Card creation is 10-15 minutes by hand; NO beam/process tooling beyond
-  cards.jsonl + lineage.jsonl + the sensitivity-board generator script.
-Lineage (Project/loop/lineage.jsonl) and a small top-K live set per
-direction as in draft 2.
+## 1. Experiment-card outer loop (binding rules; round-3 evasions closed)
+Cards in Project/loop/cards.jsonl. Schema adds (round 3): immutable
+`direction_family_id` assigned at family creation and inherited by every
+descendant/variant/rename — the SAME technical direction reopened under a
+new root card KEEPS the old family id, its spend, and its miss count;
+`parent_card_id` linkage; `actual_minutes` charged per work session;
+prediction fields carry the metric, the preregistered range, AND the
+hardware/workload regime + evidence references they were made under.
+Binding rules:
+- Budget counts CUMULATIVE FAMILY `actual_minutes`; >= 60 min requires a
+  critic pass. Splitting, renaming, or re-rooting cannot reset it.
+- A preregistered-range miss is decided by the recorded range. TWO
+  independent quantitative misses in a family (regardless of interleaving)
+  => review_required.
+- Kill-criteria hit, budget-extension request, or organizer-cutoff each
+  trigger review_required on their own.
+- review_required PAUSES ALL WORK IN THE FAMILY — current-card variants
+  included, not just descendants — until every critic recommendation is
+  disposed: accept | reject-with-evidence | defer-until-condition. Deferred
+  scope REMAINS PAUSED until its recorded condition occurs. Critic verdicts
+  are continue | narrow | kill; killed directions reopen only on their
+  recorded changed-premise or explicit owner override. All dispositions
+  logged in the card (decision closure).
+- Beam: FIXED K=3 live candidates per direction family, admitted only if
+  they differ in HYPOTHESIS CLASS (not tile-size variants of one idea);
+  eviction = lowest measured result on the card's named metric; evictions
+  recorded in lineage.
+- Card creation is 10-15 minutes by hand; NO tooling beyond cards.jsonl +
+  lineage.jsonl + the sensitivity-board generator script.
+Lineage (Project/loop/lineage.jsonl) as in draft 2, plus family ids.
 
 ## 2. Score model (round-2 item 3)
 - Organizer questions (owner sends TODAY): weights; MFU precision/peak
@@ -69,8 +80,16 @@ One card covers candidate + evaluator + acceptance, end to end:
   runner-integrated evidence, everything is prototyped first and exactly
   ONE consolidated re-freeze happens late (a runner edit retires every
   champion per RUNBOOK — that cost is paid at most once, deliberately).
-- Sensitivity-board generator is an EXTERNAL script reading the journal —
-  no runner edit needed for MFU reporting either.
+- EVIDENCE CONTRACT (round 3): (i) the streamed oracle is VALIDATED against
+  the pinned official dense implementation at feasible sequence lengths —
+  full-model, multi-seed — before it referees anything; (ii) the full-scale
+  B=32/S=100000 run produces an IMMUTABLE evidence packet binding: evaluator
+  sha, candidate + submission shas, official-script sha, config,
+  device/environment fingerprint, seeds, correctness/error statistics, raw
+  timing samples, and peak allocated/reserved memory. The packet lives in
+  Project/results_side/ (NOT the runner-owned JOURNAL.jsonl — the freeze
+  contract reserves that for the frozen runner). The sensitivity board
+  ingests BOTH the runner journal and side-evaluator packets.
 - Dispatcher acceptance: the submission file's big-d route gains the FA2
   path behind the same exact-fallback guards; all-dials regression re-run.
 
@@ -92,6 +111,12 @@ registration verified; branch backup (done).
    (attention retune), selected by the then-current score scenario.
 5. Sequence-persistent 3/4/12 and shape 2: CUT unless coverage, rental
    evidence, submission, README, and video are all green.
+Round-3 minors applied: Cards 1→2 are PRIORITY order, not finish-to-start —
+Card 2's no-graph route is proven locally before any conditional shape-6
+rental piggyback. Card 4 tie-break predeclared: if score scenarios disagree,
+pick shape 11 (larger absolute anomaly); if evidence is ambiguous, skip
+Card 4 entirely. Packaging/recording occupies 31 Aug noon → 01 Sep 02:00;
+the final ten hours are reproduction + submission contingency only.
 - Torch-profiler table: retained as a BOUNDED DIAGNOSTIC on promoted
   survivors (not a gate, no universal claims); NCU selected-metrics only on
   the current direction's hotspot.

@@ -33,10 +33,15 @@ kernels are already correctness-proven locally (shape6/shape14 core smokes).
    (k009 as of 29 Aug — check LEADERBOARD) — batch 10000 = 1.28M tokens is
    deep-grid territory; if speedup disappoints, retune BLOCK_T/BLOCK_M, one
    committed tuning round max.
-3. Shape 14 (needs amendment v1.1 approved + applied BEFORE rental day):
-   oracle-path correctness at full scale, then candidate-only timing + MFU.
-   Use the current big-d champion (k010 = k006 + fused LN/GELU as of 29 Aug):
-   d=1024/L=2/hd=64 rides its proven Triton attention at seq=100k.
+3. Shape 14 (SUPERSEDES the old amendment-v1.1 requirement, 29 Aug review):
+   evidence comes from the INDEPENDENTLY PINNED side evaluator
+   (Project/tools/shape14_eval.py per harness_v2_proposal Card 1) — the
+   frozen runner is NOT edited. Sequence: streamed-oracle validation vs the
+   official dense path at feasible lengths (done locally), then ONE
+   full-scale B=32/S=100000 run producing the immutable evidence packet
+   (shas, env, seeds, error stats, raw samples, peak memory) into
+   Project/results_side/. Candidate = the FA2-style authored attention
+   inside the big-d stack (Card 1), not plain k010.
 4. Re-run the FULL 12-shape ship set once on the rented card as a secondary
    profile (cheap, ~10 min) — cross-device evidence for the narrative, never
    mixed with the primary RTX 3060 Ti board.
@@ -50,7 +55,7 @@ per shape, then take the number.
 
 ## Preconditions checklist (do at home, free)
 
-- [ ] Amendment v1.1 reviewed by user, applied, Sol-audited, re-frozen.
+- [ ] Card-1 side evaluator built + oracle validated locally (replaces the old amendment-v1.1 precondition).
 - [ ] device_peaks.json entries for candidate rental cards.
 - [ ] Shape-6/14 smokes green at HEAD (they are, 28 Aug).
 - [ ] Idle re-pass of the local board done (Stage-5 obligation + 2 RETESTs).
