@@ -228,9 +228,15 @@ def _make_block_forward(otb):
         d = attn.d_model
         q, k, v = qkv.split(d, dim=-1)
         batch, seq_len, _ = x.shape
+        long_seq = seq_len >= 16384
         q = q.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
         k = k.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
         v = v.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+        if long_seq:
+            # Long-sequence memory discipline: the packed QKV staging buffer
+            # and the LN output are dead once q/k/v are materialized — at
+            # S=100k they are ~0.8 GB together per micro-batch.
+            del qkv, h16
 
         # The graphed path always passes valid_token_mask=None; a real (padded)
         # mask only arrives via the eager fallback and must mask invalid keys
@@ -250,6 +256,25 @@ def _make_block_forward(otb):
             context = torch.matmul(
                 torch.softmax(scores.float(), dim=-1).half(), v)
         context = context.transpose(1, 2).contiguous().view(batch, seq_len, d)
+        if long_seq and valid_token_mask is None:
+            # Sequence-chunked tail: out-proj + residual + norm2 + FFN +
+            # residual computed on seq slices into a fresh fp32 buffer —
+            # per-token math is row-wise, so chunking is exact; transients
+            # shrink from O(S) to O(chunk).
+            del q, k, v
+            x_new = torch.empty_like(x)
+            CH = 16384
+            for s0 in range(0, seq_len, CH):
+                s1 = min(s0 + CH, seq_len)
+                a = F.linear(context[:, s0:s1], cache["out_proj"][0],
+                             cache["out_proj"][1])
+                x2 = x[:, s0:s1] + a.float()
+                h16c = _ln_to_fp16(self.norm2, x2)
+                hid = F.linear(h16c, ffn_cache["ffn_in"][0], ffn_cache["ffn_in"][1])
+                hid = _gelu_fp16_(hid)
+                f = F.linear(hid, ffn_cache["ffn_out"][0], ffn_cache["ffn_out"][1])
+                x_new[:, s0:s1] = x2 + f.float()
+            return x_new
         attn_out = F.linear(context, cache["out_proj"][0], cache["out_proj"][1])
         if valid_token_mask is not None:
             attn_out = attn_out.masked_fill(~valid_token_mask[..., None], 0)
