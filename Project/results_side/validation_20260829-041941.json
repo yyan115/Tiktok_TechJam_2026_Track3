@@ -1,0 +1,84 @@
+{
+  "criterion": "oracle must match pinned dense within 1e-4 abs (fp32 reassociation only)",
+  "env": {
+    "cuda": "13.0",
+    "driver": "610.57.04",
+    "evaluator_sha256": "621e98bbcbd4573cf1820d5e77b67c4f6cd33f60655011eb50853da9ce461a8a",
+    "gpu": "NVIDIA GeForce RTX 3060 Ti",
+    "hostname": "admin",
+    "python": "3.14.7",
+    "torch": "2.12.0+cu130"
+  },
+  "official": {
+    "official_commit": "31c1a27",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e"
+  },
+  "passed": true,
+  "results": [
+    {
+      "batch": 2,
+      "max_abs_err": 9.5367431640625e-07,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 9.5367431640625e-07,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 9.5367431640625e-07,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 1.430511474609375e-06,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 2048
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 1.430511474609375e-06,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 2048
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 1.430511474609375e-06,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 2048
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 1.1920928955078125e-06,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 4096
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 9.5367431640625e-07,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 4096
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 1.1920928955078125e-06,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 4096
+    }
+  ],
+  "timestamp": "2026-08-29T04:19:41+0800",
+  "type": "oracle_validation"
+}
