@@ -1,5 +1,12 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 ~02:35 — QUIET-BOX PASS DONE: ship board geomean ~11.0x; RETESTs closed
+
+- The "5 running audits" blocking the idle window were dead 0%-CPU bash wrappers — pgrep counts them but the box was quiet (load 1.6). Evidence line recorded in the run log. New etiquette: check per-process %CPU, not just pgrep.
+- Ship board (all quiet-box, all promoted): 1: 11.15 · 2: 14.98 · 3: 14.67 · 4: 7.93 · 5: 10.79 · 7: 21.50 · 8: 2.13 (k010) · 9: 7.24 · 10: 9.60 · 11: 14.64 · 12: 10.38 · 13: 29.34 — geomean ~11.0x. Load had cut both ways (9/10 better idle, 4/12 worse), vindicating the quiet-box rule.
+- Both auditor RETESTs answered exactly as requested: shape 2 strict recipe 13.24x stable; shape 12 wall/event 4.8% agreement, clean flags.
+- Overnight also: k010 (fused LN/GELU) took shape 8 to 2.13x; submission hardened against --compile-user; torch.compile comparison measured (7.0/3.1/1.2x vs our 13.5/29/2.0x); amendment code written insertion-ready; k008+k011 negative results documented with lessons.
+
 ## 29 Aug 2026 ~01:40 (Day 2 begins mid-grind) — k009 board + SUBMISSION ARTIFACT
 
 - k009 (k007 + widened autotune space) promoted everywhere it ran: geomean ≈ 11.4x. Shape 13: 29.12x, shape 7: 26.46x, shape 2: 17.05x (old tie obliterated). The interrupted sweep's shape 13 was re-run after confirming no runner process survived.

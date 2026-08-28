@@ -11,8 +11,10 @@ Day 1 = 28 Aug (today, ongoing) · Days 2-3 = grind + rental (48-80 GB card for 
 3. NEVER benchmark while codex audits run (`pgrep -f "codex exec"` must be empty) — contention INFLATES graphed-candidate ratios (LESSONS #19).
 4. Resume the lever queue below on branch `grind-day1`.
 
-## SCOREBOARD (29 Aug ~01:40 — k009 era; FP32 primary, RTX 3060 Ti; mostly under audit load, Stage-5 idle re-pass owed)
-k009 (@ a5d525f) champions: 1: 9.91x · 2: 17.05x · 3: 15.77x · 4: 11.65x · 5: 10.65x · 7: **26.46x** · 9: 5.63x · 10: 7.89x · 11: 15.33x · 12: 15.03x · 13: **29.12x**; k006 (@ d0341e5) shape 8: 1.79x — geomean ≈ **11.4x**. All 12 correct+promoted, tripwires clean, committed bytes.
+## SCOREBOARD — SHIP-GRADE (29 Aug 02:30 QUIET-BOX pass, load 1.6 evidenced; FP32 primary, RTX 3060 Ti; Stage-5 measurement obligation DISCHARGED)
+k009 (@ a5d525f): 1: 11.15x · 2: 14.98x · 3: 14.67x · 4: 7.93x · 5: 10.79x · 7: **21.50x** · 9: 7.24x · 10: 9.60x · 11: 14.64x · 12: 10.38x · 13: **29.34x**; k010 (@ 8157558) shape 8: 2.13x — **geomean ≈ 11.0x**. All 12 correct+promoted, tripwires clean, committed bytes, quiet box.
+BOTH AUDITOR RETESTS SATISFIED: shape 2 strict recipe (w20/r1000/x5) = 13.24x stable; shape 12 baseline wall/event agreement 4.8% (<10% required), no suspicious flags.
+Contention lesson refined: load cuts BOTH ways per shape (9/10 were better idle, 4/12 worse) — only quiet-box numbers are comparable.
 **SUBMISSION ARTIFACT BUILT + END-TO-END GREEN (@ 1bb6e63)**: Project/submission/torch_transformer_benchmark_submission.py = official script with ONLY the UserOptimizedTransformer region replaced (build_submission.py proves outside-region bytes identical); the UNTOUCHED official code paths report PASS + 12.88x (shape-3 dials), PASS + 1.84x (shape-8 dials), PASS + 13.07x (shape-11 dials). Regenerate after any dispatcher change.
 Two auditor RETESTs (k007-era shapes 2/12: idle-box, beefed recipe) are SUPERSEDED in target but not in spirit — apply their recipes to the current k009 champions during the idle re-pass.
 **SHAPE-14 CORE PROVEN**: k006 kernel at seq=100k causal vs chunked fp32 oracle — 0 violations, max err 6.99e-4, 305 MiB (Project/tools/smokes/shape14_core_smoke.py). **SHAPE-6 CORE PROVEN**: k007 full B=10000 vs batch-chunked official baseline — 0 violations, 3.4 GiB (shape6_core_smoke.py). Full-scale timing for both = rental day.
