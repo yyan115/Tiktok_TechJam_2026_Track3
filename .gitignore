@@ -1,0 +1,6 @@
+# Raw AI-review transcripts: contain private session data (paths, session IDs,
+# conversation content). Verdict JSONs and prompts ARE committed; raw logs never.
+Project/audits/*_raw.log
+
+__pycache__/
+*.pyc

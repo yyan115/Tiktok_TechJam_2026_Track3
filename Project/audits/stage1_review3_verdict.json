@@ -1,0 +1,49 @@
+{
+    "verdict": "PASS",
+    "findings": [
+        {
+            "severity": "note",
+            "file": "Project/harness/runner.py",
+            "issue": "All seven v0.9.1 hardening claims are implemented: pre-execution candidate hashing; pre-load trusted snapshots, baseline, and seed-424242 probe; two invariance checks; same-address fresh-value tripwire; four-buffer anti-cache timing and promotion gate; primary-profile/full-key calibration matching; raw samples and runner SHA recording; and explicit shape-14 refusal.",
+            "suggested_fix": ""
+        },
+        {
+            "severity": "note",
+            "file": "Project/harness/redteam/",
+            "issue": "Red-team evidence is consistent. rt01 patches baseline attention and the transcript records TAMPER DETECTED before journal construction; no rt01 row exists. rt02 is the stated address cache, failed the same-address tripwire, has timing=null, and was not promoted.",
+            "suggested_fix": ""
+        },
+        {
+            "severity": "note",
+            "file": "Project/results/JOURNAL.jsonl",
+            "issue": "The four v0.9.1 entries reconcile. Timed entries contain 300 baseline, 300 candidate, and 40 anti-cache samples. Anti-cache ratios recompute as 1.0003238814, 1.0015106358, and 1.0024602600. Calibration yields the recorded 1.03 threshold; k000 is correctly unpromoted and k001 promoted. The journaled runner SHA matches the pre-Round-3 runner preserved in the audit transcript; the current SHA differs only because of the reporting-only leaderboard patch.",
+            "suggested_fix": ""
+        },
+        {
+            "severity": "note",
+            "file": "Project/results/LEADERBOARD.md",
+            "issue": "Round-3 champion selection is fixed: eligibility requires the current harness_version, the v0.9.0 promotion is marked legacy, and the v0.9.1 k001 entry alone is starred as champion.",
+            "suggested_fix": ""
+        },
+        {
+            "severity": "minor",
+            "file": "Project/harness/runner.py",
+            "issue": "The candidate is hashed before execution, but SourceFileLoader independently reloads it and may reuse timestamp-valid .pyc bytecode after a same-second, same-size edit. This did not affect the audited entries, but it is a provenance edge case.",
+            "suggested_fix": "Compile and execute the already-read, hashed source bytes directly."
+        },
+        {
+            "severity": "minor",
+            "file": "Project/harness/runner.py",
+            "issue": "Each anti-cache buffer retains the same values for five timed calls per round. A deliberately adaptive address-plus-value memoizer could therefore evade the median check. Such code is conspicuous in source review and falls outside the stated cooperative trust model.",
+            "suggested_fix": "For stronger adversarial resistance, refill a buffer before every timed candidate invocation."
+        },
+        {
+            "severity": "note",
+            "file": "Project/harness/runner.py",
+            "issue": "Shape 14 is honestly excluded and refused, so it does not block the shapes 1\u201313 freeze. The documented same-process residual is acceptable under the cooperative, short-source-reviewed trust model, but would be unacceptable for hostile candidates.",
+            "suggested_fix": ""
+        }
+    ],
+    "retest_request": "",
+    "summary": "Sound to freeze for shapes 1\u201313. The requested hardening, evidence, journal arithmetic, and Round-3 leaderboard correction are valid; remaining issues are non-blocking under the explicitly cooperative trust model."
+}

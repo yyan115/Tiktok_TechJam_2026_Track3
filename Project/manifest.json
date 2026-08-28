@@ -1,0 +1,18 @@
+{
+  "_comment": "Integrity manifest. The trusted runner re-hashes these files before every run and refuses to proceed on mismatch. Any change to official files requires a new user-approved commit and manifest update.",
+  "official_commit": "31c1a27",
+  "created": "2026-08-28",
+  "files": {
+    "torch_transformer_benchmark.py": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e",
+    "tensorflow_transformer_benchmark.py": "00e99b6e1d19e961039b66eb3d3c055b36cc50f0436da2558f5f1fbe292ef798"
+  },
+  "protected_paths": [
+    "torch_transformer_benchmark.py",
+    "tensorflow_transformer_benchmark.py",
+    "README.md",
+    "Project/shapes.json",
+    "Project/manifest.json",
+    "Project/harness/ (from Stage-1 freeze onward)",
+    "Project/results/ (runner-written only)"
+  ]
+}

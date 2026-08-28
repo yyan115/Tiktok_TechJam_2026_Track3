@@ -1,0 +1,32 @@
+{
+  "_comment": "Immutable manifest of the 14 official test shapes from README.md appendix (updated 27 Aug 2026). Every runner invocation MUST reference a shape by id from this file. Never benchmark with raw CLI dials.",
+  "source": "README.md '3.7 Appendix Test shapes', copied from official track statement",
+  "framework": "pytorch",
+  "official_script": "torch_transformer_benchmark.py",
+  "cli_mapping": {
+    "batch_size": "--batch-size",
+    "d_model": "--d-model",
+    "num_heads": "--heads",
+    "seq_len": "--seq-len",
+    "num_layers": "--layers",
+    "ffn_dim": "--ffn-dim",
+    "causal": "--causal (flag; ALL shapes are causal=true; script default is FALSE — must always be passed)"
+  },
+  "shapes": [
+    { "id": 1,  "batch_size": 64,    "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 2,  "batch_size": 1,     "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 3,  "batch_size": 4,     "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 4,  "batch_size": 16,    "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 5,  "batch_size": 128,   "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 6,  "batch_size": 10000, "d_model": 128,  "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 7,  "batch_size": 64,    "d_model": 32,   "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 32 },
+    { "id": 8,  "batch_size": 64,    "d_model": 1024, "num_heads": 4,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 1024 },
+    { "id": 9,  "batch_size": 64,    "d_model": 128,  "num_heads": 1,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 10, "batch_size": 64,    "d_model": 128,  "num_heads": 2,  "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 11, "batch_size": 64,    "d_model": 128,  "num_heads": 16, "seq_len": 128,    "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 12, "batch_size": 64,    "d_model": 128,  "num_heads": 4,  "seq_len": 32,     "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 13, "batch_size": 64,    "d_model": 128,  "num_heads": 4,  "seq_len": 1024,   "num_layers": 4, "causal": true, "ffn_dim": 128 },
+    { "id": 14, "batch_size": 32,    "d_model": 1024, "num_heads": 16, "seq_len": 100000, "num_layers": 2, "causal": true, "ffn_dim": 1024,
+      "notes": "Naive baseline attention matrix = B*H*S^2 = 5.12e12 elements (multi-TB): official script cannot complete this shape on any hardware. Correctness at full scale uses the independently validated chunked reference (Stage 4). Official-script acceptance applies to every feasible shape; this limitation must be stated wherever shape-14 results are reported." }
+  ]
+}
