@@ -6,7 +6,7 @@ Updated: 2026-08-28 ~11:30 (v1.0.1 freeze candidate, review round 4 pending)
 - **Referee: v1.0.1, sha-PINNED in manifest.json (freeze candidate).** The pin makes tampering self-defeating: a modified runner refuses to run. Review history: Sol rejected v0.9.0 → Sol PASS (v0.9.2) → codex 14-finding review → v0.9.3 → codex confirmation (3 blockers) → v1.0.0 → codex round 3 (4 defects: freeze wording, guard holes, calibration-key gaps, stale state) → **v1.0.1** with manifest pin, threshold-checked champions, full-env calibration keys (python+triton included), flag-tolerant guard patterns, provenance-checked verdict recorder.
 - Current champion (re-validated under v1.0.1): k001_sdpa on shape 1, FP32 primary profile — see Project/results/LEADERBOARD.md for the exact number; both red-team attacks re-verified caught.
 - Both repos on branch `initial-architecture`, pushed. Track 2: lab bench v0.2.0 rebuilt after its own codex round 1 (8 findings), re-review pending.
-- Codex round 4 (Track 3) pending on the v3 commit; its verdict lands in Project/audits/ + scratchpad logs.
+- Freeze-candidate commit: ddd89db + this hash-recording commit on top. Codex round 4 verdict lands in Project/audits/ + scratchpad logs.
 
 ## User's next steps → TEMP-PROGRESS-LOG.md (repo root), then Project/audits/freeze_checklist.md
 Short version: paste 2 deny lines → restart → verify locks → "freeze approved" → "grind" → "go track 2".

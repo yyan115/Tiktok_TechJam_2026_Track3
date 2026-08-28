@@ -40,4 +40,4 @@ v0.9.3. Codex confirmation: 3 blockers + 1 overrule overturned → v1.0.0. Codex
 injected state) → fixed in v1.0.1 with the manifest pin added. Verdicts + raw-log
 hashes: `Project/audits/`.
 
-FROZEN COMMIT: (appended after the v3 commit — see the line below)
+FROZEN COMMIT: ddd89db (branch initial-architecture)
