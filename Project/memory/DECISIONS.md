@@ -1,5 +1,13 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 ~20:15 — "stop waiting": concurrency protocol + k006 screened + shape-14 re-proven
+
+- User: "stop waiting, try concurrent tests." Protocol adopted: timing runs on small launch-bound shapes stay idle-box-only (contention inflates ratios, LESSONS #20), but everything else runs concurrently with audits — provisional screening sweeps go to a SCRATCH ledger (runner --ledger; no journal pollution, no audit triggers), and correctness-only / big-kernel GPU work proceeds anytime.
+- k006 screening (contention-era, provisional): 12/12 correct; clearly ahead on its targets — shape 8: 1.82x (champ 1.58x), 9: 1.65x (1.42x), 10: 2.89x (2.44x) — plus screened-ahead on 1/4/12. Behind on 2/3/7/11 (those champions stand). Promotion re-runs on the idle box decide.
+- Shape-14 core RE-PROVEN from a durable committed script (Project/tools/smokes/shape14_core_smoke.py) with k006: seq=100k causal, 0 violations, max err 6.99e-4, 305 MiB. The original proof script had been wiped with its session scratchpad (LESSONS #19) — smokes now live in-repo.
+- Shape 6 empirically confirmed rental-only: baseline OOMs on 8GB (probe, 28 Aug).
+- New audit wave landing ALL PASS — auditors now certify the signature contract satisfied and no measurement gaming; the two real findings from the transition window are closed in the record.
+
 ## 28 Aug 2026 (late) — user's timeline correction + audit-triage fixes; grind CONTINUES
 
 - USER CORRECTION (binding): the window is ~4 days, TODAY (28 Aug) is Day 1, and days are never "closed" — Claude works continuously, 24/7, until everything is exhausted or the user says stop. "go" given for the session.
