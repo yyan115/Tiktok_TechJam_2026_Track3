@@ -1,5 +1,11 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 ~01:40 (Day 2 begins mid-grind) — k009 board + SUBMISSION ARTIFACT
+
+- k009 (k007 + widened autotune space) promoted everywhere it ran: geomean ≈ 11.4x. Shape 13: 29.12x, shape 7: 26.46x, shape 2: 17.05x (old tie obliterated). The interrupted sweep's shape 13 was re-run after confirming no runner process survived.
+- THE SHIP ARTIFACT EXISTS: submission = official script with only the designated UserOptimizedTransformer region replaced (dispatcher: k009 megakernel for d<=128, fp16 graphed stack for d>128, exact baseline fallback for masks/CPU/no-triton/non-fp32). tools/build_submission.py regenerates it and PROVES the outside-region bytes are official. The untouched official code paths grade it PASS with 12.9x/1.8x/13.1x on three dial sets — Stage-5 acceptance de-risked two days early.
+- Auditor RETESTs (k007 shapes 2/12) noted: recipes will be applied to the superseding k009 champions in the idle re-pass.
+
 ## 28 Aug 2026 ~21:05 — k007 SWEEPS THE BOARD: geomean 4.3x -> ~9.6x
 
 - User's "keep going" resolved the promotion-under-load question: PLAN Stage 5 mandates a final clean measurement of the ship set anyway, so intermediate promotions under audit load are legitimate; the idle re-pass is now a recorded obligation (thin-margin shape 2 explicitly undecided).
