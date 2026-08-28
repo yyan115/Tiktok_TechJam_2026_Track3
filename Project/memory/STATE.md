@@ -22,6 +22,5 @@ Short version: paste 2 deny lines → restart → verify locks → "freeze appro
 ## Work queue (after user's "grind")
 - Shapes 1–13 worst-first: calibrate → k001 sweep → CUDA-graphs whole-stack candidate → internal fp16/bf16 vs FP32 reference → Triton fused kernels → torch.compile comparison. Fresh web research per technique.
 - Watch: shape 6 (batch 10000) may OOM in fp32 on 8 GB — record it. Shapes 7/11 (head dim 8) → custom-kernel edge.
-- Stage 4 (shape 14): chunked oracle as user-approved pin-update amendment + re-audit; rented GPU (user).
-- Stage 5: sanctioned-copy official acceptance runs (runner `official` subcommand still unbuilt — needs a user-approved pin update; plan it with the shape-14 amendment).
+- Stage 4+5 amendments BUNDLED (cold-start drill agent's suggestion, adopted 28 Aug): the shape-14 chunked oracle AND the `official` acceptance subcommand go into ONE user-approved re-freeze cycle (single pin update + re-validation + re-audit) instead of two. Rented GPU needed for shape 14 (user).
 - Packaging: tech report from DECISIONS/JOURNAL, README swap (user applies), 3-min video script, Devpost. Submission window 29 Aug 12:00 → 1 Sep 12:00 GMT+8.
