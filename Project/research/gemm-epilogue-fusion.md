@@ -24,3 +24,17 @@ tl.dot accepts accumulators of {float16, float32, int32} and an out_dtype
 parameter (https://triton-lang.org/main/python-api/generated/triton.language.dot.html)
 — fp16-acc HMMA is Triton-expressible on sm86; no CUDA C++ needed for the
 shape-8 fp16-acc experiment. Error model still mandatory before build.
+
+## fp16-accumulate ERROR MODEL (pre-build memo, 29 Aug ~04:35 — k008 lesson applied)
+fp16 unit roundoff u = 2^-11 ~ 4.9e-4. Stochastic accumulation error over a
+K-length dot ~ sqrt(K)*u relative.
+- Naive fp16-acc, K=1024 (shape 8): 32*u ~ 1.6% per GEMM; compounding across
+  4 layers' residual stream (~sqrt(4)x): ~3% > the 2% rel criterion.
+  PREDICTED FAIL — do not build the naive variant.
+- Chunked fp16-acc (fp16 MMA within K-chunks of 128, fp32 across chunks):
+  sqrt(128)*u ~ 0.55% per GEMM, ~1.1% compounded — borderline PASS with
+  margin ~2x; keeps most of the 2x fp16-acc rate (fp32 add every 128 K-steps
+  is amortized). BUILD ONLY THIS VARIANT, kill-criteria: referee tolerance
+  fail on shape 8, or <10% end-to-end gain (Triton GEMM must also be within
+  ~10% of cuBLAS at M=8192 K=N=1024 for the 2x MMA rate to net positive —
+  measure the plain GEMM first before fusing anything).
