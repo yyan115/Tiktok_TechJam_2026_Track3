@@ -19,7 +19,13 @@ Short version: paste 2 deny lines → restart → verify locks → "freeze appro
 5. Plain language to the user; explicit "go" before repo actions.
 6. Memory files: split any that pass ~200 lines (Aug-2026 practice; see memory-system research note).
 
-## Work queue (after user's "grind")
+## Work queue (after user's "grind") — resequenced per the dual strategy review
+- DAY 1 PRIORITY: shape-14 chunked-attention kernel + chunked oracle developed locally at short lengths (mission-critical, longest chain); rental (48-80 GB, few hours) booked by day-2 morning; shape 6's dense baseline may need the rented card too.
+- Breadth-first authored pass across shape families before depth; first authored kernel = fused QKV projection; SDPA/compile results remain as eligible fallbacks + measurement references.
+- Amendment re-freeze (oracle + official subcommand + MFU): TIMEBOXED to 1-2 review rounds.
+- Kill-gate: one authored kernel integrated + winning within a focused sprint, else package honest partial.
+- Packaging: merge to main BEFORE submitting; judge-facing README (user applies); TEMP files out of judge path; video opens with the TAMPER DETECTED demo; Track 2 packages first; final ~8h protected.
+## Older queue notes
 - Shapes 1–13 worst-first: calibrate → k001 sweep → CUDA-graphs whole-stack candidate → internal fp16/bf16 vs FP32 reference → Triton fused kernels → torch.compile comparison. Fresh web research per technique.
 - Watch: shape 6 (batch 10000) may OOM in fp32 on 8 GB — record it. Shapes 7/11 (head dim 8) → custom-kernel edge.
 - Stage 4+5 amendments BUNDLED (drill suggestion + webinar addition): ONE user-approved re-freeze adds (a) the shape-14 chunked oracle, (b) the `official` acceptance subcommand, and (c) per-result MFU computation (webinar: scoring is weighted MFU; formula documented transparently). Shape 14 is MISSION-CRITICAL (fails-precision = zero points for that shape). Rental revised: cheapest card that fits shape 14, shape 14 only; 3060 Ti is the primary reporting device for shapes 1-13 per the organizers' own-machine spirit.
