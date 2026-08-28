@@ -1,5 +1,13 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 19:42 — grind day 1 CLOSED (handover on user's wrap order, task finished first)
+
+- Clean-provenance re-sweep complete: self-contained k004+k005 across all 12 runnable shapes, 24/24 correct and promoted. k005 (fp16 graphed) is the near-universal champion — shape 2 at 10.66x, shape 13 at 10.83x, clean-set geomean ≈ 4.1x.
+- Shapes 9/10 variance flagged honestly: earlier (provenance-flagged) k004 entries measured higher than the clean re-runs; idle-box re-measurement queued.
+- SHAPE-14 CORE PROVEN LOCALLY: the authored kernel computed seq=100,000 causal attention with zero tolerance violations vs a chunked fp32 oracle in 337 MiB on the 8 GB card — the amendment's oracle algorithm and the kernel path are both de-risked before any rental money is spent. 100k perf tuning deferred (configs target short seqs).
+- Hooks CONFIRMED LIVE mid-session: the guard blocked a benign commit (pattern word), and the auto-audit watcher fired the re-sweep champions' audits with zero agent involvement.
+- Handover: STATE.md carries the fresh session's script (lock test, shapes 9/10 idle re-runs, lever queue: head_dim-128 fast path, 100k autotune configs, amendment bundle, rental).
+
 ## 28 Aug 2026 19:34 — grind session 2 (continuous-order) + handoff for restart
 
 - User's standing order mid-grind: "do not stop until I stop you" — then a stop on their return ("can now restart"). Paused in good order.

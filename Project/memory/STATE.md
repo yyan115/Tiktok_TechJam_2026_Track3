@@ -1,6 +1,6 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-28 19:34 (grind paused for session restart; guard hook confirmed LIVE mid-session)
+Updated: 2026-08-28 19:42 (grind day 1 CLOSED — handover ready; hooks confirmed live)
 
 ## FIRST ACTIONS FOR A FRESH SESSION (in order)
 1. Locks: the Bash guard is already proven live (it blocked a benign commit whose message contained the word 'clean' after 'git' — false positive, working seatbelt). Still run the full lock test: attempt an Edit on torch_transformer_benchmark.py AND Project/harness/runner.py — both MUST be denied; report to the user; STOP if not.
@@ -9,9 +9,10 @@ Updated: 2026-08-28 19:34 (grind paused for session restart; guard hook confirme
 4. Then the lever queue below.
 5. Guard etiquette: never put the words 'clean', 'reset', 'restore' after 'git' inside one command segment (commit messages included) — the seatbelt pattern-matches them.
 
-## SCOREBOARD (all authored, referee-verified, FP32 primary, RTX 3060 Ti)
-Best per shape: 1: 2.14x · 2: 8.19x · 3: 7.52x · 4: 2.85x · 5: 2.75x (k005 fp16) · 7: 3.47x · 8: 1.63x (k005 fp16) · 9: 3.14x · 10: 4.09x · 11: 6.04x · 12: 2.69x · 13: 5.94x — geomean ≈ 3.7x and climbing. Shapes 6+14: rental-bound (48-80 GB, day 2).
-Kernel lineage: k001 SDPA (eligible fallback) → k002 fused QKV → k003 authored Triton flash-style attention (IEEE dots) → k004 = k003 + whole-forward CUDA graphs → k005 = k004 + internal fp16 (fp32 boundary/norms/accum). k004/k005 are SELF-CONTAINED single files.
+## SCOREBOARD (clean-provenance champions, all authored+self-contained, referee-verified, FP32 primary, RTX 3060 Ti)
+k005sc (fp16 graphed stack) leads nearly everywhere: 1: 2.92x · 2: **10.66x** · 3: 9.00x · 4: 3.94x · 5: 2.73x · 7: 5.21x · 8: 1.65x · 9: 1.40x* · 10: 2.11x* · 11: 6.42x · 12: 4.20x · 13: **10.83x** — clean-set geomean ≈ 4.1x.
+(*) Shapes 9/10: EARLIER flagged-provenance k004 entries measured higher (3.14x/4.09x) than the clean re-runs — thermal/CPU-contention variance suspected (20+ codex audit processes ran during re-sweep). NEXT-SESSION TASK: re-run k004sc+k005sc on shapes 9+10 under an idle box; ship-eligible numbers are the clean-provenance set only.
+**SHAPE-14 CORE PROVEN on this card**: authored kernel at seq=100,000 causal vs chunked fp32 oracle — 0 tolerance violations, max err 5.3e-4, 337 MiB (scratchpad/shape14_core_smoke.py, replicate any time). Perf at 100k untuned (autotune configs target short seqs) — tuning is rental-day work; correctness is banked.
 
 ## AUDIT LEDGER interpretation
 15 PASS (SDPA under corrected policy + k003/k005). 10 RULE_VIOLATION on ORIGINAL k004 entries = PROVENANCE ONLY (speeds explicitly certified genuine; the k003 import was not hash-bound) — superseded by the self-contained re-sweeps. 1 historical (morning policy, superseded), 1 NEEDS_CONTEXT (moot after re-sweep).
