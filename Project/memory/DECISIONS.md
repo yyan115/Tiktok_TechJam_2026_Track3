@@ -1,6 +1,12 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
-## 28 Aug 2026 19:42 — grind day 1 CLOSED (handover on user's wrap order, task finished first)
+## 28 Aug 2026 (late) — user's timeline correction + audit-triage fixes; grind CONTINUES
+
+- USER CORRECTION (binding): the window is ~4 days, TODAY (28 Aug) is Day 1, and days are never "closed" — Claude works continuously, 24/7, until everything is exhausted or the user says stop. "go" given for the session.
+- Audit triage: the two transition-window verdicts decoded. 193139 NEEDS_CONTEXT = packet carried current (post-inlining) source, not the measured bytes — pure provenance, answered by re-sweeping committed self-contained candidates. 193243 RULE_VIOLATION = two REAL minor findings in k005: (a) extra `training=False` breaks the exact-signature contract (also present in k004, noted in its PASS), (b) latent padded-mask bug — invalid keys not masked before softmax, and the Triton path ignored the mask entirely. 193545 = PASS for self-contained k004 (3.66x).
+- Fixes committed (90f1c8c): exact official signature in both kernels; k005 masked path now mirrors baseline (keys -inf before softmax, Triton rerouted when a real mask arrives, attn rows zeroed). Verified 24/24 padded/dense/all-true cases vs baseline before any runner time.
+- The nine zero-byte audit logs = detached audits that died with the previous session; the re-sweep re-fires them.
+- Full re-sweep (both kernels × shapes 9,10,1-5,7,8,11-13) launched with shapes 9/10 FIRST on the idle box — kills the thermal/contention question and the provenance finding in one pass.
 
 - Clean-provenance re-sweep complete: self-contained k004+k005 across all 12 runnable shapes, 24/24 correct and promoted. k005 (fp16 graphed) is the near-universal champion — shape 2 at 10.66x, shape 13 at 10.83x, clean-set geomean ≈ 4.1x.
 - Shapes 9/10 variance flagged honestly: earlier (provenance-flagged) k004 entries measured higher than the clean re-runs; idle-box re-measurement queued.
