@@ -1,9 +1,9 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-28 20:02 (Day 1 CONTINUES — user's correction: ~4 days total, 28 Aug = Day 1, days never "close"; work 24/7 until exhausted or told stop)
+Updated: 2026-08-29 03:15 (Day 1 grind, autonomous window until NOON 29 Aug — user returns then to review + plan Day 2 from Project/drafts/day2_plan.md)
 
 ## TIMELINE (user-corrected, binding)
-Day 1 = 28 Aug (today, ongoing) · Days 2-3 = grind + rental (48-80 GB card for shapes 6+14, re-tune, MFU) · Final day = packaging; submission closes 1 Sep 12:00 GMT+8. There is no "closed" day — continuous work, only the user's stop ends a day.
+Day 1 officially ends 12:00 noon 29 Aug (user's word, ~02:00). Days 2-3 = amendment re-freeze + rental (shapes 6+14, MFU) + polish · Final day = packaging; submission AND registration close 1 Sep 12:00 GMT+8. No "closed" days — continuous work, only the user's stop ends a day.
 
 ## FIRST ACTIONS FOR A FRESH SESSION (in order)
 1. Locks test (Edit on torch_transformer_benchmark.py AND Project/harness/runner.py MUST bounce — verified again 28 Aug 19:47). Guard etiquette: never put 'clean'/'reset'/'restore' after 'git' in one command segment.
@@ -22,18 +22,17 @@ Two auditor RETESTs (k007-era shapes 2/12: idle-box, beefed recipe) are SUPERSED
 ## AUDIT LEDGER interpretation
 Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (superseded by self-contained re-sweeps). Transition-window pair decoded 28 Aug evening: 193139 NEEDS_CONTEXT = packet carried post-edit source (answered: measured bytes now committed pre-run, always). 193243 RULE_VIOLATION = real minor findings, BOTH FIXED @ 90f1c8c: exact official forward signature (extra training=False removed from k004+k005) + padded-mask key masking in k005 (verified 24/24 vs baseline, scratchpad/padded_mask_smoke.py — smoke EVERY branch before runner time, LESSONS #17). 193545 = PASS (k004 self-contained).
 
-## IDLE RE-PASS — EXACT COMMANDS (fire when `pgrep -f "codex exec"` is empty; sequential, one runner)
-1. Ship-set re-measure (production): `for s in 1 2 3 4 5 7 9 10 11 12 13; do python3 Project/harness/runner.py run --shape $s --impl Project/kernels/k009_fused_tuned.py; done` then `python3 Project/harness/runner.py run --shape 8 --impl Project/kernels/k006_fp16_hd128.py`
-2. Auditor RETEST recipe, shape 2 (evidence, scratch ledger — non-primary args by design): `python3 Project/harness/runner.py run --shape 2 --impl Project/kernels/k009_fused_tuned.py --warmup 20 --repeats 1000 --rounds 5 --ledger <scratch>` — require stable per-round speedups + clean tripwires.
-3. Shape 12 needs nothing extra beyond step 1 (auditor asked idle + wall/event agreement within 10% — read those fields from the new entry).
-NOTE: step 1's promotions fire NEW audits — expect the box busy again right after; that's fine, the idle numbers are already banked.
+## STATUS AT ~03:15 (all measurement obligations DONE; steward mode until noon)
+- Quiet-box ship board banked (above) + official grader passes ALL 12 dial sets (evidence: Project/drafts/official_grader_all_dials_20260829.txt, judge-side geomean ~10.3x).
+- Audits now run Sol at effort HIGH (user-directed, fc6f015; global default was ultra). Quiet-box champion audits in flight — triage each wave; RULE_VIOLATION = loud, fix-first.
+- Experiments closed tonight: k010 ADOPTED (shape 8 → 2.13x, in submission); k008 int8 NEGATIVE (tolerance); k011 NEGATIVE (traffic > occupancy); k012 TIE on shape 4 (not adopted).
+- Etiquette refinements: pgrep counts dead audit wrappers — check per-process %CPU; user's browser adds ~30% of one core even "idle".
 
-## LEVER QUEUE (user's standing order = keep going)
-1. PROMOTIONS RUNNING (user's "keep going", ~21:00): k007 on 1-5,7,9-13 + k006 on 8, production ledger, UNDER audit load — justified because PLAN Stage 5 mandates a final clean measurement pass for the ship set anyway; contention-era promotions are intermediate. FINAL-PASS OBLIGATION: re-measure the entire ship set on a provably idle box before consolidation, and treat any shape whose margin is thin (shape 2: k007 13.1 vs k005 11.9 screening) as undecided until then.
-2. k007 design: whole block = 2 authored Triton kernels (norm+QKV | flash-attn-all-heads with out-proj folded into the head loop + norm2 + erf-GELU FFN), fp32 residuals, fp16 dots, CUDA-graphed. Screening ran under 5 codex audits — deltas far exceed contention noise but ship numbers = clean re-runs only.
-3. Shape 8 (d=1024) is the one k007 can't cover (register budget) — k006's 1.82x stands; possible later lever: norm/GELU epilogue fusion around cuBLAS fp16 GEMMs (~10-20% upside, research 28 Aug).
-4. Amendment bundle: DRAFTED @ Project/amendments/amendment_v1.1_bundle.md (MFU + official subcommand + shape-14 oracle) — needs user review + formal re-freeze (TIMEBOXED 1-2 rounds).
-5. Rental day (48-80 GB) for shapes 6+14 (shape 6 baseline OOM on 8GB CONFIRMED empirically); re-tune there; MFU numbers.
+## USER GATES AT NOON (see Project/drafts/day2_plan.md)
+1. Amendment v1.1 approval (amendment_v1.1_bundle.md + amendment_v1.1_code.md — insertion-ready, line-anchored) → unlocks shape-14 scoring + MFU.
+2. Rental booking (drafts/rental_day_runbook.md turnkey; 48 GB class, ~2-3h, AFTER amendment).
+3. MFU denominator convention (fp32 peak recommended).
+Drafts awaiting review: README (with results + torch.compile tables), video script (with per-scene commands), day2_plan.
 
 ## Standing rules (unchanged)
 Never touch frozen/protected files (locks enforce). All benchmarks via the pinned runner + shape id. ONE runner process; NO other GPU work during sweeps; sequential calls; idle box (no codex). Champions auto-audit. Commit candidate bytes BEFORE first runner contact. Reflection after each block. Plain language; the user's stop overrides everything.
