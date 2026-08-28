@@ -33,7 +33,28 @@ our video).
 
 ## Results (RTX 3060 Ti 8 GB, fp32 primary profile)
 
-[FINAL board table goes here — best per shape + geomean]
+Quiet-box referee pass, 29 Aug 02:30 (all correct, all promoted, all
+tripwires clean; every number regenerates from the journal):
+
+| shape | config sketch                  | speedup | kernel |
+|------:|--------------------------------|--------:|--------|
+| 1     | B64 · d128 · seq128            | 11.15x  | k009 megakernel |
+| 2     | B1 · d128 · seq128             | 14.98x  | k009 megakernel |
+| 3     | B4 · d128 · seq128             | 14.67x  | k009 megakernel |
+| 4     | B16 · d128 · seq128            |  7.93x  | k009 megakernel |
+| 5     | B128 · d128 · seq128           | 10.79x  | k009 megakernel |
+| 7     | B64 · d32 · seq128             | 21.50x  | k009 megakernel |
+| 8     | B64 · d1024 · seq128           |  2.13x  | k010 fp16+fused LN/GELU |
+| 9     | B64 · d128 · 1 head            |  7.24x  | k009 megakernel |
+| 10    | B64 · d128 · 2 heads           |  9.60x  | k009 megakernel |
+| 11    | B64 · d128 · 16 heads          | 14.64x  | k009 megakernel |
+| 12    | B64 · d128 · seq32             | 10.38x  | k009 megakernel |
+| 13    | B64 · d128 · seq1024           | 29.34x  | k009 megakernel |
+| **geomean** |                          | **~11.0x** | |
+
+Shapes 6 and 14 (baseline infeasible locally): correctness proven on the
+8 GB card vs exact chunked references; full-scale timing on the rental GPU,
+reported separately and labeled.
 
 Highlights as of Day 1 (contention-clean where noted):
 - Authored fused-block "megakernel": an entire transformer block in two
