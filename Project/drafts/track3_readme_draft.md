@@ -62,6 +62,24 @@ Highlights as of Day 1 (contention-clean where noted):
 6. The untouched official script is the final acceptance judge for every
    feasible shape; shape 14 ships with its limitation stated.
 
+## Against the obvious tool (why authored kernels, measured)
+
+The organizers' template suggests torch.compile / SDPA as optimization
+directions. We measured torch.compile max-autotune on the baseline with the
+UNTOUCHED official script (29 Aug, RTX 3060 Ti, fp32) and compared it to our
+submission under the same script:
+
+| dial set            | torch.compile max-autotune | our authored kernels |
+|---------------------|---------------------------:|---------------------:|
+| shape-3 dials       | 7.00x                      | ~13.5x               |
+| shape-13 dials (seq 1024) | 3.10x                | ~29x                 |
+| shape-8 dials (d 1024)    | 1.23x                | ~2.0x                |
+
+The megakernel's edge grows exactly where compilation stops helping: long
+sequences (fused flash attention vs materialized score tables) and the
+launch-bound small shapes (one CUDA graph vs a compiled-but-still-eager
+kernel stream).
+
 ## Honest limitations
 
 - Shape 14/6 full-scale timing requires a big-memory GPU (rental day covers
