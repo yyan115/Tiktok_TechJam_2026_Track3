@@ -1,5 +1,12 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 ~21:05 — k007 SWEEPS THE BOARD: geomean 4.3x -> ~9.6x
+
+- User's "keep going" resolved the promotion-under-load question: PLAN Stage 5 mandates a final clean measurement of the ship set anyway, so intermediate promotions under audit load are legitimate; the idle re-pass is now a recorded obligation (thin-margin shape 2 explicitly undecided).
+- Production promotions, all 12 promoted: k007 takes 11 shapes (7: 22.4x, 13: 28.3x, 12: 13.6x, 11: 12.9x, 3: 12.2x, 2: 11.9x tie-ish, 5: 9.2x, 4: 9.2x, 1: 8.4x, 10: 6.6x, 9: 4.4x), k006 takes shape 8 (1.79x). New geomean ≈ 9.6x.
+- Judge-narrative draft started (Project/drafts/track3_readme_draft.md) — numbers deliberately left as [FINAL] placeholders.
+- Next: shape 8 depth (the 1.79x outlier), k007 tuning, idle re-pass when the audit queue truly drains.
+
 ## 28 Aug 2026 ~20:45 — k007 fused-block megakernel: the board-breaker
 
 - Research insight acted on: 9-11 of the 12 runnable shapes have d_model <= 128 — small enough to fuse an ENTIRE transformer block into two authored Triton kernels (norm1+QKV; flash-attention over all heads with the out-projection folded into the head loop as rank-HD updates, then residual+norm2+erf-GELU-FFN+residual in-register). fp32 residual stream, fp16 tensor-core dots, whole forward CUDA-graphed. ~9 kernel launches per forward instead of ~40+, activations never round-trip HBM between stages.

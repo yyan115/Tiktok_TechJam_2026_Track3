@@ -11,10 +11,11 @@ Day 1 = 28 Aug (today, ongoing) · Days 2-3 = grind + rental (48-80 GB card for 
 3. NEVER benchmark while codex audits run (`pgrep -f "codex exec"` must be empty) — contention INFLATES graphed-candidate ratios (LESSONS #19).
 4. Resume the lever queue below on branch `grind-day1`.
 
-## SCOREBOARD (clean idle-box champions, authored+self-contained, signature-exact, padded-path-fixed, committed bytes @ 90f1c8c; FP32 primary, RTX 3060 Ti, 28 Aug ~19:55 sweep)
-Best per shape: 1: 3.34x (k005) · 2: **11.92x** (k005) · 3: 9.70x (k004) · 4: 4.21x (k005) · 5: 2.88x (k005) · 7: 5.06x (k005) · 8: 1.58x (k005) · 9: 1.42x (k005) · 10: 2.44x (k005) · 11: 7.36x (k005) · 12: 4.00x (k005) · 13: **11.49x** (k005) — geomean ≈ **4.3x**. All 24 runs correct+promoted.
-Shape 9/10 question CLOSED: idle-box k004 = 1.14x/1.56x — the old 3.14x/4.09x were contention-inflated, not real. Ship numbers = this board.
-**SHAPE-14 CORE PROVEN**: authored kernel at seq=100k causal vs chunked fp32 oracle — 0 violations, max err 5.3e-4, 337 MiB (scratchpad/shape14_core_smoke.py). 100k perf tuning = rental-day work.
+## SCOREBOARD (28 Aug ~21:05 promotion sweep — k007 megakernel era; FP32 primary, RTX 3060 Ti; measured UNDER audit load, Stage-5 idle re-pass owed)
+k007 (@ 8270909) champions: 1: 8.39x · 2: 11.92x* · 3: 12.18x · 4: 9.20x · 5: 9.24x · 7: **22.41x** · 9: 4.41x · 10: 6.63x · 11: 12.95x · 12: 13.65x · 13: **28.31x**; k006 (@ d0341e5) shape 8: 1.79x — geomean ≈ **9.6x** (was 4.3x). All 12 correct+promoted, tripwires clean, committed bytes.
+(*) Shape 2 statistical tie with k005 (11.9242 vs 11.9176) — idle re-pass decides.
+Idle-box k005/k004 fallback board (bytes @ 90f1c8c, ~19:55 sweep) remains valid as the conservative floor: geomean ≈ 4.3x.
+**SHAPE-14 CORE PROVEN**: k006 kernel at seq=100k causal vs chunked fp32 oracle — 0 violations, max err 6.99e-4, 305 MiB (Project/tools/smokes/shape14_core_smoke.py). **SHAPE-6 CORE PROVEN**: k007 full B=10000 vs batch-chunked official baseline — 0 violations, 3.4 GiB (shape6_core_smoke.py). Full-scale timing for both = rental day.
 
 ## AUDIT LEDGER interpretation
 Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (superseded by self-contained re-sweeps). Transition-window pair decoded 28 Aug evening: 193139 NEEDS_CONTEXT = packet carried post-edit source (answered: measured bytes now committed pre-run, always). 193243 RULE_VIOLATION = real minor findings, BOTH FIXED @ 90f1c8c: exact official forward signature (extra training=False removed from k004+k005) + padded-mask key masking in k005 (verified 24/24 vs baseline, scratchpad/padded_mask_smoke.py — smoke EVERY branch before runner time, LESSONS #17). 193545 = PASS (k004 self-contained).
