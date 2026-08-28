@@ -1,39 +1,30 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-28 17:47 (GRIND DAY 1 COMPLETE — authored kernels champion on all 12 runnable shapes)
+Updated: 2026-08-28 19:34 (grind paused for session restart; guard hook confirmed LIVE mid-session)
 
-## Where things stand
-- **Referee: v1.0.2, sha-PINNED in manifest.json (freeze candidate).** EVERY subcommand (measuring AND reporting) verifies the pin before producing output; under the cooperative trust model drift is self-defeating, and the absolute guarantee is external (git + manifest re-verification). Review history: Sol rejected v0.9.0 → Sol PASS (v0.9.2) → codex 14-finding review → v0.9.3 → codex confirmation (3 blockers) → v1.0.0 → codex round 3 (4 defects: freeze wording, guard holes, calibration-key gaps, stale state) → v1.0.1 (manifest pin) → codex round 4 (3 blockers: reporting subcommands bypassed the pin; /tmp-exemption + abbreviated-option guard holes; write-surface wording) → **v1.0.2** (all subcommands gated, tokenizing rm guard, precise write-surface documentation).
-- Current DEVELOPMENT champion (re-validated under v1.0.2): k001_sdpa on shape 1, 1.612x — measurement auditor-validated, but auto-audit ruled it RULE_VIOLATION for SHIPPING under the webinar's custom-only rule (SDPA delegation): valid reference, ineligible for the final dispatcher, which ships project-authored kernels only — see Project/results/LEADERBOARD.md; both red-team attacks re-verified caught under v1.0.2 with durable committed evidence in Project/audits/redteam_v1.0.2/.
-- Both repos on branch `initial-architecture`, pushed. Track 2: lab bench v0.5.0, its review loop CLOSED at round 12 with YES (verdict committed in its repo).
-- Freeze-candidate commits: 7ad64de → 81e077b → 69d8e3f → d46d911 → this closing doc-polish commit. The AUTHORITATIVE frozen-commit pointer is the bottom line of Project/audits/freeze_checklist.md. Codex round-6 verdict: YES (none load-bearing remaining); preserved in Project/audits/track3_handoff_verdict_round6.md.
+## FIRST ACTIONS FOR A FRESH SESSION (in order)
+1. Locks: the Bash guard is already proven live (it blocked a benign commit whose message contained the word 'clean' after 'git' — false positive, working seatbelt). Still run the full lock test: attempt an Edit on torch_transformer_benchmark.py AND Project/harness/runner.py — both MUST be denied; report to the user; STOP if not.
+2. The auto-audit hook (PostToolUse → tools/champion_watch.py) should also be live — verify by checking it fires after your first shell command.
+3. Resume the grind on branch `grind-day1` (user's standing order: continuous optimization until stopped). NEXT TASK: full re-sweeps of the SELF-CONTAINED k004 and k005 across shapes 1-5,7-13 (both verified post-inlining: k004 shape3=7.50x, k005 shape8=1.63x) — refreshes every champion with single-file provenance, answering the auditors' one finding.
+4. Then the lever queue below.
+5. Guard etiquette: never put the words 'clean', 'reset', 'restore' after 'git' inside one command segment (commit messages included) — the seatbelt pattern-matches them.
 
-## GRIND DAY 1 RESULTS (branch grind-day1; all authored, all referee-verified, FP32 primary profile, RTX 3060 Ti)
-k004 (authored Triton flash-style attention + fused QKV + whole-forward CUDA-graph capture) is champion on every runnable shape:
-shapes 1-5: 2.14x / 8.19x / 7.52x / 2.85x / 2.14x · shape 7: 3.47x · shape 8: 1.28x · shape 9: 3.14x · shapes 10-13: 4.09x / 6.04x / 2.69x / 5.94x (geomean ≈ 3.6x)
-k001 (SDPA) retained as eligible fallback data; k002/k003 journaled as the build-up. Shape 6: dense BASELINE OOMs on 8 GB → rental list with shape 14.
-## Next (day 2)
-1. Rental (48-80 GB): shape 6 + shape 14; chunked-attention kernel + oracle development for 14 (extend k003's online-softmax core — it already handles seq 1024).
-2. Amendment bundle re-freeze (user-approved, TIMEBOXED 1-2 review rounds): shape-14 oracle path + `official` acceptance subcommand + MFU computation.
-3. Depth pass where MFU is winnable (8, 13, then 6/14 on rental); k004 tuning (graph pool, autotune configs) on weaker shapes (1, 5, 8).
-4. Keep packaging checklist in view (merge to main, README, video with TAMPER demo, T2 packaged first).
+## SCOREBOARD (all authored, referee-verified, FP32 primary, RTX 3060 Ti)
+Best per shape: 1: 2.14x · 2: 8.19x · 3: 7.52x · 4: 2.85x · 5: 2.75x (k005 fp16) · 7: 3.47x · 8: 1.63x (k005 fp16) · 9: 3.14x · 10: 4.09x · 11: 6.04x · 12: 2.69x · 13: 5.94x — geomean ≈ 3.7x and climbing. Shapes 6+14: rental-bound (48-80 GB, day 2).
+Kernel lineage: k001 SDPA (eligible fallback) → k002 fused QKV → k003 authored Triton flash-style attention (IEEE dots) → k004 = k003 + whole-forward CUDA graphs → k005 = k004 + internal fp16 (fp32 boundary/norms/accum). k004/k005 are SELF-CONTAINED single files.
 
-## Standing rules (never violate)
-1. Never edit: official scripts, README.md, shapes.json, manifest.json, Project/results/** (runner-written only), .claude/**, and Project/harness/** (freeze candidate — treat as locked now).
-2. All benchmarks via the runner with a shape id; calibrate before comparing; ONE runner process at a time.
-3. Champions: promoted + pinned-runner sha + latest-calibration environment key + above the LATEST calibration's threshold. Sol/codex at checkpoints; JUDGE_ERROR never blocks.
-4. Never modify the repo during an active external review; reviews bind to a committed sha.
-5. Plain language to the user; explicit "go" before repo actions.
-6. Memory files: split any that pass ~200 lines (Aug-2026 practice; see memory-system research note).
+## AUDIT LEDGER interpretation
+15 PASS (SDPA under corrected policy + k003/k005). 10 RULE_VIOLATION on ORIGINAL k004 entries = PROVENANCE ONLY (speeds explicitly certified genuine; the k003 import was not hash-bound) — superseded by the self-contained re-sweeps. 1 historical (morning policy, superseded), 1 NEEDS_CONTEXT (moot after re-sweep).
 
-## Work queue (after user's "grind") — resequenced per the dual strategy review
-- DAY 1 PRIORITY: shape-14 chunked-attention kernel + chunked oracle developed locally at short lengths (mission-critical, longest chain); rental (48-80 GB, few hours) booked by day-2 morning; shape 6's dense baseline may need the rented card too.
-- Breadth-first authored pass across shape families before depth; first authored kernel = fused QKV projection; SDPA/compile results remain as eligible fallbacks + measurement references.
-- Amendment re-freeze (oracle + official subcommand + MFU): TIMEBOXED to 1-2 review rounds.
-- Kill-gate: one authored kernel integrated + winning within a focused sprint, else package honest partial.
-- Packaging: merge to main BEFORE submitting; judge-facing README (user applies); TEMP files out of judge path; video opens with the TAMPER DETECTED demo; Track 2 packages first; final ~8h protected.
-## Older queue notes
-- Shapes 1–13 worst-first: calibrate → k001 sweep → CUDA-graphs whole-stack candidate → internal fp16/bf16 vs FP32 reference → Triton fused kernels → torch.compile comparison. Fresh web research per technique.
-- Watch: shape 6 (batch 10000) may OOM in fp32 on 8 GB — record it. Shapes 7/11 (head dim 8) → custom-kernel edge.
-- Stage 4+5 amendments BUNDLED (drill suggestion + webinar addition): ONE user-approved re-freeze adds (a) the shape-14 chunked oracle, (b) the `official` acceptance subcommand, and (c) per-result MFU computation (webinar: scoring is weighted MFU; formula documented transparently). Shape 14 is MISSION-CRITICAL (fails-precision = zero points for that shape). Rental revised: cheapest card that fits shape 14, shape 14 only; 3060 Ti is the primary reporting device for shapes 1-13 per the organizers' own-machine spirit.
-- Packaging: tech report from DECISIONS/JOURNAL, README swap (user applies), 3-min video script, Devpost. Submission window 29 Aug 12:00 → 1 Sep 12:00 GMT+8.
+## LEVER QUEUE (user's standing order = keep going)
+1. Extend the Triton fast path to head_dim 128 (shape 9 currently graphed-eager).
+2. Shape-14 core proof LOCALLY: smoke the kernel at seq=100k, B=1,H=1 fp16 slices vs a chunked fp32 reference (~13 MB per tensor — fits) — de-risks rental day.
+3. k005 tuning: seq-1024 block configs; fp16 attention on shapes where k004 still leads.
+4. Amendment bundle re-freeze when user present (TIMEBOXED 1-2 rounds): shape-14 oracle + `official` subcommand + MFU.
+5. Day 2: rental (48-80 GB) for shapes 6+14; re-tune there; MFU numbers.
+
+## Standing rules (unchanged)
+Never touch frozen/protected files (locks enforce). All benchmarks via the pinned runner + shape id. ONE runner process; NO other GPU work during sweeps; sequential calls. Champions auto-audit. Reflection after each block. Plain language; the user's stop overrides everything.
+
+## Packaging (day 3)
+Merge to main before submitting · judge-facing READMEs (user applies) · TEMP files out of judge path · T3 video opens with TAMPER demo · T2 packages first · final ~8h protected · Devpost registration AND submission close 1 Sep 12:00 noon.

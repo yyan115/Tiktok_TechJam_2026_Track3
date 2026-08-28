@@ -33,7 +33,7 @@ DESCRIPTION = ("Authored Triton flash-style causal attention (online softmax, fp
         triton.Config({"BLOCK_M": 64, "BLOCK_N": 64}, num_warps=4),
         triton.Config({"BLOCK_M": 128, "BLOCK_N": 32}, num_warps=4),
     ],
-    key=["SEQ", "D_PAD", "CAUSAL"],
+    key=["SEQ", "D_PAD", "CAUSAL", "FP16"],
 )
 @triton.jit
 def _attn_fwd(
@@ -44,7 +44,8 @@ def _attn_fwd(
     stride_oh, stride_om, stride_od,
     scale,
     SEQ: tl.constexpr, D: tl.constexpr, D_PAD: tl.constexpr,
-    CAUSAL: tl.constexpr, BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr,
+    CAUSAL: tl.constexpr, FP16: tl.constexpr,
+    BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr,
 ):
     pid_m = tl.program_id(0)
     pid_bh = tl.program_id(1)
@@ -72,7 +73,11 @@ def _attn_fwd(
         k = tl.load(k_ptrs, mask=(offs_n[:, None] < SEQ) & d_mask[None, :], other=0.0)
         v = tl.load(v_ptrs, mask=(offs_n[:, None] < SEQ) & d_mask[None, :], other=0.0)
 
-        qk = tl.dot(q, tl.trans(k), input_precision="ieee") * scale
+        if FP16:
+            # fp16 inputs: tensor cores with native fp32 accumulation.
+            qk = tl.dot(q, tl.trans(k)) * scale
+        else:
+            qk = tl.dot(q, tl.trans(k), input_precision="ieee") * scale
         if CAUSAL:
             qk = tl.where(offs_m[:, None] >= offs_n[None, :], qk, float("-inf"))
         qk = tl.where(offs_n[None, :] < SEQ, qk, float("-inf"))
@@ -81,7 +86,10 @@ def _attn_fwd(
         alpha = tl.exp(m_i - m_new)
         p = tl.exp(qk - m_new[:, None])
         l_i = l_i * alpha + tl.sum(p, axis=1)
-        acc = acc * alpha[:, None] + tl.dot(p, v, input_precision="ieee")
+        if FP16:
+            acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
+        else:
+            acc = acc * alpha[:, None] + tl.dot(p, v, input_precision="ieee")
         m_i = m_new
 
     out = acc / l_i[:, None]
@@ -106,6 +114,7 @@ def triton_attention(q, k, v, scale, causal):
         v4.stride(0), v4.stride(1), v4.stride(2),
         o4.stride(0), o4.stride(1), o4.stride(2),
         scale, SEQ=S, D=D, D_PAD=d_pad, CAUSAL=causal,
+        FP16=(q.dtype == torch.float16),
     )
     return out
 

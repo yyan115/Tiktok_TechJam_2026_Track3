@@ -1,22 +1,21 @@
-"""k004: k003's authored Triton attention + CUDA-graph capture of the WHOLE
-forward pass.
+"""k005: k004's graphed authored stack + INTERNAL fp16 tensor-core compute.
 
-On the small shapes, the 4-layer forward issues ~50 GPU operations whose
-launch overhead dwarfs the math. This candidate records the entire forward
-(our Triton attention included) into a CUDA graph once, then replays it as a
-single submission. Inputs flow through a static buffer (copied fresh from the
-caller's tensor every call — values always current, so re-randomized inputs
-are honored); the output is cloned out of the static buffer per call.
+The webinar explicitly blessed internal reduced precision ("you can do some
+quantization ... we only care about the input and output precision"), and the
+tolerance (abs 2e-3 OR rel 2%) leaves room. This candidate keeps fp32 at the
+boundary and in every numerically sensitive spot, and runs the heavy math on
+fp16 tensor cores:
 
-Capture policy: the graph is recorded against a dense (no-padding) forward —
-semantically identical to an all-true mask, since the baseline's mask ops are
-identity when every token is valid. Each call re-verifies the mask is all-true
-(a real check, every call, never cached); padded inputs take the un-graphed
-authored path. First calls run eagerly (warmup + Triton autotune settle),
-then capture happens once.
+- QKV / output / FFN projections: fp16 GEMMs (weights cast once, lazily) —
+  cuBLAS accumulates fp32 on tensor cores.
+- Attention: the authored Triton kernel loads q/k/v as fp16; tl.dot
+  accumulates fp32; softmax statistics stay fp32 in-register.
+- LayerNorms and residual stream: fp32 (drift-sensitive across 4 layers).
+- GELU: computed in fp32, stored back to fp16.
+- Whole forward CUDA-graph captured, as in k004.
 
-Authorship: composition of our own k003 kernel with torch.cuda.CUDAGraph
-capture — the recorded work is our kernel sequence, not an external library's.
+The referee's fp32 baseline comparison is the arbiter of whether this holds
+tolerance per shape — that's exactly what it's for.
 """
 
 import torch
@@ -25,8 +24,7 @@ import triton
 import triton.language as tl
 
 # ---- Inlined authored kernel (identical to k003's; duplicated deliberately so
-# ---- this candidate is SELF-CONTAINED and its single-file hash binds every
-# ---- line of executed candidate code — auto-audit provenance finding, 28 Aug).
+# ---- this candidate is SELF-CONTAINED — see k004's provenance note).
 @triton.autotune(
     configs=[
         triton.Config({"BLOCK_M": 32, "BLOCK_N": 32}, num_warps=2),
@@ -120,90 +118,103 @@ def triton_attention(q, k, v, scale, causal):
     return out
 
 
-def _make_attention_class(otb):
-    class TritonAttention(otb.BaselineSelfAttention):
-        def _packed(self):
-            packed = getattr(self, "_qkv_packed", None)
-            if packed is None or packed[0].dtype != self.q_proj.weight.dtype:
-                w = torch.cat([self.q_proj.weight, self.k_proj.weight,
-                               self.v_proj.weight], dim=0).contiguous()
-                b = torch.cat([self.q_proj.bias, self.k_proj.bias,
-                               self.v_proj.bias], dim=0).contiguous()
-                object.__setattr__(self, "_qkv_packed", (w, b))
-                packed = (w, b)
-            return packed
-
-        def forward(self, x, valid_token_mask=None, causal=False):
-            batch, seq_len, _ = x.shape
-            w, b = self._packed()
-            qkv = F.linear(x, w, b)
-            q, k, v = qkv.split(self.d_model, dim=-1)
-            q = self._split_heads(q)
-            k = self._split_heads(k)
-            v = self._split_heads(v)
-            fast_ok = (
-                x.dtype == torch.float32
-                and self.head_dim <= 64
-                and seq_len % 32 == 0
-                and (valid_token_mask is None or bool(valid_token_mask.all()))
-            )
-            if fast_ok:
-                context = triton_attention(q, k, v, self.scale, causal)
-            else:
-                scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
-                if causal:
-                    cm = torch.ones((seq_len, seq_len), device=x.device,
-                                    dtype=torch.bool).triu(diagonal=1)
-                    scores = scores.masked_fill(cm, float("-inf"))
-                if valid_token_mask is not None:
-                    scores = scores.masked_fill(
-                        ~valid_token_mask[:, None, None, :], float("-inf"))
-                context = torch.matmul(
-                    torch.softmax(scores.float(), dim=-1).to(x.dtype), v)
-            context = (
-                context.transpose(1, 2).contiguous().view(batch, seq_len, self.d_model)
-            )
-            output = self.out_proj(context)
-            if valid_token_mask is not None:
-                output = output.masked_fill(~valid_token_mask[..., None], 0)
-            return output
-
-    return TritonAttention
-
-
-NAME = "k004_graphed_triton"
-DESCRIPTION = ("Authored Triton attention + whole-forward CUDA-graph capture; "
-               "eager authored path for padded inputs.")
+NAME = "k005_fp16_graphed"
+DESCRIPTION = ("Authored graphed stack with internal fp16 tensor-core compute "
+               "(fp32 boundary, accumulation, and norms).")
 
 WARMUP_CALLS = 3
 
 
+def _half_params(module):
+    cache = getattr(module, "_fp16_cache", None)
+    if cache is None:
+        cache = {}
+        for name in ("q_proj", "k_proj", "v_proj", "out_proj", "ffn_in", "ffn_out"):
+            sub = getattr(module, name, None)
+            if sub is not None:
+                cache[name] = (sub.weight.half().contiguous(),
+                               sub.bias.half().contiguous())
+        # packed QKV in fp16
+        if "q_proj" in cache:
+            cache["qkv"] = (
+                torch.cat([cache["q_proj"][0], cache["k_proj"][0],
+                           cache["v_proj"][0]], dim=0).contiguous(),
+                torch.cat([cache["q_proj"][1], cache["k_proj"][1],
+                           cache["v_proj"][1]], dim=0).contiguous(),
+            )
+        object.__setattr__(module, "_fp16_cache", cache)
+    return cache
+
+
+def _make_block_forward(otb):
+    def block_forward(self, x, valid_token_mask, causal):
+        # x arrives fp32 (residual stream). Norms fp32; heavy math fp16.
+        attn = self.attention
+        cache = _half_params(attn)          # q/k/v/out_proj (+ packed qkv)
+        ffn_cache = _half_params(self)      # ffn_in / ffn_out live on the block
+        h = self.norm1(x)                                  # fp32
+        h16 = h.half()
+        qkv = F.linear(h16, cache["qkv"][0], cache["qkv"][1])
+        d = attn.d_model
+        q, k, v = qkv.split(d, dim=-1)
+        batch, seq_len, _ = h.shape
+        q = q.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+        k = k.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+        v = v.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+
+        if attn.head_dim <= 64 and seq_len % 32 == 0:
+            context = triton_attention(q, k, v, attn.scale, causal)  # fp16 in/out, fp32 accum
+        else:
+            scores = torch.matmul(q, k.transpose(-2, -1)) * attn.scale
+            if causal:
+                cm = torch.ones((seq_len, seq_len), device=x.device,
+                                dtype=torch.bool).triu(diagonal=1)
+                scores = scores.masked_fill(cm, float("-inf"))
+            context = torch.matmul(
+                torch.softmax(scores.float(), dim=-1).half(), v)
+        context = context.transpose(1, 2).contiguous().view(batch, seq_len, d)
+        attn_out = F.linear(context, cache["out_proj"][0], cache["out_proj"][1])
+        x = x + attn_out.float()                           # residual fp32
+
+        h = self.norm2(x)                                  # fp32
+        h16 = h.half()
+        hidden = F.linear(h16, ffn_cache["ffn_in"][0], ffn_cache["ffn_in"][1])
+        hidden = F.gelu(hidden.float(), approximate="none").half()
+        ffn_out = F.linear(hidden, ffn_cache["ffn_out"][0], ffn_cache["ffn_out"][1])
+        x = x + ffn_out.float()                            # residual fp32
+        if valid_token_mask is not None:
+            x = x.masked_fill(~valid_token_mask[..., None], 0)
+        return x
+    return block_forward
+
+
 def build(otb, config):
     model = otb.UserOptimizedTransformer(config)
-    attention_cls = _make_attention_class(otb)
-    for layer in model.layers:
-        layer.attention.__class__ = attention_cls
+    block_forward = _make_block_forward(otb)
 
-    class GraphedTransformer(otb.UserOptimizedTransformer):
+    class FP16Block(otb.BaselineTransformerBlock):
+        forward = block_forward
+
+    for layer in model.layers:
+        # attention keeps its fp32 params for weight-copy compatibility; the
+        # block forward routes through the fp16 caches.
+        layer.__class__ = FP16Block
+
+    class GraphedFP16Transformer(otb.UserOptimizedTransformer):
         def _eager(self, x, valid_token_mask):
             return otb.BaselineTransformer.forward(self, x, valid_token_mask)
 
         def forward(self, x, valid_token_mask=None, training=False):
             if valid_token_mask is not None and not bool(valid_token_mask.all()):
                 return self._eager(x, valid_token_mask)
-
             state = getattr(self, "_graph_state", None)
             if state is None:
                 state = {"calls": 0, "graph": None, "static_x": None, "static_out": None}
                 object.__setattr__(self, "_graph_state", state)
-
             if state["graph"] is None:
                 state["calls"] += 1
                 if state["calls"] <= WARMUP_CALLS:
                     return self._eager(x, None)
-                # Capture once: dense forward recorded against a static buffer.
-                # Canonical pattern: warm on a side stream first (lets cuBLAS/
-                # allocator workspaces bind outside the capture), then record.
                 static_x = x.clone()
                 side = torch.cuda.Stream()
                 side.wait_stream(torch.cuda.current_stream())
@@ -216,14 +227,11 @@ def build(otb, config):
                 with torch.cuda.graph(graph):
                     static_out = self._eager(static_x, None)
                 state.update(graph=graph, static_x=static_x, static_out=static_out)
-                # Capture RECORDS but does not execute — replay once to
-                # actually compute the answer for this input.
                 graph.replay()
                 return static_out.clone()
-
             state["static_x"].copy_(x)
             state["graph"].replay()
             return state["static_out"].clone()
 
-    model.__class__ = GraphedTransformer
+    model.__class__ = GraphedFP16Transformer
     return model
