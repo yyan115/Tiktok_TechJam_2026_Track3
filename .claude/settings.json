@@ -14,7 +14,9 @@
       "Edit(Project/results/**)",
       "Write(Project/results/**)",
       "Edit(.claude/**)",
-      "Write(.claude/**)"
+      "Write(.claude/**)",
+      "Edit(Project/harness/**)",
+      "Write(Project/harness/**)"
     ]
   },
   "hooks": {
