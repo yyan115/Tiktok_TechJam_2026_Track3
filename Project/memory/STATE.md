@@ -20,11 +20,11 @@ Shape 9/10 question CLOSED: idle-box k004 = 1.14x/1.56x — the old 3.14x/4.09x 
 Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (superseded by self-contained re-sweeps). Transition-window pair decoded 28 Aug evening: 193139 NEEDS_CONTEXT = packet carried post-edit source (answered: measured bytes now committed pre-run, always). 193243 RULE_VIOLATION = real minor findings, BOTH FIXED @ 90f1c8c: exact official forward signature (extra training=False removed from k004+k005) + padded-mask key masking in k005 (verified 24/24 vs baseline, scratchpad/padded_mask_smoke.py — smoke EVERY branch before runner time, LESSONS #17). 193545 = PASS (k004 self-contained).
 
 ## LEVER QUEUE (user's standing order = keep going)
-1. k006 (committed @ d0341e5, NOT yet benchmarked): Triton attention extended to head_dim 128/256 with per-D_PAD config pruning — run across ALL 12 shapes once audits drain (targets shape 9 @ 1.42x and shape 8 @ 1.58x, the two weakest; extra configs may also lift others).
-2. Shape 13 (seq 1024): k006's added configs double as seq-1024 tuning; check if it beats 11.49x.
-3. Remaining gap analysis: shapes 5 (2.88x), 1 (3.34x), 12 (4.00x) — profile what dominates after graphs+fp16.
-4. Amendment bundle re-freeze when user present (TIMEBOXED 1-2 rounds): shape-14 oracle + `official` subcommand + MFU.
-5. Rental day (48-80 GB) for shapes 6+14; re-tune there; MFU numbers.
+1. **PROMOTIONS PENDING (idle box required)**: k007 fused-block megakernel (@ 8270909, smoke 42/42) SCREENED 2-4x ABOVE EVERY CHAMPION on the 11 d<=128 shapes — screening geomean ~11.7x (shape 7: 21.9x, shape 13: 28.3x, shape 5: 9.2x). Also k006 (@ d0341e5) screened ahead on shape 8 (1.82x vs 1.58x). Once `pgrep -f "codex exec"` is empty: production runs of k007 on 1-5,7,9-13 and k006 on 8.
+2. k007 design: whole block = 2 authored Triton kernels (norm+QKV | flash-attn-all-heads with out-proj folded into the head loop + norm2 + erf-GELU FFN), fp32 residuals, fp16 dots, CUDA-graphed. Screening ran under 5 codex audits — deltas far exceed contention noise but ship numbers = clean re-runs only.
+3. Shape 8 (d=1024) is the one k007 can't cover (register budget) — k006's 1.82x stands; possible later lever: norm/GELU epilogue fusion around cuBLAS fp16 GEMMs (~10-20% upside, research 28 Aug).
+4. Amendment bundle: DRAFTED @ Project/amendments/amendment_v1.1_bundle.md (MFU + official subcommand + shape-14 oracle) — needs user review + formal re-freeze (TIMEBOXED 1-2 rounds).
+5. Rental day (48-80 GB) for shapes 6+14 (shape 6 baseline OOM on 8GB CONFIRMED empirically); re-tune there; MFU numbers.
 
 ## Standing rules (unchanged)
 Never touch frozen/protected files (locks enforce). All benchmarks via the pinned runner + shape id. ONE runner process; NO other GPU work during sweeps; sequential calls; idle box (no codex). Champions auto-audit. Commit candidate bytes BEFORE first runner contact. Reflection after each block. Plain language; the user's stop overrides everything.

@@ -1,5 +1,12 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 ~20:45 — k007 fused-block megakernel: the board-breaker
+
+- Research insight acted on: 9-11 of the 12 runnable shapes have d_model <= 128 — small enough to fuse an ENTIRE transformer block into two authored Triton kernels (norm1+QKV; flash-attention over all heads with the out-projection folded into the head loop as rank-HD updates, then residual+norm2+erf-GELU-FFN+residual in-register). fp32 residual stream, fp16 tensor-core dots, whole forward CUDA-graphed. ~9 kernel launches per forward instead of ~40+, activations never round-trip HBM between stages.
+- Correctness first: 42/42 vs baseline across head_dim 8/32/64/128, d 32/128, seq 32/128/1024, padded+dense+all-true (fallbacks bit-exact fp32; fused path ~1.2e-3). Committed BEFORE any runner contact (8270909).
+- Screening (scratch ledger, under 5 codex audits): beats every champion 2-4x — shapes 7: 21.9x, 13: 28.3x, 12: 14.0x, 5: 9.2x, geomean ~11.7x on the 11 covered shapes. Deltas far beyond contention noise; clean promotions queued for the idle box.
+- Amendment v1.1 bundle DRAFTED (Project/amendments/) for the user's timeboxed review: MFU reporting, official-script acceptance subcommand, shape-14 oracle path.
+
 ## 28 Aug 2026 ~20:15 — "stop waiting": concurrency protocol + k006 screened + shape-14 re-proven
 
 - User: "stop waiting, try concurrent tests." Protocol adopted: timing runs on small launch-bound shapes stay idle-box-only (contention inflates ratios, LESSONS #20), but everything else runs concurrently with audits — provisional screening sweeps go to a SCRATCH ledger (runner --ledger; no journal pollution, no audit triggers), and correctness-only / big-kernel GPU work proceeds anytime.
