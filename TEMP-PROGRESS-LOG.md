@@ -25,11 +25,12 @@ Nothing can start until you do the steps below.
 
 ## Review status (updated ~11:30)
 
-The reviewer loop went several rounds beyond this file's first version — codex kept finding
-real issues and they kept getting fixed (details: Project/memory/DECISIONS.md). The referee
-is now v1.0.1 with its fingerprint PINNED in the manifest (a tampered referee refuses to
-run). The freeze checklist reflects all of it. Ask Claude "review status" for the latest
-verdict when you're back.
+CLOSED with a YES. Codex reviewed the referee SIX times, finding real flaws each round
+until there were none load-bearing left ("Overall competition-weekend reliance: YES, after
+the mandatory freeze-arm steps" — the freeze-arm steps are YOUR checklist steps). The
+referee is v1.0.2, fingerprint-pinned in the manifest (a drifted referee refuses to run
+any command). Full verdict: Project/audits/track3_handoff_verdict_round6.md. Track 2's
+bench is in the same loop (round 4 pending as of this writing) — ask "review status".
 
 ## What the plan is after your steps
 
