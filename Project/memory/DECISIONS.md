@@ -1,5 +1,9 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 17:30 — GRIND START (user directive)
+
+User: freezes approved and pushed to main; restart impossible tonight — "pretend we restarted": Claude operates AS IF locks are armed (behavioral compliance + live manifest pin; real arming at first restart). New working branch `grind-day1`; 3-hour grind window authorized on Track 3. Auto-audit hook can't fire without the restart, so the watcher is invoked manually after each run batch — same mechanical trigger, hand-cranked until the restart arms it.
+
 ## 28 Aug 2026 17:25 — FREEZE APPROVED (Track 3) — the user's formal sign-off
 
 The user pasted the harness deny lines into .claude/settings.json themselves (verified: valid JSON, both lines present, hooks intact) and declared: "if its good, then i approve freeze for both." Condition met → **freeze approved.**
