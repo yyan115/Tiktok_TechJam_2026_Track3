@@ -499,7 +499,10 @@ class UserOptimizedTransformer(BaselineTransformer):
         valid_token_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if (not _TRITON_OK or x.device.type != "cuda"
-                or x.dtype != torch.float32):
+                or x.dtype != torch.float32
+                or torch.compiler.is_compiling()):
+            # torch.compile tracing: hand dynamo the plain baseline graph
+            # (compiling correct math) instead of our capture machinery.
             return BaselineTransformer.forward(self, x, valid_token_mask)
         if valid_token_mask is not None and not bool(valid_token_mask.all()):
             # Exact baseline path, including pre-softmax key masking.
