@@ -461,6 +461,51 @@ if _TRITON_OK:
                  out, mask=m_mask[:, None] & d_mask[None, :])
 
     @triton.jit
+    def _sub_ln_fp16(
+        X, W, B, Out,
+        D: tl.constexpr, BLOCK_D: tl.constexpr,
+    ):
+        row = tl.program_id(0)
+        offs = tl.arange(0, BLOCK_D)
+        mask = offs < D
+        x = tl.load(X + row * D + offs, mask=mask, other=0.0)
+        mean = tl.sum(x, axis=0) / D
+        diff = tl.where(mask, x - mean, 0.0)
+        var = tl.sum(diff * diff, axis=0) / D
+        inv = 1.0 / tl.sqrt(var + _LN_EPS_C)
+        w = tl.load(W + offs, mask=mask, other=0.0)
+        b = tl.load(B + offs, mask=mask, other=0.0)
+        y = (diff * inv) * w + b
+        tl.store(Out + row * D + offs, y.to(tl.float16), mask=mask)
+
+    def _sub_ln_to_fp16(norm, x):
+        shape = x.shape
+        D = shape[-1]
+        rows = x.numel() // D
+        out = torch.empty(shape, dtype=torch.float16, device=x.device)
+        _sub_ln_fp16[(rows,)](
+            x.reshape(rows, D), norm.weight, norm.bias, out.reshape(rows, D),
+            D=D, BLOCK_D=triton.next_power_of_2(D),
+            num_warps=8 if D >= 1024 else 4,
+        )
+        return out
+
+    @triton.jit
+    def _sub_gelu_fp16(X, N, BLOCK: tl.constexpr):
+        pid = tl.program_id(0)
+        offs = pid * BLOCK + tl.arange(0, BLOCK)
+        mask = offs < N
+        x = tl.load(X + offs, mask=mask, other=0.0).to(tl.float32)
+        y = 0.5 * x * (1.0 + tl.math.erf(x * 0.7071067811865476))
+        tl.store(X + offs, y.to(tl.float16), mask=mask)
+
+    def _sub_gelu_fp16_(h):
+        n = h.numel()
+        _sub_gelu_fp16[(triton.cdiv(n, 1024),)](h.reshape(-1), n, BLOCK=1024,
+                                                num_warps=4)
+        return h
+
+    @triton.jit
     def _sub_final_norm(
         X, LnW, LnB, Out,
         TOKENS, D: tl.constexpr, D_PAD: tl.constexpr,
@@ -588,7 +633,7 @@ class UserOptimizedTransformer(BaselineTransformer):
         for layer in self.layers:
             c = _sub_pack_fp16_layer(layer)
             attn = layer.attention
-            h16 = layer.norm1(x).half()
+            h16 = _sub_ln_to_fp16(layer.norm1, x)
             qkv = F.linear(h16, c["qkv"][0], c["qkv"][1])
             q, k, v = qkv.split(d, dim=-1)
             q = q.view(B, S, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
@@ -607,9 +652,9 @@ class UserOptimizedTransformer(BaselineTransformer):
             context = context.transpose(1, 2).contiguous().view(B, S, d)
             attn_out = F.linear(context, c["out_proj"][0], c["out_proj"][1])
             x = x + attn_out.float()
-            h16 = layer.norm2(x).half()
+            h16 = _sub_ln_to_fp16(layer.norm2, x)
             hidden = F.linear(h16, c["ffn_in"][0], c["ffn_in"][1])
-            hidden = F.gelu(hidden.float(), approximate="none").half()
+            hidden = _sub_gelu_fp16_(hidden)
             x = x + F.linear(hidden, c["ffn_out"][0], c["ffn_out"][1]).float()
         return self.final_norm(x)
 
