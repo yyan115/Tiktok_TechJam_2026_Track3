@@ -9,9 +9,10 @@ what we act on). One topic per file.
 | note | one-line takeaway |
 |---|---|
 | [agent-loop-design.md](agent-loop-design.md) | Winning kernel-agents separate STRATEGY from code, keep tried-direction memory, and put hardware counters in the loop |
-| [megakernels-persistent.md](megakernels-persistent.md) | Megakernels are the low-latency endgame but honest wins vs CUDA-graphed baselines are ~1.2x on consumer GPUs; Triton can't grid-sync (multi-CTA), single-CTA IS Triton-expressible |
+| [megakernels-persistent.md](megakernels-persistent.md) | vs graphed baselines megakernel upside is tens-of-%; shape-2 single-CTA play DEAD (SM-floor math); sequence-persistent CTAs are the cheap correct idea for 3/4/12 |
 | [reviewer-bias.md](reviewer-bias.md) | LLM reviewers over-weight technical validity, under-weight strategy; same-family panels are self-critique; blind + cross-family + explicit strategy prompts required |
 | [gemm-epilogue-fusion.md](gemm-epilogue-fusion.md) | Epilogue/elementwise fusion ~1.45x on bandwidth-bound GEMM paths (source of k010's +14%) |
 | [quantization-tolerance.md](quantization-tolerance.md) | W8A8 int8 error (~1%+) is designed for tolerant workloads; predictably fails abs-2e-3 criteria (k008 confirmed empirically) |
 | [competition-scoring.md](competition-scoring.md) | Webinar: weighted per-shape MFU, "bandwidth considered", fail=zero; public rubric NOT online — confirm weights via official info doc (user gate) |
-| [roofline-table.md](roofline-table.md) | Per-shape FLOPs/bytes/AI + achieved TF: d=128 shapes are LATENCY-bound (megakernel regime); 8/13 near compute roof; 8/14 = fp16-acc territory |
+| [roofline-table.md](roofline-table.md) | Per-shape FLOPs/bytes/AI + achieved TF: d=128 shapes LATENCY-bound; 8 = chunked-fp16-acc GEMM lever; 14 = FA2-style attention lever; 6 = local candidate-only |
+| [kernelagent.md](kernelagent.md) | Meta/PyTorch KernelAgent (organizer-shown): Profile-Diagnose-Prescribe-Orchestrate, top-K beam, reflexion records — the loop template |

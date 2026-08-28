@@ -19,4 +19,4 @@ RTX 3060 Ti: fp32 16.2 TF · TF32 ~16.3 TF · fp16(fp32acc) ~32.5 TF · fp16(fp1
 | 13 | 120.26 | 67.9 | 1771 | 6.0303 | 19.94 | 61% | healthy |
 | 14 | 1391250.64 | 26239.6 | 53021 | - | - | - | not locally runnable |
 
-Readings: every d=128 shape is COMPUTE-bound at ideal fusion (AI >> 72) — their low achieved-TF is a LATENCY/GRID problem (small kernels, few CTAs), the regime megakernels/persistent kernels address. Shapes 8/14: pure compute — fp16-acc GEMM (2x rate) is the only big remaining lever locally; shape 6 = shape-5 physics at 78x the batch (healthy grid, expect good MFU on rental).
+Readings (corrected post-review): every d=128 shape is COMPUTE-bound at ideal fusion (AI >> 72) — their low achieved-TF is a LATENCY/GRID problem. Shape 8 (~98% linear): fp16-acc GEMM (chunked variant only, see error model) is the local lever. Shape 14 is ~94% ATTENTION by useful FLOPs — its lever is an authored FlashAttention-2-style kernel, not GEMM work. Shape 13 is ~57% attention (retune target). Shape 6 = small-d/~86% linear at 78x batch: candidate fits locally (~3.4 GiB single call; the REPEATED NO-GRAPH path still needs proving) — it does not justify rental on its own.
