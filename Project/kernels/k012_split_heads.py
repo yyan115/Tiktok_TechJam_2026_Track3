@@ -1,12 +1,14 @@
 """k012: k009 + a split-heads route for small-token shapes (4, 12 class).
 
-At tokens <= 4096 the fused tail's grid is ~128 programs and the sequential
-per-head flash loop is the long pole. This route puts (batch, head) on the
-grid — H times the flash parallelism — writing per-head context slices to a
-tiny fp16 buffer (~tokens*d*2 bytes, trivial at this size), then a
-head-independent fused tail (out-proj+residual+norm2+FFN+residual). Applies
-the k011 lesson: traffic added is small and fixed; parallelism is the
-constraint being bought. Larger-token shapes keep k009's fully fused tail.
+Route condition (screening-calibrated 29 Aug): 1024 <= tokens <= 4096 AND
+seq >= 64 — the mid-token band where the fused tail's ~128-program grid and
+its sequential per-head flash loop are the long pole (shape-4 class, +8%
+screened). Below that band the launch pattern dominates and very short
+sequences (seq 32) get nothing from splitting a 1-2 iteration flash loop —
+both screened SLOWER on the split route, so they keep k009's fully fused
+tail, as do large-token shapes. Applies the k011 lesson: the context
+round-trip adds ~tokens*d*2 bytes (trivial here); parallelism (x H) is the
+constraint being bought.
 Original k009 header follows.
 
 k009: k007's fused-block megakernel with a widened autotune space.
@@ -410,7 +412,7 @@ def _fused_forward(model, x):
             src.view(tokens, D), c["w_qkv"], c["b_qkv"], c["ln1_w"], c["ln1_b"],
             qkv, tokens, D=D, D_PAD=d_pad,
         )
-        if tokens <= 4096:
+        if 1024 <= tokens <= 4096 and S >= 64:
             # Small-token route: heads on the grid (phase A), tail per token
             # tile (phase B). The context round-trip costs ~tokens*D*2 bytes —
             # trivial here — and multiplies flash parallelism by H.
