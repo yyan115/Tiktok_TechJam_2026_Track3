@@ -14,5 +14,7 @@
     "Project/manifest.json",
     "Project/harness/ (from Stage-1 freeze onward)",
     "Project/results/ (runner-written only)"
-  ]
+  ],
+  "frozen_runner_sha256": "4fdfb97e1bf2859532064d0f0e64335c6cfa449fa7d239dfc2da3d9785725d95",
+  "_frozen_runner_note": "Pinned at freeze-candidate v1.0.1 on 2026-08-28. The runner refuses to run if its bytes differ from this pin. Any authorized harness change requires a user-approved update of this pin plus re-validation and re-audit."
 }

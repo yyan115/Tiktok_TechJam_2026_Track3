@@ -35,6 +35,13 @@
 - OVERRULED, with reasons: file-locking/atomic-write infrastructure for journal+leaderboard (single-operator project, append-only ledger with loud malformed-line warnings, leaderboard fully derivable — rebuilding heavy infra contradicts the user's earlier "stop overengineering the threat model" ruling); fully automated red-team regression framework (red-team runs are two commands documented in RUNBOOK, now on scratch ledgers — automation deferred to post-freeze if time allows); leaderboard *display* grouping unchanged (champion eligibility is what matters and is now strict).
 - DEFERRED to the packaging phase, per its finding 14: report/README/video schedule (already in the weekend plan).
 
+**Codex round 3 (on the v2 commit 090e642): NO — 4 defects, all adopted (v1.0.1):**
+- Freeze checklist promised "zero post-arm edits" while scheduling a DECISIONS.md write, and never named the artifact — rewritten: artifact identified by runner sha (now also PINNED in manifest.json — its key insight: the runner must not trust its own current hash, so the manifest pin makes a modified runner refuse to run); the DECISIONS approval note is explicitly documented as the one post-approval write, outside the protected set.
+- Guard holes (git reset -q --hard, git -C variants, checkout HEAD --, rm -R/--recursive/-rf *) — flag-tolerant patterns added, regression-tested; RUNBOOK enforcement wording corrected (deny rules cover Claude's file tools, not subprocess writes).
+- Calibration key lacked python/triton; champions could outlive a raised threshold — key extended, champion eligibility now requires clearing the LATEST calibration's threshold, and the displayed promoted column uses the same filter.
+- Stale injected STATE.md + a false "no new problems" line in TEMP log — both corrected.
+Also adopted its recorder caveat: record-verdict now requires the source log to exist and stores its sha256.
+
 ## 28 Aug 2026 — overnight build (user asleep, gave 5h go)
 
 Scope granted: build all infrastructure + ONE demo test through the pipeline. Do NOT start the full optimization grind.

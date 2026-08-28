@@ -1,29 +1,27 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-28 ~09:15 (setup finished, committed; user at work)
+Updated: 2026-08-28 ~11:30 (v1.0.1 freeze candidate, review round 4 pending)
 
 ## Where things stand
-- **Referee (trusted runner): v0.9.3-unfrozen, ready for the user's freeze approval.** Full review history: Sol rejected v0.9.0 (RULE_VIOLATION, real flaws) → hardened v0.9.1 → Sol PASS "sound to freeze for shapes 1–13" → Sol's 2 minors applied (v0.9.2) → codex deep handoff review found more real issues (input-tampering hole, provenance gaps) → fixed in v0.9.3. Cold-start handoff simulation PASSED (fresh agent reconstructed everything from files alone).
-- **Current champion: k001_sdpa, 1.614x on shape 1** (FP32 primary profile, all tripwires clean). Red-team suite (rt01 tamper / rt02 cache) caught under v0.9.3, runs on scratch ledgers.
-- Both repos committed and pushed on branch `initial-architecture` (this repo + ../Tiktok_TechJam_2026_Track2, whose setup is also complete: baselines reproduced, iteration harness working, iteration 1 journaled at valid primary 0.6015).
-- Read RUNBOOK.md for commands. Raw audit logs are gitignored (private).
+- **Referee: v1.0.1, sha-PINNED in manifest.json (freeze candidate).** The pin makes tampering self-defeating: a modified runner refuses to run. Review history: Sol rejected v0.9.0 → Sol PASS (v0.9.2) → codex 14-finding review → v0.9.3 → codex confirmation (3 blockers) → v1.0.0 → codex round 3 (4 defects: freeze wording, guard holes, calibration-key gaps, stale state) → **v1.0.1** with manifest pin, threshold-checked champions, full-env calibration keys (python+triton included), flag-tolerant guard patterns, provenance-checked verdict recorder.
+- Current champion (re-validated under v1.0.1): k001_sdpa on shape 1, FP32 primary profile — see Project/results/LEADERBOARD.md for the exact number; both red-team attacks re-verified caught.
+- Both repos on branch `initial-architecture`, pushed. Track 2: lab bench v0.2.0 rebuilt after its own codex round 1 (8 findings), re-review pending.
+- Codex round 4 (Track 3) pending on the v3 commit; its verdict lands in Project/audits/ + scratchpad logs.
 
-## User's next steps (also in TEMP-PROGRESS-LOG.md at repo root)
-1. Follow Project/audits/freeze_checklist.md IN ORDER (paste 2 lines → restart → verify → "freeze approved").
-2. Say "grind" → Track 3 optimization on shapes 1–13 begins.
-3. Say "go track 2" → its harness gets a Sol review, then the autonomous run.
-4. This weekend: RunPod account for shape 14 + final numbers; check Devpost registration (window opens 29 Aug 12:00 GMT+8, closes 1 Sep 12:00).
+## User's next steps → TEMP-PROGRESS-LOG.md (repo root), then Project/audits/freeze_checklist.md
+Short version: paste 2 deny lines → restart → verify locks → "freeze approved" → "grind" → "go track 2".
 
 ## Standing rules (never violate)
-1. Never edit: official scripts, README.md, shapes.json, manifest.json, Project/results/** (runner-written only), .claude/**. After freeze: Project/harness/.
-2. All benchmarks via the runner with a shape id. No raw dials. Calibrate before comparing.
-3. Promotion: correctness + threshold + all cross-checks clean + primary profile + current runner sha. Sol audits at checkpoints only; JUDGE_ERROR never blocks.
-4. Never modify the repo during an active external review; bind reviews to a committed sha.
+1. Never edit: official scripts, README.md, shapes.json, manifest.json, Project/results/** (runner-written only), .claude/**, and Project/harness/** (freeze candidate — treat as locked now).
+2. All benchmarks via the runner with a shape id; calibrate before comparing; ONE runner process at a time.
+3. Champions: promoted + pinned-runner sha + latest-calibration environment key + above the LATEST calibration's threshold. Sol/codex at checkpoints; JUDGE_ERROR never blocks.
+4. Never modify the repo during an active external review; reviews bind to a committed sha.
 5. Plain language to the user; explicit "go" before repo actions.
+6. Memory files: split any that pass ~200 lines (Aug-2026 practice; see memory-system research note).
 
 ## Work queue (after user's "grind")
-- Per shape 1–13, worst-first: calibrate → k001 sweep → CUDA graphs whole-stack candidate → internal fp16/bf16 (vs FP32 reference) → Triton fused kernels → torch.compile comparison. Fresh web research per technique.
-- Watch: shape 6 (batch 10000) may OOM in fp32 on 8 GB — record it. Shapes 7/11 (head size 8) → custom-kernel edge.
-- Stage 4 (shape 14): chunked oracle as user-approved amendment + re-audit; rented GPU (user).
-- Stage 5: sanctioned-copy official acceptance runs (runner `official` subcommand still unbuilt — do before final sweep).
-- Packaging (day 3): tech report from DECISIONS/JOURNAL, README swap (user applies), 3-min video script, Devpost.
+- Shapes 1–13 worst-first: calibrate → k001 sweep → CUDA-graphs whole-stack candidate → internal fp16/bf16 vs FP32 reference → Triton fused kernels → torch.compile comparison. Fresh web research per technique.
+- Watch: shape 6 (batch 10000) may OOM in fp32 on 8 GB — record it. Shapes 7/11 (head dim 8) → custom-kernel edge.
+- Stage 4 (shape 14): chunked oracle as user-approved pin-update amendment + re-audit; rented GPU (user).
+- Stage 5: sanctioned-copy official acceptance runs (runner `official` subcommand still unbuilt — needs a user-approved pin update; plan it with the shape-14 amendment).
+- Packaging: tech report from DECISIONS/JOURNAL, README swap (user applies), 3-min video script, Devpost. Submission window 29 Aug 12:00 → 1 Sep 12:00 GMT+8.

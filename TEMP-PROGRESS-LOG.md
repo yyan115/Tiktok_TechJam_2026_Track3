@@ -23,13 +23,13 @@ Nothing can start until you do the steps below.
 
 **6. This weekend (not urgent today):** make a RunPod account (~$20–50 budget). Needed only for test size 14 (too big for your GPU) and the final official numbers.
 
-## One loose end that resolves itself
+## Review status (updated ~11:30)
 
-The second AI reviewer (codex) was mid-way through its final confirmation of the committed
-code when it hit your ChatGPT plan's usage limit (resets 11:35 AM). An automatic retry is
-armed — the verdict will be in the session log / scratchpad by the time you read this. Ask
-Claude "what did the confirmation review say" when you're back. Its review so far had found
-no new problems.
+The reviewer loop went several rounds beyond this file's first version — codex kept finding
+real issues and they kept getting fixed (details: Project/memory/DECISIONS.md). The referee
+is now v1.0.1 with its fingerprint PINNED in the manifest (a tampered referee refuses to
+run). The freeze checklist reflects all of it. Ask Claude "review status" for the latest
+verdict when you're back.
 
 ## What the plan is after your steps
 

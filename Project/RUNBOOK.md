@@ -56,7 +56,9 @@ session transcripts).
   auto-retire to "legacy" → re-run champions to re-establish.
 - Fresh session lost? `Project/memory/STATE.md` is auto-injected on start; CLAUDE.md points
   everywhere else.
-- Enforcement layers, honestly ranked: (1) deny rules in `.claude/settings.json` — the
-  actual lock; (2) committed hashes + git history — makes tampering visible and provable;
-  (3) the Bash guard hook — a seatbelt that catches accidents, never the load-bearing
-  protection.
+- Enforcement layers, stated precisely: (1) the manifest PIN — the runner refuses to run
+  if its bytes differ from the approved hash, so a modified referee cannot bless results;
+  (2) deny rules in `.claude/settings.json` — lock Claude's file-editing tools (NOT
+  arbitrary subprocess writes, per Claude Code's own docs); (3) committed hashes + git
+  history — any tamper is visible and provable; (4) the Bash guard hook — an accident
+  seatbelt, never load-bearing.

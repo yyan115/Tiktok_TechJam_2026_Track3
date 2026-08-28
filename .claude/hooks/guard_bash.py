@@ -36,12 +36,14 @@ WRITE_PATTERNS = [
     r"\btruncate\b[^|;&]*" + PROT,
     r"\bchmod\b[^|;&]*" + PROT,
     r"\bln\b[^|;&]*" + PROT,
-    r"\bgit\s+clean\b",                      # removes untracked files wholesale
-    r"\bgit\s+reset\s+--hard\b",            # discards tracked changes wholesale
-    r"\bgit\s+restore\b",                   # reverts files (any target)
-    r"\bgit\s+checkout\s+(\.|--\s)",        # checkout-as-revert forms
-    r"\bgit\s+(checkout|reset)\b[^|;&]*" + PROT,  # reverts naming protected files
-    r"\brm\s+-\S*r\S*\s+(\.|/|Project\b)",   # recursive delete of tree roots
+    # Destructive git, tolerant of flags/options anywhere (git -C . -q reset --hard …)
+    r"\bgit\b[^|;&]*\bclean\b",
+    r"\bgit\b[^|;&]*\breset\b[^|;&]*--hard",
+    r"\bgit\b[^|;&]*\brestore\b",
+    r"\bgit\b[^|;&]*\bcheckout\b[^|;&]*(\s--(\s|$)|\sHEAD\b|\s\.(\s|$))",
+    r"\bgit\b[^|;&]*\b(checkout|reset)\b[^|;&]*" + PROT,
+    # Recursive deletes (-r/-R/--recursive, any flag spelling) except under /tmp
+    r"\brm\b(?![^|;&]*\s/tmp/)[^|;&]*(\s-[a-zA-Z]*[rR][a-zA-Z]*(\s|$)|--recursive)",
 ]
 
 
