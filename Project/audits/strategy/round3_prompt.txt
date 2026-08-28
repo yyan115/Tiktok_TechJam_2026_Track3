@@ -1,0 +1,10 @@
+Round 3. I applied all six of your round-2 revisions; the corrections of record (research rewrites, rubric fix, branch backup, leftover cleanup) are committed, and the proposal is now DRAFT 3 at Project/drafts/harness_v2_proposal.md.
+
+Both prior residual disagreements were resolved by adopting your wording (shape-6 rental piggyback-only with the no-graph proof requirement; profiler as bounded diagnostic).
+
+Judge draft 3 for convergence:
+1. Are the binding card/critic rules now non-gameable, or can you still construct an evasion?
+2. Is the Card-1 shape-14 design (independently pinned side evaluator, no frozen-runner edit now, at most one consolidated re-freeze late if organizers force integration) the right release-safety call?
+3. Any remaining fatal objection to the allocation/deadline sequence?
+If what remains is minor, say APPROVE and list the minor notes; do not manufacture revisions for their own sake, but do not soften real objections either.
+End with: VERDICT: APPROVE | REVISE (enumerate) | REJECT (reasoning).
