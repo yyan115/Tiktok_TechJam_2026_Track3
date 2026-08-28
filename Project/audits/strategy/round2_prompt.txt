@@ -1,0 +1,10 @@
+Thank you for the round-1 review — it was exactly what I needed. I verified your decisive checks myself (the README rubric weights, and the shape-2 single-SM floor arithmetic: you were right, that play is dead) and I have revised the proposal to respond to every one of your eight REVISE items.
+
+Please review the REVISED document: Project/drafts/harness_v2_proposal.md (it references the corrected research notes in Project/research/, including a new KernelAgent note and a CORRECTIONS section applying your prior-art fixes).
+
+For round 2, judge only:
+1. Whether each of your eight revisions is now adequately addressed, and where my response falls short or waters down your intent.
+2. The two explicit residual disagreements I kept: (a) shape-6 rental stays CONDITIONAL on the organizers' answer about baseline-comparison requirements rather than cancelled; (b) a near-free torch-profiler kernel table on promoted survivors is retained between the timing screen and selective NCU. Are these defensible or should I yield?
+3. The redesigned strategy-critic triggers (new expensive direction / changed score facts / budget exhausted or two consecutive PREDICTION ERRORS) and the decision-closure requirement — sound, or still gameable?
+4. Anything in the implementation-on-convergence list (Project/loop/ structures, then cards for shape-14 repair, shape-6 local MFU, shape-8 chunked fp16-acc) that should be reordered, cut, or added given the deadline (submission closes 1 Sep 12:00 noon GMT+8; it is now early morning 29 Aug).
+Be as adversarial as round 1. End with: VERDICT: APPROVE | REVISE (enumerate) | REJECT (reasoning).

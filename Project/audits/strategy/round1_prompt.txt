@@ -1,0 +1,19 @@
+I am running a competition project (TikTok TechJam Track 3: optimize transformer inference; scoring = weighted per-shape MFU on 14 fixed shapes, "bandwidth considered", any shape failing precision scores zero; deadline 1 Sep noon; project-authored kernels required, wrapping external kernel libraries like flash-attn is not allowed, but any language is fine).
+
+My AI assistant has been optimizing kernels for a day. Tonight I caught its process degrading into build-measure-retry without research or strategy review, and I made it write a post-mortem and a fix proposal. I want YOUR independent, critical judgment of that proposal before I let it write any more code.
+
+Read these files in this repo:
+- Project/drafts/harness_v2_proposal.md   (the proposal under review)
+- Project/PLAN.md                          (approved plan of record)
+- Project/memory/STATE.md                  (current scoreboard and status)
+- Project/memory/LESSONS.md                (accumulated lessons)
+- Project/results/LEADERBOARD.md           (referee-written results)
+
+Judge ruthlessly — do not be agreeable; a wrong "looks good" costs me the competition:
+1. Are the four diagnosed failures (F1-F4 in the proposal) the real root causes, or is something deeper missed?
+2. Are the proposed mechanisms — strategy-critic reviewer track, hook-enforced research gate, tried-directions ledger, hardware-counter/roofline inner loop, objective stall trigger — sound and sufficient? Which will decay into theater, and what would you change, add, or delete?
+3. Judge the revised per-shape technique portfolio: is it the right allocation to WIN under the stated scoring? Is anything obviously superior being ignored, in any language (Triton, CUDA C++, inline PTX, whatever) within the rules?
+4. Do your own research where possible (use web search if your environment allows; otherwise your knowledge, stating its recency limits) on the cited systems (cuPilot, CudaForge, AutoMegaKernel, TritonForge, Mirage/MPK, AlphaEvolve-class loops): does the proposal represent them accurately, and is there stronger prior art it should be using?
+5. The scoring interpretation ("bandwidth considered" = roofline-relative credit) is an assumption. Assess it and its consequences if wrong in either direction.
+
+End with a verdict line: VERDICT: APPROVE | REVISE (enumerate required revisions) | REJECT (reasoning).
