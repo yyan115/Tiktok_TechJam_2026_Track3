@@ -29,14 +29,14 @@ kernels are already correctness-proven locally (shape6/shape14 core smokes).
 ## Measurement order (one runner process, idle box, sequential)
 
 1. `calibrate` on shapes 6, 14-oracle, and 8 (noise floor on THIS card).
-2. Shape 6: baseline feasibility check, then k007 run (expect the fused path
-   to dominate; batch 10000 = 1.28M tokens is deep-grid territory — if
-   speedup disappoints, retune BLOCK_T/BLOCK_M configs, one committed tuning
-   round max).
+2. Shape 6: baseline feasibility check, then the current d<=128 champion
+   (k009 as of 29 Aug — check LEADERBOARD) — batch 10000 = 1.28M tokens is
+   deep-grid territory; if speedup disappoints, retune BLOCK_T/BLOCK_M, one
+   committed tuning round max.
 3. Shape 14 (needs amendment v1.1 approved + applied BEFORE rental day):
    oracle-path correctness at full scale, then candidate-only timing + MFU.
-   k006's attention core is the proven piece; the full-model path for
-   d=1024/L=2 uses the k006 stack (k007 ineligible: d=1024).
+   Use the current big-d champion (k010 = k006 + fused LN/GELU as of 29 Aug):
+   d=1024/L=2/hd=64 rides its proven Triton attention at seq=100k.
 4. Re-run the FULL 12-shape ship set once on the rented card as a secondary
    profile (cheap, ~10 min) — cross-device evidence for the narrative, never
    mixed with the primary RTX 3060 Ti board.
