@@ -22,17 +22,18 @@ Two auditor RETESTs (k007-era shapes 2/12: idle-box, beefed recipe) are SUPERSED
 ## AUDIT LEDGER interpretation
 Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (superseded by self-contained re-sweeps). Transition-window pair decoded 28 Aug evening: 193139 NEEDS_CONTEXT = packet carried post-edit source (answered: measured bytes now committed pre-run, always). 193243 RULE_VIOLATION = real minor findings, BOTH FIXED @ 90f1c8c: exact official forward signature (extra training=False removed from k004+k005) + padded-mask key masking in k005 (verified 24/24 vs baseline, scratchpad/padded_mask_smoke.py — smoke EVERY branch before runner time, LESSONS #17). 193545 = PASS (k004 self-contained).
 
-## STATUS AT ~03:15 (all measurement obligations DONE; steward mode until noon)
-- Quiet-box ship board banked (above) + official grader passes ALL 12 dial sets (evidence: Project/drafts/official_grader_all_dials_20260829.txt, judge-side geomean ~10.3x).
-- Audits now run Sol at effort HIGH (user-directed, fc6f015; global default was ultra). Quiet-box champion audits in flight — triage each wave; RULE_VIOLATION = loud, fix-first.
-- Experiments closed tonight: k010 ADOPTED (shape 8 → 2.13x, in submission); k008 int8 NEGATIVE (tolerance); k011 NEGATIVE (traffic > occupancy); k012 TIE on shape 4 (not adopted).
-- Etiquette refinements: pgrep counts dead audit wrappers — check per-process %CPU; user's browser adds ~30% of one core even "idle".
+## STATUS ~06:50 — RESEARCH-FIRST LOOP ERA (user-mandated ~03:30 after catching build-measure-retry cadence)
+- User post-mortem verdicts stand: the harness audited honesty, never strategy; research corpus went unused; norms decayed. BINDING NEW PROCESS: research → proposal → blind Sol-ULTRA critique → revise → converge BEFORE implementation (memory: research-first-loop-directive). Research base now lives in Project/research/ (8 source-of-truth notes; check INDEX before any research/build).
+- Blind strategy review (user-voiced, no Claude identity): R1 REVISE(8) — killed my shape-2 single-CTA play by arithmetic, exposed the shape-14 evaluator as non-runnable (~600 GiB), reclassified shape 6 (piggyback-only rental), found the REAL rubric in README (35/20/20/15/10 — 65% non-technical!). R2 REVISE(6) — notes rewritten in place, critic rules hardened. R3 "narrow REVISE, strategy CONVERGED"(2) — family-wide review pause + Card-1 evidence contract, both applied in DRAFT 4. R4 convergence check IN FLIGHT.
+- SUPERSEDED: amendment_v1.1_bundle/_code docs (runner is NOT edited; shape-14 gets an independently pinned side evaluator + Project/results_side/ packets; at most one consolidated re-freeze late, only if organizers force integration). day2_plan.md superseded by harness_v2_proposal.md's allocation.
+- CUDA C++ toolchain LIVE (user installed gcc15; probe verified). Sol audits at effort HIGH (champion audits) / ULTRA (strategy).
+- Night experiments ledger: k010 ADOPTED (shape 8 → 2.13x); k008 int8 NEGATIVE; k011 NEGATIVE; k012 TIE (not adopted); k013 deleted untested.
 
-## USER GATES AT NOON (see Project/drafts/day2_plan.md)
-1. Amendment v1.1 approval (amendment_v1.1_bundle.md + amendment_v1.1_code.md — insertion-ready, line-anchored) → unlocks shape-14 scoring + MFU.
-2. Rental booking (drafts/rental_day_runbook.md turnkey; 48 GB class, ~2-3h, AFTER amendment).
-3. MFU denominator convention (fp32 peak recommended).
-Drafts awaiting review: README (with results + torch.compile tables), video script (with per-scene commands), day2_plan.
+## ON CONVERGENCE (R4 APPROVE or minor): implement in this order (harness_v2_proposal.md §4)
+0. Owner sends Project/drafts/organizer_questions.md (cutoff 30 Aug 12:00 SGT); rental reserved for 30 Aug; Devpost registration verified.
+1. Card 1: shape-14 shippable path (FA2-style authored attention + pinned side evaluator + evidence packet contract).
+2. Card 2: shape-6 no-graph local candidate-only MFU. 3. Card 3: shape-8 chunked fp16-acc (plain-GEMM falsifier first, 2-3h cap). 4. At most one of 11/13 (tie-break: 11). Cut the rest unless everything green.
+CODE FREEZE 31 Aug 12:00 SGT · packaging 31 Aug noon → 1 Sep 02:00 · final 10h = reproduction/contingency only.
 
 ## Standing rules (unchanged)
 Never touch frozen/protected files (locks enforce). All benchmarks via the pinned runner + shape id. ONE runner process; NO other GPU work during sweeps; sequential calls; idle box (no codex). Champions auto-audit. Commit candidate bytes BEFORE first runner contact. Reflection after each block. Plain language; the user's stop overrides everything.
