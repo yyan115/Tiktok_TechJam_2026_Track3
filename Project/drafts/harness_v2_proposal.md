@@ -1,127 +1,150 @@
-# Proposal: fixing the optimization loop (harness v2) + revised win strategy
+# Outer-loop proposal, DRAFT 2 — post external review round 1
 
-Draft 1 — 29 Aug ~03:45. Research-backed; no implementation until reviewed
-(external critique + owner approval). Sources cited inline.
+29 Aug ~05:15. Draft 1 received VERDICT: REVISE with 8 required revisions
+(Project/audits/strategy/strategy_review1_raw.log). Draft 2 responds to every
+one; deltas and residual disagreements are marked. Still NO implementation
+until this converges + owner approves.
 
-## The four diagnosed failures (from tonight's post-mortem)
+## Response to the review's re-diagnosis (accepted)
 
-F1. The harness audits honesty, not intelligence — no mechanism ever asks
-    "is this the right thing to build?"
-F2. The agent reward-hacked cadence: build→measure→promote produces a
-    reward tick; research produces none, so research starved.
-F3. The assembled research corpus went unused; candidates (int8 W8A8, a
-    traffic-doubling restructure) contradicted known literature.
-F4. Norms without enforcement decay (research order, reflection); only
-    mechanically-enforced rules survived the grind. The stall adviser never
-    fired because its trigger was self-reported.
+The reviewer's root causes replace my F1-F4 framing: (1) no trustworthy
+score model; (2) false coverage confidence on shape 14; (3) no outer-loop
+allocation by expected points/hour; (4) greedy single-incumbent search;
+(5) reviews without decision closure; (6) too much process infrastructure
+for the deadline. I verified its two decisive checks myself: the judging
+rubric in README.md (Technical Execution 35%, Innovation 20%, Impact 20%,
+Feasibility 20%) and the shape-2 single-SM floor arithmetic (~137us floor
+vs 144.4us current champion — my single-CTA play was impossible; killed,
+recorded in research/megakernels-persistent.md).
 
-## Fixes (each grounded in current literature)
+## Revision 1 — lightweight experiment-card outer loop (replaces "harness v2 hooks")
 
-### Fix F1 — a Strategy Critic as a first-class role
-- cuPilot (arXiv 2512.16465) shows strategy-level coordination beats
-  code-level iteration: strategy is an explicit intermediate representation,
-  evolved and critiqued separately from code; roofline-guided prompting
-  selects techniques. Result: 3.09x avg over PyTorch across 100 kernels.
-- Reviewer-bias literature (Mind the Blind Spots, arXiv 2502.17086) documents
-  that LLM reviewers over-attend technical validity and under-attend
-  strategy/direction — precisely our observed failure mode.
-- CHANGE: two reviewer tracks with different prompts and cadences:
-  (a) integrity audits per champion (unchanged, effort high);
-  (b) STRATEGY reviews at objective checkpoints (every 5 promoted champions
-  OR any stall trigger): reviewer receives the roofline table, the
-  technique portfolio with outcomes, and the current board, and is asked
-  "what known technique is being ignored; where is effort misallocated
-  relative to scoring?" — at maximum reasoning effort, cross-model-family
-  (same-family panels are structured self-critique, not verification:
-  agent-review-panel's documented limitation).
+ACCEPTED. No per-candidate research-header hook, no reflection-recency hook,
+no 2-negatives trigger. Instead, one EXPERIMENT CARD per macro-direction
+(JSONL in Project/loop/cards.jsonl), created BEFORE work starts, schema per
+KernelAgent's reflexion records (research/kernelagent.md):
+  {id, direction, hypothesis, cheapest_decisive_test, prediction(+arithmetic),
+   budget_minutes, kill_criteria, status, expected_vs_observed, lessons,
+   avoid_patterns, try_patterns, followups}
+Config/tile variants inherit the card id. Card close REQUIRES
+expected-vs-observed — reflection folded in, no separate artifact. Staged
+falsification is the core discipline: hypothesis → cheapest decisive test
+(often arithmetic or a 5-minute microbench) → implementation only if it
+survives. (This discipline, applied earlier, kills k008 and k011 on paper.)
 
-### Fix F2 — mechanical research gate + evolutionary memory
-- AlphaEvolve/OpenEvolve-class systems pair generate-evaluate-select with
-  EVOLUTIONARY MEMORY so failed directions are not retried blind.
-- CHANGE 1: a hook (same class as the Bash guard) refuses `runner run
-  --impl` for any candidate file lacking a research-memo header: sources
-  consulted, predicted gain WITH arithmetic (roofline/traffic estimate),
-  and kill-criteria. The memo is cheap (10-30 min); the hook makes it
-  unskippable — norms→mechanisms (F4).
-- CHANGE 2: TRIED.md — an append-only direction ledger (technique,
-  prediction, outcome, lesson-link). The strategy critic receives it, so
-  repeats and near-repeats get flagged.
+## Revision 2 — repair and prove the shape-14 path (hard blocker, top priority)
 
-### Fix F3 — hardware-feedback and roofline discipline in the inner loop
-- CudaForge (OpenReview f4GtuI2blh): Coder+Judge with Nsight Compute
-  counters in the loop → 97.6% correctness, 1.68x, generalizes across GPUs.
-  TritonForge (arXiv 2512.09196) does the same profiling-guided loop
-  Triton-native.
-- CHANGE: every candidate's evaluation includes a per-kernel counter
-  snapshot (achieved bandwidth, occupancy, issue stalls) vs a per-shape
-  ROOFLINE TABLE (bytes moved, FLOPs, theoretical floors) maintained in the
-  repo. Predictions in research memos must reference it. (This arithmetic,
-  done first, would have killed the k011 restructure before it was built.)
+ACCEPTED IN FULL, with the reviewer's own repair list adopted:
+(a) oracle path must BYPASS the dense Evaluation constructor (its invariance
+probe would build ~600 GiB of scores); (b) batch/head-STREAMED oracle and
+streamed comparison (no 64 GiB score chunks); (c) no CUDA graph at this
+size; (d) batch-microchunked candidate execution into one preallocated
+output; (e) size-aware warmup/repeats; (f) reduced-size FULL-MODEL
+multi-seed checks first, then ONE full-scale run. Technique focus: ~94% of
+shape-14 useful FLOPs are attention ⇒ authored FlashAttention-2-style
+kernel (online softmax, causal tiling, query-block parallelism within a
+head) is the primary lever, not GEMM work. The amendment code doc gets
+rewritten to this spec before any re-freeze conversation.
 
-### Fix F3.5 — persistent RESEARCH BASE with a mandatory check (owner-mandated 29 Aug; literature-validated)
-- cuPilot's ablations rank their historical-database + RAG strategy seeding
-  as the single largest component: -54.1% latency after ONE epoch — bigger
-  than roofline guidance itself. A persistent, indexed research memory that
-  every new task MUST consult is not hygiene, it is the top-performing
-  mechanism in the closest prior art.
-- BUILT (initial version): Project/research/ — INDEX.md + per-topic notes
-  (agent-loop design, megakernels, reviewer bias, epilogue fusion,
-  quantization tolerance, competition scoring), backfilled from Day-1
-  research. Notes carry structured findings + stable URLs + implications;
-  PDFs are not vendored (re-fetchable), conclusions are.
-- CHANGE (needs hooks, hence in this proposal): (a) research memos must cite
-  research-base notes or add new ones — checked by the same gate hook;
-  (b) SessionStart injects INDEX.md alongside STATE.md so no session starts
-  blind; (c) every research pass STARTS by reading INDEX.md — re-researching
-  something already noted is itself a loop failure.
+## Revision 3 — score model: obtain or hedge
 
-### Fix F4 — norms become mechanisms
-- Research gate: hook-enforced (above). Reflection: each block ends by
-  appending to REFLECTIONS.md (hook checks recency before new candidates).
-  Stall trigger: TWO consecutive non-promoted or negative candidates
-  mechanically forces the strategy-review checkpoint before the next build.
+ACCEPTED. Two actions: (1) DRAFTED organizer question set (below) for the
+owner to send at morning: exact weights; MFU precision/peak convention and
+cap (our fp32-denominator numbers exceed 100% — shape 8 at 129% — so the
+convention is not ordinary utilization); the exact bandwidth term; hardware
+mixing rules; the shape-14 reference procedure. (2) Until answered, the
+leaderboard gains a SENSITIVITY BOARD: per shape — raw latency, useful
+TF/s, fp32-equivalent throughput, fp16-peak MFU, and roofline efficiency
+(max of compute/memory SOL, KernelAgent's headline metric) — so any
+convention the organizers pick is already computed.
 
-## Revised win strategy (language-agnostic, scoring-aligned)
+## Revision 4 — allocation reordered (accepted, one hedge)
 
-Scoring recorded from the organizers: weighted sum of per-shape MFUs,
-"bandwidth considered", failed precision = zero. "Bandwidth considered"
-reads as roofline-relative credit — launch/bandwidth-bound shapes are
-scored against what the memory system permits, not raw FLOP peak. If so,
-the per-shape roofline table IS the score model; effort should follow its
-gaps. (If weights are per-shape-equal, the same conclusion holds; if
-absolute-MFU-weighted, the big-d shapes 6/8/14 dominate and rental rises
-further in priority. UNKNOWN — worth asking organizers or hedging.)
+ADOPTED ORDER: 1) shape-14 survival+correctness+authored long-seq attention;
+2) shape-6 candidate-only local MFU + correctness (it is d=128/~86% linear,
+fits locally in 3.4 GiB — NOT big-d, my taxonomy was wrong); 3) shape-8
+authored GEMM/epilogue (chunked fp16-acc per the error model in
+research/gemm-epilogue-fusion.md; naive variant pre-killed); 4) shape-11
+head-dim-8 specialization (same FLOPs as 9/10 but 0.96ms vs 0.61ms — the
+clearest anomaly on the board); 5) shape-13 attention retune (~57%
+attention); 6) ONE timeboxed sequence-persistent family for 3/4/12
+(independent CTA per batch sequence, NO cross-CTA sync — reviewer's
+suggestion, Triton-expressible); 7) shape 2 last, only under a changed
+premise (fp16-acc or multi-CTA), explicitly high-risk.
+HEDGE (disagreement, stated): rental is NOT cancelled for shape 6 — it is
+CONDITIONAL on the organizers' answer about baseline-comparison requirements
+at shapes 6/14. If candidate-only numbers suffice, no rental for 6.
 
-Technique portfolio by shape class (each item = memo before build):
-1. B=1 (shape 2): SINGLE-PROGRAM whole-model kernel. The documented Triton
-   limitation is grid-level sync (Mirage/MPK, MegaKernel lit); a one-CTA
-   kernel needs none — 128 tokens x d=128 activations fit one program's
-   SRAM; 4 layers of weights (~200 KB fp16) stream from L2. Expressible in
-   Triton (proven toolchain), no compiler blocker. Predicted gain: bounded
-   by remaining inter-kernel gaps (~10-20 us of ~50 us forward) → ~1.2-1.5x
-   on that shape. AutoMegaKernel (arXiv 2606.09682) calibrates megakernel
-   claims honestly: vs CUDA-graphed baselines on consumer GPUs the win was
-   1.19-1.23x — expect that class, not 6x.
-2. Small-batch multi-CTA shapes (12, 4): persistent kernel with
-   counter-based producer/consumer sync (AutoMegaKernel's model) — CUDA
-   C++ only (Triton cannot grid-sync). LOCALLY BLOCKED (nvcc 13 segfaults
-   with gcc16; no g++-14). Route: rental-day toolchain or owner installs
-   gcc14. Expected: same ~1.1-1.3x class on those shapes' remainders.
-3. Big-d shapes (8 local; 6, 14 rental): GEMM/bandwidth-bound — the MFU
-   frontier if scoring is absolute. Portfolio: fp16-acc tensor-core GEMM
-   epilogues (2x fp16 rate on sm86; tolerance-risky — memo must include
-   error model BEFORE build, unlike k008), deeper cuBLASLt epilogue use,
-   k010-class fusion already banked.
-4. Rental day doubles as the CUDA-C++ window (matched toolchains) for
-   items 2 and any counter-guided retunes.
+## Revision 5 — selective multi-fidelity profiling
 
-## Sequencing (proposal)
+ACCEPTED with one retained cheap layer: ladder = correctness screen →
+timing screen → torch-profiler kernel table on PROMOTED survivors only
+(near-free, catches k011-class regressions) → NCU SELECTED metrics
+(CudaForge's finding: full metric dumps degrade judge quality) only on the
+actual hotspot of the current direction. Profiling always separate from
+official timing; benchmark lock semantics stay (one runner, quiet box).
 
-Day 2 morning: owner reviews this + amendment v1.1 → harness v2 hooks +
-roofline table built → strategy-critic round 1 on the portfolio → then and
-only then implementation resumes, memo-gated.
+## Revision 6 — structured lineage instead of TRIED.md
 
-## Verification plan for the fixes themselves
+ACCEPTED. Project/loop/lineage.jsonl: {strategy_id, parent_id, source_sha,
+device, shape, exact_change, prediction, outcome(dist over rounds),
+counters_summary, failure_scope, revisit_condition} — successes AND
+neutrals recorded, not just negatives. Live diversity: maintain a small
+top-K beam per direction (KernelAgent) rather than a single incumbent; the
+strategy critic receives the beam, not one champion.
 
-The strategy critic's first assignment: attack THIS document. If it finds
-the fixes toothless or the strategy misprioritized, iterate before any code.
+## Revision 7 — prior-art corrections + cuBLASLt demotion
+
+DONE. All six corrections applied to Project/research/ (cuPilot inference,
+CudaForge selected-metrics, TritonForge success-rate context, AMK precision
+asymmetry, MPK scope/1.7x, AlphaEvolve structure) + KernelAgent note added
+as the primary template (organizer-shown). "Deeper cuBLASLt epilogues"
+REMOVED from the portfolio as a primary play (authored-kernel rule);
+F.linear/cuBLAS stays only as the already-shipped baseline plumbing around
+authored kernels, flagged for the organizers' innovation-policy question.
+
+## Revision 8 — hard packaging buffer
+
+ACCEPTED. Rubric reality: 35% technical / 65% innovation+impact+feasibility
++presentation. Hard-reserve: final 10 hours before the 1 Sep noon deadline
+are packaging-only (video, README, reproduction paths, Devpost), and one
+earlier 2-hour block for the video's tamper-demo rehearsal. No kernel work
+inside the buffer, no exceptions without owner override.
+
+## Strategy critic (redesigned per review)
+
+Triggers: (a) opening a new expensive direction (= new experiment card with
+budget > 60 min); (b) changed score facts (organizer answers, rubric
+discoveries); (c) direction-level stall = card budget exhausted or two
+consecutive PREDICTION ERRORS (not mere negatives — being wrong about WHY
+matters, failed predictions are the signal). Review must return: explicit
+accept/reject of the direction, alternatives considered, expected
+points/hour, cheapest falsifier — and the loop RECORDS THE DECISION AND
+RESPONSE (decision closure, the review's core process complaint).
+
+## Integrity audits (reduced per review)
+
+Audit each unique source SHA once + the final dispatcher; a champion
+winning additional shapes with identical bytes does not re-fire. Effort
+stays high; strategy reviews stay ultra.
+
+## Organizer question draft (owner sends)
+
+1. Per-shape weights in the score? 2. MFU denominator: which precision's
+peak, and is it capped at 100%? 3. What exactly does "bandwidth considered"
+mean — roofline-relative credit? 4. For shapes where the reference script
+cannot run (6 OOM on 8 GB, 14 infeasible anywhere), what evidence is
+accepted — candidate-only timing vs a validated alternative reference?
+5. Is fp16-internal computation acceptable under the stated tolerance
+(webinar said yes — confirming in writing)? 6. Any constraint on
+implementation language or on torch built-ins as fallbacks?
+
+## What implementation happens the moment this converges
+
+1. Project/loop/ (cards.jsonl, lineage.jsonl, sensitivity board generator)
+   — ~1 hour, the ONLY process code built.
+2. Card 1: shape-14 evaluator repair + streamed oracle (rev 2 spec).
+3. Card 2: shape-6 candidate-only local MFU path.
+4. Card 3: shape-8 chunked fp16-acc GEMM (error model already written).
+5. Cards 4+: allocation order above. CUDA C++ used where the card's
+   cheapest-test says it wins (toolchain verified live).
