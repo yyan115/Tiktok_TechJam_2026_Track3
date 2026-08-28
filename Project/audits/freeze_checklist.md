@@ -51,4 +51,4 @@ v0.9.3. Codex confirmation: 3 blockers + 1 overrule overturned → v1.0.0. Codex
 subcommands; /tmp exemption hole + abbreviated-option bypasses in the guard; write-surface
 wording) → fixed in v1.0.2. Verdicts + raw-log hashes: `Project/audits/`.
 
-FROZEN COMMIT: 7ad64de (branch initial-architecture)
+FROZEN COMMIT: 69d8e3f (branch initial-architecture)
