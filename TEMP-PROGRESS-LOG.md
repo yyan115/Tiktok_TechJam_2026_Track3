@@ -1,6 +1,6 @@
 # TEMP — read this when you're back (Track 3)
 
-*Written 28 Aug ~09:30 by Claude before you closed the session. Delete this file once done.*
+*Updated 28 Aug 16:06. Delete this file once done.*
 
 ## Where things stand (10-second version)
 
@@ -31,6 +31,37 @@ the mandatory freeze-arm steps" — the freeze-arm steps are YOUR checklist step
 referee is v1.0.2, fingerprint-pinned in the manifest (a drifted referee refuses to run
 any command). Full verdict: Project/audits/track3_handoff_verdict_round6.md. Track 2's
 bench is in the same loop (round 4 pending as of this writing) — ask "review status".
+
+
+## WHAT WE ACTUALLY BUILT (plain words, one line each, with the file to open)
+
+**The machine:**
+- **The referee** — one script that tests every speed-up attempt: checks the answers match TikTok's original, times it fairly, writes the result to the logbook. I run it; I can't change it. → `Project/harness/runner.py`
+- **The traps inside the referee** — catch the known ways AIs fake speed results: cached answers, hidden work, tampered math, modified inputs. All were proven to fire by attacking them. → `Project/harness/redteam/` (the attack files)
+- **The fingerprint pin** — the referee's exact fingerprint is recorded; if even one byte of it changes, it refuses to run anything. Tampering turns itself off. → `Project/manifest.json`
+- **The locks** — settings that make my editing tools refuse to touch TikTok's files, the referee, or the results. YOU arm these (your 2-line paste + restart). → `.claude/settings.json`
+- **The exact 14 test sizes** — written down because TikTok's script silently tests the WRONG sizes on default settings. → `Project/shapes.json`
+
+**The memory (so no session ever starts blank):**
+- **Status board** — where we are, what's next; auto-loaded into every new session. → `Project/memory/STATE.md`
+- **Diary** — everything we discussed and decided, in plain language, dated. → `Project/memory/DECISIONS.md`
+- **Mistakes list** — things proven not to work, never to be retried. → `Project/memory/LESSONS.md`
+- **Logbook** — every test result, machine-written, one line each; I cannot edit it by hand. → `Project/results/JOURNAL.jsonl`
+- **Scoreboard** — best verified result per test size, auto-generated from the logbook. → `Project/results/LEADERBOARD.md`
+
+**The oversight:**
+- **Second-AI review trail** — codex (GPT) reviewed the referee SIX times, rejecting it for real flaws until none remained. Its final sign-off, verbatim: → `Project/audits/track3_handoff_verdict_round6.md`
+- **Operating manual** — every command, what writes what, how to recover. → `Project/RUNBOOK.md`
+
+## HOW TO CHECK IT YOURSELF (10 min, no code reading)
+
+1. Read the reviewer's final verdict (short, plain English): `Project/audits/track3_handoff_verdict_round6.md`
+2. Skim the diary for the story: `Project/memory/DECISIONS.md`
+3. Watch a cheater get caught LIVE — run these two commands in this folder:
+   `python3 Project/harness/runner.py check`   (integrity: should print green/verified)
+   `python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt01_monkeypatch.py --ledger /tmp/rt.jsonl`   (should print TAMPER DETECTED and abort)
+4. After your restart: tell Claude "try to edit the runner" — watch the lock block it.
+5. Anytime, forever: any number Claude claims → say "show me the journal entry" — every result traces to one logbook line.
 
 ## What the plan is after your steps
 
