@@ -1,5 +1,19 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 ~05:20 — blind strategy review round 1: REVISE(8); draft 2 submitted (DECISION CLOSURE record)
+
+- Sol-ultra (416k tokens, 90 min) returned REVISE with 8 required revisions. My dispositions, each verified where checkable:
+  ACCEPTED 1 (experiment cards replace hooks — per-candidate research-header hook deleted as retroactive-boilerplate risk), 2 (shape-14 path is a hard blocker: my amendment code would have built ~600 GiB of scores via the Evaluation ctor; six-step streamed repair adopted; FA2-style authored attention is the shape-14 technique), 3 (score-model sensitivity board + organizer question set — our fp32-denominator "MFU" exceeds 100%, so the convention is unresolved), 4 (allocation 14→6→8→11→13→persistent-family→2; shape-2 single-CTA play KILLED by SM-floor arithmetic 137us-vs-144us; shape 6 reclassified small-d/~86%-linear, fits locally), 5 (multi-fidelity profiling ladder; CudaForge selected-metrics), 6 (structured lineage JSONL + top-K beam replaces TRIED.md), 7 (six prior-art corrections applied to research notes; cuBLASLt demoted; KernelAgent adopted as primary template — organizer-shown), 8 (hard packaging buffer; rubric = 35% technical / 65% rest, verified in README).
+  PUSHED BACK 2 items: shape-6 rental conditional (not cancelled) pending organizer answer; cheap profiler table on promoted survivors retained. Both flagged to the reviewer for round 2.
+- User actions this window: ran gcc15 install (CUDA C++ toolchain verified LIVE); mandated the research-first loop + persistent research base (Project/research/, now 8 notes incl. corrections).
+- Round 2 launched blind (same voice, adversarial, ultra). Loop continues until APPROVE or minor-residue.
+
+## 29 Aug 2026 ~03:20 — user challenges the Triton-only strategy; CUDA C++ becomes a Day-2 additive track
+
+- User (angrily, correctly): why did no reviewer ever question winning with Triton instead of raw CUDA C++? ANSWER RECORDED: Triton-as-primary was in the user-approved PLAN.md (Stage 3 names "fused Triton kernels" explicitly) and every reviewer was scoped to measurement integrity, not implementation strategy — a genuine review-design blind spot, now logged. The rules record no language restriction and scoring is measured MFU; the Triton board stands as the banked result.
+- CUDA C++ status on this box: BLOCKED — nvcc 13.0's front-end segfaults with gcc 16.2 (only compiler installed); clang 21+ rejected outright; g++-14 (the user's own nvcc alias target) is not installed. Fix = one sudo dnf install (user gate, noon) or rental-day images with matched toolchains.
+- Plan adjustment: CUDA C++ persistent whole-model kernel (grid-sync, inexpressible in Triton) targets shapes 2/12/8 margins on Day 2 — additive, tens-of-percent class, plus narrative value for the CUDA-sponsor track. Design doc + source skeleton prepared tonight so Day-2 execution is immediate.
+
 ## 29 Aug 2026 ~02:35 — QUIET-BOX PASS DONE: ship board geomean ~11.0x; RETESTs closed
 
 - The "5 running audits" blocking the idle window were dead 0%-CPU bash wrappers — pgrep counts them but the box was quiet (load 1.6). Evidence line recorded in the run log. New etiquette: check per-process %CPU, not just pgrep.
