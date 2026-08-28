@@ -46,6 +46,6 @@ The 6.7x-class claims compare against weaker baselines.
 ## Toolchain unlock (verified 29 Aug ~04:05)
 CUDA 13.0 officially supports GCC 15 hosts
 (https://developer.nvidia.com/blog/whats-new-and-important-in-cuda-toolkit-13-0/)
-and Fedora 44 ships gcc15-c++ in updates. Local CUDA C++ = `sudo dnf install
-gcc15-c++` (owner gate) + `-ccbin g++-15`. The gcc16 segfault stands; clang
-21/22 rejected.
+and Fedora 44 ships gcc15-c++ in updates. LIVE as of 29 Aug ~04:30: owner installed gcc15-c++; probe kernel compiled
+and ran via load_inline with -ccbin g++-15. Multi-CTA persistent kernels are
+now locally buildable.
