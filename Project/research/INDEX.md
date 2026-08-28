@@ -14,3 +14,4 @@ what we act on). One topic per file.
 | [gemm-epilogue-fusion.md](gemm-epilogue-fusion.md) | Epilogue/elementwise fusion ~1.45x on bandwidth-bound GEMM paths (source of k010's +14%) |
 | [quantization-tolerance.md](quantization-tolerance.md) | W8A8 int8 error (~1%+) is designed for tolerant workloads; predictably fails abs-2e-3 criteria (k008 confirmed empirically) |
 | [competition-scoring.md](competition-scoring.md) | Webinar: weighted per-shape MFU, "bandwidth considered", fail=zero; public rubric NOT online — confirm weights via official info doc (user gate) |
+| [roofline-table.md](roofline-table.md) | Per-shape FLOPs/bytes/AI + achieved TF: d=128 shapes are LATENCY-bound (megakernel regime); 8/13 near compute roof; 8/14 = fp16-acc territory |

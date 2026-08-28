@@ -42,3 +42,10 @@ The 6.7x-class claims compare against weaker baselines.
   after owner installs gcc14. Predicted 1.1-1.3x class.
 - Big shapes: megakernel NOT the lever (AutoMegaKernel loses there);
   GEMM-side techniques instead.
+
+## Toolchain unlock (verified 29 Aug ~04:05)
+CUDA 13.0 officially supports GCC 15 hosts
+(https://developer.nvidia.com/blog/whats-new-and-important-in-cuda-toolkit-13-0/)
+and Fedora 44 ships gcc15-c++ in updates. Local CUDA C++ = `sudo dnf install
+gcc15-c++` (owner gate) + `-ccbin g++-15`. The gcc16 segfault stands; clang
+21/22 rejected.

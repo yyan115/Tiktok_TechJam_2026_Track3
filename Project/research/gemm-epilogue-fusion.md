@@ -18,3 +18,9 @@
   fp16-acc path — would need authored Triton GEMM competitive with cuBLAS,
   historically ~85-95% of cuBLAS on these sizes: net gain uncertain. Memo
   required before any build.
+
+## Triton fp16-accumulate expressibility (verified 29 Aug)
+tl.dot accepts accumulators of {float16, float32, int32} and an out_dtype
+parameter (https://triton-lang.org/main/python-api/generated/triton.language.dot.html)
+— fp16-acc HMMA is Triton-expressible on sm86; no CUDA C++ needed for the
+shape-8 fp16-acc experiment. Error model still mandatory before build.
