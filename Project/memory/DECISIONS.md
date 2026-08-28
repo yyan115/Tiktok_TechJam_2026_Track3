@@ -1,5 +1,12 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 ~07:05 — REVIEW LOOP CONVERGED (4 rounds); implementation resumes on the new process
+
+- Round trail: R1 REVISE(8) -> R2 REVISE(6) -> R3 "narrow REVISE, strategy converged"(2) -> R4 "narrow REVISE"(3, all wording/document fixes, own text confirms Card-1 contract + allocation converged). ALL items across all rounds applied; nothing skipped — convergence per the user's criterion. Raw logs local-only (gitignored); prompts + verdicts committed.
+- The converged plan is Project/drafts/harness_v2_proposal.md DRAFT 4 (+R4 fixes): experiment-card outer loop with binding family rules, K=3 hypothesis-class beam, structured lineage bound to immutable card ids; shape-14-first allocation (14 -> 6 -> 8 -> one of 11/13); independently pinned side evaluator, frozen runner untouched; sensitivity board; code freeze 31 Aug noon; final buffer from 1 Sep 02:00.
+- User pre-authorization on record ("start as soon as the new harness approach is ready"): implementation begins immediately — Project/loop/ structures, then Card 1 (shape-14 shippable path).
+- Owner actions still open: send organizer_questions.md; reserve rental for 30 Aug; verify Devpost registration.
+
 ## 29 Aug 2026 ~05:20 — blind strategy review round 1: REVISE(8); draft 2 submitted (DECISION CLOSURE record)
 
 - Sol-ultra (416k tokens, 90 min) returned REVISE with 8 required revisions. My dispositions, each verified where checkable:
