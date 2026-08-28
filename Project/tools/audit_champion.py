@@ -60,6 +60,10 @@ def main() -> int:
     try:
         result = subprocess.run(
             ["codex", "exec", "-s", "read-only",
+             # user-directed 29 Aug: audits at high (not the global ultra
+             # default) — faster verdicts, less box contention; scoped here
+             # so the user's own codex sessions keep their default.
+             "-c", 'model_reasoning_effort="high"',
              "--output-schema", str(SCHEMA),
              PROMPT.format(entry_id=entry_id, packet=packet_path)],
             cwd=str(ROOT), stdin=subprocess.DEVNULL,
