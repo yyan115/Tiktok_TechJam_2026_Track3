@@ -40,12 +40,18 @@ Binding rules:
   recorded changed-premise or explicit owner override. All dispositions
   logged in the card (decision closure).
 - Beam: FIXED K=3 live candidates per direction family, admitted only if
-  they differ in HYPOTHESIS CLASS (not tile-size variants of one idea);
-  eviction = lowest measured result on the card's named metric; evictions
-  recorded in lineage.
+  they differ in HYPOTHESIS CLASS (not tile-size variants of one idea).
+  Each family PREDECLARES its ranking metric, measurement regime, and
+  optimization direction (e.g. "median latency, shape-14 primary profile,
+  lower is better"); eviction removes the WORST-normalized candidate under
+  that declaration; evictions recorded in lineage.
 - Card creation is 10-15 minutes by hand; NO tooling beyond cards.jsonl +
   lineage.jsonl + the sensitivity-board generator script.
-Lineage (Project/loop/lineage.jsonl) as in draft 2, plus family ids.
+Lineage (Project/loop/lineage.jsonl) as in draft 2, plus: every lineage row
+carries the IMMUTABLE `card_id` it was preregistered under and the card's
+recorded `hypothesis_class` — results cannot be reassigned to a different
+card after observation, and beam-diversity admissions are auditable against
+the recorded classes.
 
 ## 2. Score model (round-2 item 3)
 - Organizer questions (owner sends TODAY): weights; MFU precision/peak
