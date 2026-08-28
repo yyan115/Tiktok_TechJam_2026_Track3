@@ -8,8 +8,7 @@ Updated: 2026-08-28 ~13:00 (v1.0.2 — review loop CLOSED: round-6 verdict YES)
 - Both repos on branch `initial-architecture`, pushed. Track 2: lab bench v0.5.0, its review loop CLOSED at round 12 with YES (verdict committed in its repo).
 - Freeze-candidate commits: 7ad64de → 81e077b → 69d8e3f → d46d911 → this closing doc-polish commit. The AUTHORITATIVE frozen-commit pointer is the bottom line of Project/audits/freeze_checklist.md. Codex round-6 verdict: YES (none load-bearing remaining); preserved in Project/audits/track3_handoff_verdict_round6.md.
 
-## User's next steps → TEMP-PROGRESS-LOG.md (repo root), then Project/audits/freeze_checklist.md
-Short version: paste 2 deny lines → restart → verify locks → "freeze approved" → "grind" → "go track 2".
+## Status: FREEZE APPROVED (user, settings verified; locks arm at next restart — see DECISIONS). Awaiting the user's "grind" to start optimization. Restart when possible arms locks + auto-audit hook + auto-STATE injection.
 
 ## Standing rules (never violate)
 1. Never edit: official scripts, README.md, shapes.json, manifest.json, Project/results/** (runner-written only), .claude/**, and Project/harness/** (freeze candidate — treat as locked now).

@@ -1,5 +1,13 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 28 Aug 2026 17:25 — FREEZE APPROVED (Track 3) — the user's formal sign-off
+
+The user pasted the harness deny lines into .claude/settings.json themselves (verified: valid JSON, both lines present, hooks intact) and declared: "if its good, then i approve freeze for both." Condition met → **freeze approved.**
+- Frozen artifact: Project/harness/runner.py v1.0.2, sha256 starting 203aba8d2a0955d6, pinned in manifest.json; approval recorded at commit d258d03.
+- Scope + residuals as per Project/audits/freeze_checklist.md (shapes 1-13; cooperative-model same-process residual; reviewer sign-off round 6 YES).
+- Honest caveat: the user is on remote access and could not restart, so the deny rules and hooks ARM AT THE NEXT SESSION START, and the live lock-bounce proof is deferred to that restart. Until then the active protections are the manifest pin (a drifted referee refuses to run — already live), git history, and behavioral compliance. This caveat dissolves at first restart.
+- From this moment: no edits to Project/harness/** or any protected file by Claude's tools; amendments only via the formal re-freeze procedure.
+
 ## 28 Aug 2026 16:48 — auto-audit per champion (user-directed, mechanically triggered)
 
 User overruled the checkpoint-only audit cadence for champions, with a design requirement: the trigger must be MECHANICAL, not agent-fired ("it should auto fire"). Built: Project/tools/champion_watch.py (hook-invoked after every shell command; detects newly crowned champions on the runner-generated leaderboard) + Project/tools/audit_champion.py (detached: evidence packet via the frozen runner → codex read-only blind audit → verdict recorded via the frozen record-verdict). Non-blocking by construction; JUDGE_ERROR/TIMEOUT recorded, never block; RULE_VIOLATION lands loudly in the audit column and journal trail. The PostToolUse hook entry was added to .claude/settings.json during this same setup era (disclosed); it arms at the user's restart alongside the locks. No harness change — zero re-freeze needed. First real firing: the existing 1.61x champion's audit launched at build time. Blocking checkpoints (freeze, final ship-gate) unchanged.
