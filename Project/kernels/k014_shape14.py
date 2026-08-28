@@ -1,0 +1,333 @@
+"""k014: shape-14 candidate — k010 recipe + long-sequence memory discipline.
+
+At seq >= 16384: no CUDA graphs, batch-microchunked forward into one
+preallocated output (Card C1 contract). Below that, identical to k010.
+Original k010 header follows.
+
+k010: k006 (shape-8 champion base) + fused LayerNorm->fp16 and fused GELU.
+
+Targets the elementwise overhead around the fp16 GEMMs on big-d_model shapes:
+k006 runs `norm(x).half()` (fp32 LayerNorm write + separate cast pass) and
+`gelu(h.float()).half()` (two casts + fp32 GELU pass). k010 replaces both
+with single authored Triton kernels — LayerNorm reads fp32 and writes fp16
+directly; GELU reads fp16, computes exact-erf GELU in fp32 in-register, and
+writes fp16 — removing several full memory passes per layer. Everything else
+(fp16 GEMMs with fp32 accumulation, authored flash attention to head_dim 256,
+fp32 residual stream, whole-forward CUDA graph, baseline-exact masked
+fallback) is k006 unchanged.
+"""
+
+import torch
+import torch.nn.functional as F
+import triton
+import triton.language as tl
+
+_LN_EPS = tl.constexpr(1e-5)
+
+
+@triton.jit
+def _ln_fp16_kernel(
+    X, W, B, Out,
+    D: tl.constexpr, BLOCK_D: tl.constexpr,
+):
+    row = tl.program_id(0)
+    offs = tl.arange(0, BLOCK_D)
+    mask = offs < D
+    x = tl.load(X + row * D + offs, mask=mask, other=0.0)
+    mean = tl.sum(x, axis=0) / D
+    diff = tl.where(mask, x - mean, 0.0)
+    var = tl.sum(diff * diff, axis=0) / D
+    inv = 1.0 / tl.sqrt(var + _LN_EPS)
+    w = tl.load(W + offs, mask=mask, other=0.0)
+    b = tl.load(B + offs, mask=mask, other=0.0)
+    y = (diff * inv) * w + b
+    tl.store(Out + row * D + offs, y.to(tl.float16), mask=mask)
+
+
+def _ln_to_fp16(norm, x):
+    """LayerNorm in fp32 (exact stats) with a direct fp16 output write."""
+    shape = x.shape
+    D = shape[-1]
+    rows = x.numel() // D
+    out = torch.empty(shape, dtype=torch.float16, device=x.device)
+    _ln_fp16_kernel[(rows,)](
+        x.reshape(rows, D), norm.weight, norm.bias, out.reshape(rows, D),
+        D=D, BLOCK_D=triton.next_power_of_2(D),
+        num_warps=8 if D >= 1024 else 4,
+    )
+    return out
+
+
+@triton.jit
+def _gelu_fp16_kernel(X, N, BLOCK: tl.constexpr):
+    pid = tl.program_id(0)
+    offs = pid * BLOCK + tl.arange(0, BLOCK)
+    mask = offs < N
+    x = tl.load(X + offs, mask=mask, other=0.0).to(tl.float32)
+    y = 0.5 * x * (1.0 + tl.math.erf(x * 0.7071067811865476))
+    tl.store(X + offs, y.to(tl.float16), mask=mask)
+
+
+def _gelu_fp16_(h):
+    """In-place exact-erf GELU on an fp16 tensor (fp32 math in-register)."""
+    n = h.numel()
+    _gelu_fp16_kernel[(triton.cdiv(n, 1024),)](h.reshape(-1), n, BLOCK=1024,
+                                               num_warps=4)
+    return h
+
+
+def _prune_configs(configs, named_args, **kwargs):
+    d_pad = named_args.get("D_PAD", kwargs.get("D_PAD", 64))
+    fp16 = named_args.get("FP16", kwargs.get("FP16", True))
+    ebytes = 2 if fp16 else 4
+    keep = [
+        c for c in configs
+        if (c.kwargs["BLOCK_M"] + 2 * c.kwargs["BLOCK_N"]) * d_pad * ebytes <= 64 * 1024
+        and c.kwargs["BLOCK_M"] * d_pad <= 16384
+    ]
+    return keep or configs[:1]
+
+
+# ---- Inlined authored kernel (k003 lineage; duplicated deliberately so this
+# ---- candidate is SELF-CONTAINED — see k004's provenance note).
+@triton.autotune(
+    configs=[
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 32}, num_warps=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 32}, num_warps=4),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 64}, num_warps=4),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 32}, num_warps=4),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 32}, num_warps=8),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64}, num_warps=4),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64}, num_warps=8),
+        triton.Config({"BLOCK_M": 128, "BLOCK_N": 32}, num_warps=4),
+    ],
+    key=["SEQ", "D_PAD", "CAUSAL", "FP16"],
+    prune_configs_by={"early_config_prune": _prune_configs},
+)
+@triton.jit
+def _attn_fwd(
+    Q, K, V, Out,
+    stride_qh, stride_qm, stride_qd,
+    stride_kh, stride_kn, stride_kd,
+    stride_vh, stride_vn, stride_vd,
+    stride_oh, stride_om, stride_od,
+    scale,
+    SEQ: tl.constexpr, D: tl.constexpr, D_PAD: tl.constexpr,
+    CAUSAL: tl.constexpr, FP16: tl.constexpr,
+    BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr,
+):
+    pid_m = tl.program_id(0)
+    pid_bh = tl.program_id(1)
+
+    offs_m = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    offs_d = tl.arange(0, D_PAD)
+    d_mask = offs_d < D
+
+    q_ptrs = Q + pid_bh * stride_qh + offs_m[:, None] * stride_qm + offs_d[None, :] * stride_qd
+    q = tl.load(q_ptrs, mask=(offs_m[:, None] < SEQ) & d_mask[None, :], other=0.0)
+
+    m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
+    l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
+    acc = tl.zeros([BLOCK_M, D_PAD], dtype=tl.float32)
+
+    if CAUSAL:
+        n_end = (pid_m + 1) * BLOCK_M
+    else:
+        n_end = SEQ
+
+    for n_start in range(0, n_end, BLOCK_N):
+        offs_n = n_start + tl.arange(0, BLOCK_N)
+        k_ptrs = K + pid_bh * stride_kh + offs_n[:, None] * stride_kn + offs_d[None, :] * stride_kd
+        v_ptrs = V + pid_bh * stride_vh + offs_n[:, None] * stride_vn + offs_d[None, :] * stride_vd
+        k = tl.load(k_ptrs, mask=(offs_n[:, None] < SEQ) & d_mask[None, :], other=0.0)
+        v = tl.load(v_ptrs, mask=(offs_n[:, None] < SEQ) & d_mask[None, :], other=0.0)
+
+        if FP16:
+            # fp16 inputs: tensor cores with native fp32 accumulation.
+            qk = tl.dot(q, tl.trans(k)) * scale
+        else:
+            qk = tl.dot(q, tl.trans(k), input_precision="ieee") * scale
+        if CAUSAL:
+            qk = tl.where(offs_m[:, None] >= offs_n[None, :], qk, float("-inf"))
+        qk = tl.where(offs_n[None, :] < SEQ, qk, float("-inf"))
+
+        m_new = tl.maximum(m_i, tl.max(qk, axis=1))
+        alpha = tl.exp(m_i - m_new)
+        p = tl.exp(qk - m_new[:, None])
+        l_i = l_i * alpha + tl.sum(p, axis=1)
+        if FP16:
+            acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
+        else:
+            acc = acc * alpha[:, None] + tl.dot(p, v, input_precision="ieee")
+        m_i = m_new
+
+    out = acc / l_i[:, None]
+    o_ptrs = Out + pid_bh * stride_oh + offs_m[:, None] * stride_om + offs_d[None, :] * stride_od
+    tl.store(o_ptrs, out, mask=(offs_m[:, None] < SEQ) & d_mask[None, :])
+
+
+def triton_attention(q, k, v, scale, causal):
+    """q,k,v: [B, H, S, D] contiguous fp32. Returns [B, H, S, D] fp32."""
+    B, H, S, D = q.shape
+    d_pad = max(16, triton.next_power_of_2(D))
+    out = torch.empty_like(q)
+    q4 = q.reshape(B * H, S, D)
+    k4 = k.reshape(B * H, S, D)
+    v4 = v.reshape(B * H, S, D)
+    o4 = out.reshape(B * H, S, D)
+    grid = lambda meta: (triton.cdiv(S, meta["BLOCK_M"]), B * H)  # noqa: E731
+    _attn_fwd[grid](
+        q4, k4, v4, o4,
+        q4.stride(0), q4.stride(1), q4.stride(2),
+        k4.stride(0), k4.stride(1), k4.stride(2),
+        v4.stride(0), v4.stride(1), v4.stride(2),
+        o4.stride(0), o4.stride(1), o4.stride(2),
+        scale, SEQ=S, D=D, D_PAD=d_pad, CAUSAL=causal,
+        FP16=(q.dtype == torch.float16),
+    )
+    return out
+
+
+NAME = "k014_shape14"
+DESCRIPTION = ("Shape-14 candidate: k010 fp16 stack (authored flash attention "
+               "hd<=256, fused LN/GELU) with batch-microchunked no-graph "
+               "execution at long sequence lengths (Card C1).")
+
+WARMUP_CALLS = 3
+
+
+def _half_params(module):
+    cache = getattr(module, "_fp16_cache", None)
+    if cache is None:
+        cache = {}
+        for name in ("q_proj", "k_proj", "v_proj", "out_proj", "ffn_in", "ffn_out"):
+            sub = getattr(module, name, None)
+            if sub is not None:
+                cache[name] = (sub.weight.half().contiguous(),
+                               sub.bias.half().contiguous())
+        # packed QKV in fp16
+        if "q_proj" in cache:
+            cache["qkv"] = (
+                torch.cat([cache["q_proj"][0], cache["k_proj"][0],
+                           cache["v_proj"][0]], dim=0).contiguous(),
+                torch.cat([cache["q_proj"][1], cache["k_proj"][1],
+                           cache["v_proj"][1]], dim=0).contiguous(),
+            )
+        object.__setattr__(module, "_fp16_cache", cache)
+    return cache
+
+
+def _make_block_forward(otb):
+    def block_forward(self, x, valid_token_mask, causal):
+        # x arrives fp32 (residual stream). Norms fp32; heavy math fp16.
+        attn = self.attention
+        cache = _half_params(attn)          # q/k/v/out_proj (+ packed qkv)
+        ffn_cache = _half_params(self)      # ffn_in / ffn_out live on the block
+        h16 = _ln_to_fp16(self.norm1, x)   # fused fp32-LN -> fp16 write
+        qkv = F.linear(h16, cache["qkv"][0], cache["qkv"][1])
+        d = attn.d_model
+        q, k, v = qkv.split(d, dim=-1)
+        batch, seq_len, _ = x.shape
+        q = q.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+        k = k.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+        v = v.view(batch, seq_len, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+
+        # The graphed path always passes valid_token_mask=None; a real (padded)
+        # mask only arrives via the eager fallback and must mask invalid keys
+        # before softmax, exactly like the baseline. The Triton kernel has no
+        # key-mask support, so any real mask takes the matmul path.
+        if valid_token_mask is None and attn.head_dim <= 256 and seq_len % 32 == 0:
+            context = triton_attention(q, k, v, attn.scale, causal)  # fp16 in/out, fp32 accum
+        else:
+            scores = torch.matmul(q, k.transpose(-2, -1)) * attn.scale
+            if causal:
+                cm = torch.ones((seq_len, seq_len), device=x.device,
+                                dtype=torch.bool).triu(diagonal=1)
+                scores = scores.masked_fill(cm, float("-inf"))
+            if valid_token_mask is not None:
+                scores = scores.masked_fill(
+                    ~valid_token_mask[:, None, None, :], float("-inf"))
+            context = torch.matmul(
+                torch.softmax(scores.float(), dim=-1).half(), v)
+        context = context.transpose(1, 2).contiguous().view(batch, seq_len, d)
+        attn_out = F.linear(context, cache["out_proj"][0], cache["out_proj"][1])
+        if valid_token_mask is not None:
+            attn_out = attn_out.masked_fill(~valid_token_mask[..., None], 0)
+        x = x + attn_out.float()                           # residual fp32
+
+        h16 = _ln_to_fp16(self.norm2, x)   # fused fp32-LN -> fp16 write
+        hidden = F.linear(h16, ffn_cache["ffn_in"][0], ffn_cache["ffn_in"][1])
+        hidden = _gelu_fp16_(hidden)       # fused exact-erf GELU, in place
+        ffn_out = F.linear(hidden, ffn_cache["ffn_out"][0], ffn_cache["ffn_out"][1])
+        x = x + ffn_out.float()                            # residual fp32
+        if valid_token_mask is not None:
+            x = x.masked_fill(~valid_token_mask[..., None], 0)
+        return x
+    return block_forward
+
+
+def build(otb, config):
+    model = otb.UserOptimizedTransformer(config)
+    block_forward = _make_block_forward(otb)
+
+    class FP16Block(otb.BaselineTransformerBlock):
+        forward = block_forward
+
+    for layer in model.layers:
+        # attention keeps its fp32 params for weight-copy compatibility; the
+        # block forward routes through the fp16 caches.
+        layer.__class__ = FP16Block
+
+    class LongSeqFP16Transformer(otb.UserOptimizedTransformer):
+        """Shape-14 discipline (Card C1): at long sequence lengths, NO CUDA
+        graphs, batch-MICROCHUNKED execution into one preallocated output —
+        peak memory stays bounded by a single micro-batch's activations.
+        Short sequences keep k010's graphed path unchanged."""
+
+        LONG_SEQ = 16384
+        MICRO_BATCH = 1
+
+        def _eager(self, x, valid_token_mask):
+            return otb.BaselineTransformer.forward(self, x, valid_token_mask)
+
+        def _long_forward(self, x):
+            B = x.shape[0]
+            out = torch.empty_like(x)
+            for bs in range(0, B, self.MICRO_BATCH):
+                be = min(bs + self.MICRO_BATCH, B)
+                out[bs:be] = self._eager(x[bs:be], None)
+            return out
+
+        def forward(self, x, valid_token_mask=None):
+            if valid_token_mask is not None and not bool(valid_token_mask.all()):
+                return self._eager(x, valid_token_mask)
+            if x.shape[1] >= self.LONG_SEQ:
+                return self._long_forward(x)
+            state = getattr(self, "_graph_state", None)
+            if state is None:
+                state = {"calls": 0, "graph": None, "static_x": None, "static_out": None}
+                object.__setattr__(self, "_graph_state", state)
+            if state["graph"] is None:
+                state["calls"] += 1
+                if state["calls"] <= WARMUP_CALLS:
+                    return self._eager(x, None)
+                static_x = x.clone()
+                side = torch.cuda.Stream()
+                side.wait_stream(torch.cuda.current_stream())
+                with torch.cuda.stream(side):
+                    for _ in range(2):
+                        self._eager(static_x, None)
+                torch.cuda.current_stream().wait_stream(side)
+                graph = torch.cuda.CUDAGraph()
+                torch.cuda.synchronize()
+                with torch.cuda.graph(graph):
+                    static_out = self._eager(static_x, None)
+                state.update(graph=graph, static_x=static_x, static_out=static_out)
+                graph.replay()
+                return static_out.clone()
+            state["static_x"].copy_(x)
+            state["graph"].replay()
+            return state["static_out"].clone()
+
+    model.__class__ = LongSeqFP16Transformer
+    return model
