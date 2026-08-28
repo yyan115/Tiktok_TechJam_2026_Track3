@@ -20,6 +20,12 @@ Two auditor RETESTs (k007-era shapes 2/12: idle-box, beefed recipe) are SUPERSED
 ## AUDIT LEDGER interpretation
 Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (superseded by self-contained re-sweeps). Transition-window pair decoded 28 Aug evening: 193139 NEEDS_CONTEXT = packet carried post-edit source (answered: measured bytes now committed pre-run, always). 193243 RULE_VIOLATION = real minor findings, BOTH FIXED @ 90f1c8c: exact official forward signature (extra training=False removed from k004+k005) + padded-mask key masking in k005 (verified 24/24 vs baseline, scratchpad/padded_mask_smoke.py — smoke EVERY branch before runner time, LESSONS #17). 193545 = PASS (k004 self-contained).
 
+## IDLE RE-PASS — EXACT COMMANDS (fire when `pgrep -f "codex exec"` is empty; sequential, one runner)
+1. Ship-set re-measure (production): `for s in 1 2 3 4 5 7 9 10 11 12 13; do python3 Project/harness/runner.py run --shape $s --impl Project/kernels/k009_fused_tuned.py; done` then `python3 Project/harness/runner.py run --shape 8 --impl Project/kernels/k006_fp16_hd128.py`
+2. Auditor RETEST recipe, shape 2 (evidence, scratch ledger — non-primary args by design): `python3 Project/harness/runner.py run --shape 2 --impl Project/kernels/k009_fused_tuned.py --warmup 20 --repeats 1000 --rounds 5 --ledger <scratch>` — require stable per-round speedups + clean tripwires.
+3. Shape 12 needs nothing extra beyond step 1 (auditor asked idle + wall/event agreement within 10% — read those fields from the new entry).
+NOTE: step 1's promotions fire NEW audits — expect the box busy again right after; that's fine, the idle numbers are already banked.
+
 ## LEVER QUEUE (user's standing order = keep going)
 1. PROMOTIONS RUNNING (user's "keep going", ~21:00): k007 on 1-5,7,9-13 + k006 on 8, production ledger, UNDER audit load — justified because PLAN Stage 5 mandates a final clean measurement pass for the ship set anyway; contention-era promotions are intermediate. FINAL-PASS OBLIGATION: re-measure the entire ship set on a provably idle box before consolidation, and treat any shape whose margin is thin (shape 2: k007 13.1 vs k005 11.9 screening) as undecided until then.
 2. k007 design: whole block = 2 authored Triton kernels (norm+QKV | flash-attn-all-heads with out-proj folded into the head loop + norm2 + erf-GELU FFN), fp32 residuals, fp16 dots, CUDA-graphed. Screening ran under 5 codex audits — deltas far exceed contention noise but ship numbers = clean re-runs only.
