@@ -4,3 +4,5 @@ Project/audits/*_raw.log
 
 __pycache__/
 *.pyc
+Project/tools/.champion_cache.json
+Project/audits/auto/

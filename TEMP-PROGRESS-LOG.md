@@ -50,6 +50,7 @@ bench is in the same loop (round 4 pending as of this writing) — ask "review s
 - **Scoreboard** — best verified result per test size, auto-generated from the logbook. → `Project/results/LEADERBOARD.md`
 
 **The oversight:**
+- **Auto-audit** — every newly crowned champion automatically triggers a background GPT review of that result (mechanical trigger, not Claude's choice); verdicts fill the scoreboard's audit column. → `Project/tools/champion_watch.py`
 - **Second-AI review trail** — codex (GPT) reviewed the referee SIX times, rejecting it for real flaws until none remained. Its final sign-off, verbatim: → `Project/audits/track3_handoff_verdict_round6.md`
 - **Operating manual** — every command, what writes what, how to recover. → `Project/RUNBOOK.md`
 

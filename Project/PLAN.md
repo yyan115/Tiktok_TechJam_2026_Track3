@@ -9,9 +9,8 @@ Fable (Claude) invents faster implementations → a deterministic trusted runner
 - **Trust model:** guards against *mistakes*, not malice. Git history + file hashes + hooks (block accidental edits) + runner tripwires (fresh-memory rerun, shape assertions, sync-timing cross-check) + Sol checkpoint review. No OS lockdowns.
 - **The untouched official script is the final judge** (commit 31c1a27, re-hash-checked every run). The custom runner supplements it for development, never replaces it.
 - **Promotion rule:** a correctness-passing improvement that beats the measured noise floor becomes the **working champion immediately**; its audit status is recorded separately. Every comparison-affecting setting (GPU, driver, CUDA, torch, dtype, TF32/matmul flags, code + benchmark hashes, harness version) lives in the recorded profile; only like-for-like profiles are compared.
-- **Sol audits at checkpoints only** (never per promotion):
+- **Sol audits: mechanically auto-fired per NEW CHAMPION (async, never blocking)** — a hook-driven watcher (Project/tools/champion_watch.py) detects each newly crowned champion and launches a detached blind codex audit whose verdict is recorded via the frozen runner; RULE_VIOLATION is loud, JUDGE_ERROR never blocks. Plus the blocking checkpoints:
   1. Stage-1: runner + shapes.json + calibration results, before the runner freezes (user approves after this cross-review).
-  2. Suspicious or implausibly large results.
   3. The final selected champion set, before consolidation — only implementations that ship in the final dispatcher require a clean final audit.
   4. Stall adviser, only when genuinely useful (separate role from auditor, never mixed).
 - **Sol verdicts:** one JSON schema — PASS · RETEST (one round, fixed test menu executed by the trusted runner) · NEEDS_CONTEXT (missing *factual* evidence only) · RULE_VIOLATION; infrastructure failures are JUDGE_ERROR / TIMEOUT and **never block continued optimization**. First-pass audits are blind (neutral runner-generated evidence packet, no Fable commentary).
