@@ -36,6 +36,9 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
    Baidu: diagnosis_evidence (the 6-field compressed profile record) +
    prescription_source (research-note/pattern citation). ncu confirmed
    installed; selected-metrics only, on the current direction's hotspot.
+   PLUS (external audit P8, was MISSING here): score_scenarios — which of
+   the item-8 weighting scenarios this experiment would actually improve;
+   an experiment that helps under NO scenario doesn't get a card.
 
 10. POST-RESTART (Sol dispositions, 29 Aug night; sharpened by the external
     audit): capture FRESH evidence packets bound to the CURRENT submission
@@ -43,7 +46,9 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     submission. Packets MUST use MULTIPLE deterministic seeds (shape-6
     integrated smoke hit max err 0.00184 vs 0.002 atol — one seed is too
     thin a margin), the exact official predicate (item 3), and record the
-    submission sha INSIDE the packet. Also:
+    submission sha INSIDE the packet, and record peak RESERVED memory
+    alongside peak allocated (audit P4 — reserved exposes fragmentation
+    headroom on the 8GB card). Also:
     report prose + skills/interaction-history curation DONE BY CODE FREEZE,
     not left to packaging; dashboard is LOCAL-ONLY (never expose/record the
     raw Sol log expanders unredacted); public release = fresh/squashed only
@@ -58,3 +63,10 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     vs official dense" — it is validated vs the batch-chunked official
     baseline; label it exactly that. Loopback binding for the dashboard is
     DONE (both .streamlit configs, 29 Aug night).
+    (d) MISSING UNTIL 29 Aug (external audit P9): rerun the COMPLETE
+    official-script board — all 12 ordinary shapes at their official dials —
+    against the FINAL frozen submission sha, plus the item-10 extreme
+    packets at that same sha. One sha, one board, every number cites it.
+    The historical 12-shape sweep predates the extreme-route integration
+    and must be labeled historical in the report, never presented as a
+    measurement of the final artifact.
