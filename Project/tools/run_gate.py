@@ -204,7 +204,12 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
                       "judgment — run `screen-judge` first")
     if mode not in MODES:
         return None, f"mode must be one of {MODES}"
-    shape = int(shape)  # canonical — '014' == 14 everywhere
+    try:
+        shape = int(str(shape), 10)  # canonical — '014' == 14 everywhere
+    except (TypeError, ValueError):
+        return None, "shape must be a nonnegative integer"
+    if shape < 0:
+        return None, "shape must be a nonnegative integer"
     if st.get("pending_postmortem"):
         return None, (f"postmortem debt outstanding for "
                       f"{st['pending_postmortem']} — a research step with "
@@ -452,9 +457,10 @@ def cmd_reconcile(args) -> int:
                         and d.get("mode") in MODES
                         and isinstance(d.get("permit_id"), str) and d["permit_id"]
                         and isinstance(d.get("direction_id"), str) and d["direction_id"]
-                        and int(d.get("shape")) >= 0
+                        and type(d.get("shape")) is int and d["shape"] >= 0
                         and isinstance(d.get("ledger"), str)
-                        and int(d.get("ledger_pre_lines")) >= 0
+                        and type(d.get("ledger_pre_lines")) is int
+                        and d["ledger_pre_lines"] >= 0
                         and (d.get("impl_sha256") is None
                              or isinstance(d.get("impl_sha256"), str)))
             except Exception:

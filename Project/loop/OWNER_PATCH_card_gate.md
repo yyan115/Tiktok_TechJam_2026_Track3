@@ -60,6 +60,18 @@ def permit_gate_reason(command):
     root = pathlib.Path(__file__).resolve().parents[2]
     loop = root / "Project/loop"
     permit_p = loop / "permit.json"
+    # LOCK FIRST: every artifact read, validation, cleanup, and the consume
+    # below happen under the same shared flock the gate machinery uses — a
+    # delayed guard can never act on a stale snapshot or delete a fresh
+    # permit. Contention = deny. The fd stays open through the consume.
+    import fcntl as _f
+    loop.mkdir(parents=True, exist_ok=True)
+    _lock_fh = open(loop / ".gate.lock", "w")
+    try:
+        _f.flock(_lock_fh, _f.LOCK_EX | _f.LOCK_NB)
+    except OSError:
+        return ("Blocked: the gate lock is held (reconciliation or a "
+                "think-step in progress) — retry in a moment.")
     if (loop / "in_flight.json").exists():
         if permit_p.exists():
             # A crash between consume steps left BOTH artifacts: in_flight is
@@ -129,18 +141,11 @@ def permit_gate_reason(command):
                    ("--dtype", "--warmup", "--repeats", "--rounds")):
                 return ("Blocked: optimization permits are bound to the "
                         f"primary profile — override option {tok} present.")
-    # CONSUME: ARMED -> IN_FLIGHT under the SAME shared lock the gate
-    # machinery uses (non-blocking; contention = deny), O_EXCL for the
-    # destination, pre-run ledger offset captured NOW, before execution.
+    # CONSUME: ARMED -> IN_FLIGHT (still under the lock acquired above),
+    # O_EXCL for the destination, pre-run ledger offset captured NOW,
+    # before execution.
     try:
         import os as _os
-        import fcntl as _f
-        _lock_fh = open(loop / ".gate.lock", "w")
-        try:
-            _f.flock(_lock_fh, _f.LOCK_EX | _f.LOCK_NB)
-        except OSError:
-            return ("Blocked: the gate lock is held (reconciliation or a "
-                    "think-step in progress) — retry in a moment.")
         lp2 = pathlib.Path(permit["ledger"])
         permit["ledger_pre_lines"] = (
             len([l for l in lp2.read_text().splitlines() if l.strip()])
