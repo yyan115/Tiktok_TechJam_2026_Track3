@@ -54,6 +54,11 @@ def jload(path):
 st.set_page_config(page_title="Track 3 Live", page_icon="🏁", layout="wide")
 st.markdown("""
 <style>
+  /* Hard-forced dark mode — independent of theme config or launch dir */
+  [data-testid="stAppViewContainer"], [data-testid="stHeader"],
+  .stApp, body {background: #0b1020 !important; color: #e7ecf5 !important;}
+  [data-testid="stHeader"] {background: #0b1020 !important;}
+  h1, h2, h3, p, span, label, li {color: #e7ecf5 !important;}
   .block-container {padding-top: 1.2rem; max-width: 1250px;}
   [data-testid="stMetric"] {background: #151b2e; border: 1px solid #26314f;
       border-radius: 12px; padding: 12px 16px;}
