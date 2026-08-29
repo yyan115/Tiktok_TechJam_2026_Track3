@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import secrets
 import sys
@@ -210,11 +211,12 @@ def unacked_hard_verdicts(st):
     out = []
     try:
         lines = VERDICTS.read_text().splitlines()
-    except FileNotFoundError:
-        return out
     except Exception:
-        return [{"_clear_key": "UNREADABLE-VERDICT-LEDGER|?",
+        # Missing OR unreadable verdict record = someone/something removed
+        # the audit trail. That is never a green light. Fail closed.
+        return [{"_clear_key": "VERDICT-LEDGER-MISSING-OR-UNREADABLE|?",
                  "verdict": "RULE_VIOLATION"}]
+    seen = {}
     for line in lines:
         if not line.strip():
             continue
@@ -224,11 +226,18 @@ def unacked_hard_verdicts(st):
             out.append({"_clear_key": "MALFORMED-VERDICT-LINE|?",
                         "verdict": "RULE_VIOLATION"})
             continue
+        key = f"{v.get('entry_id')}|{v.get('recorded')}"
+        if key in seen and seen[key] != v.get("verdict"):
+            # Two rows claiming the same identity with different verdicts
+            # means the record was tampered with or double-written: brake.
+            out.append({"_clear_key": f"CONFLICTING-DUPLICATE|{key}",
+                        "verdict": "RULE_VIOLATION"})
+            continue
+        seen[key] = v.get("verdict")
         if v.get("verdict") not in ("RULE_VIOLATION", "RETEST"):
             continue
         if str(v.get("recorded", "")) <= cutoff:
             continue
-        key = f"{v.get('entry_id')}|{v.get('recorded')}"
         if key not in cleared:
             v["_clear_key"] = key
             out.append(v)
@@ -267,14 +276,15 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                       "--confirm-entry <new row id>. Until then ONLY "
                       "confirmations bound to the retested bytes issue.")
     retest_open = bool(retests)
-    retest_shas = set()
+    retest_targets = set()  # (impl_sha256, shape_id) pairs being retested
     if retest_open:
         for h in retests:
             row = _journal_row(str(h.get("entry_id")))
             sha = (row or {}).get("impl", {}).get("sha256")
-            if sha:
-                retest_shas.add(sha)
-        if mode == "confirmation" and not retest_shas:
+            sid = (row or {}).get("shape_id")
+            if sha and sid is not None:
+                retest_targets.add((sha, int(sid)))
+        if mode == "confirmation" and not retest_targets:
             return None, ("outstanding RETEST on entries absent from the "
                           "primary journal — no mechanical path exists; "
                           "surface it to the owner (owner-quote clear).")
@@ -287,8 +297,9 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
             predict_min, predict_max = float(predict_min), float(predict_max)
         except (TypeError, ValueError):
             return None, "--predict-min/--predict-max must be numbers"
-        if not (0.0 < predict_min < predict_max):
-            return None, "need 0 < predict-min < predict-max"
+        if not (math.isfinite(predict_min) and math.isfinite(predict_max)
+                and 0.0 < predict_min < predict_max):
+            return None, "need FINITE 0 < predict-min < predict-max"
     if mode not in MODES:
         return None, f"mode must be one of {MODES}"
     try:
@@ -310,9 +321,11 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
             return None, "calibration permits must not carry --impl (that's a candidate run)"
     if mode in ("confirmation", "correctness"):
         # A confirmation that exists to satisfy an outstanding RETEST must
-        # never deadlock on the politeness budget.
+        # never deadlock on the politeness budget — but ONLY for the
+        # retested shape (bytes are verified at the impl check below).
         if grp.get("nonstrike_budget", 2) <= 0 and not (
-                retest_open and mode == "confirmation"):
+                retest_open and mode == "confirmation"
+                and any(sid == shape for _, sid in retest_targets)):
             return None, (f"non-strike budget exhausted for {gkey} — further "
                           "attempts must be optimization or screening (which "
                           "can strike)")
@@ -331,9 +344,11 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                               "group — an identical re-run is 'confirmation', "
                               "label it honestly")
         if retest_open and mode == "confirmation" and \
-                sha_file(impl_p) not in retest_shas:
+                (sha_file(impl_p), shape) not in retest_targets:
             return None, ("outstanding RETEST: confirmation permits are "
-                          "bound to the retested candidate bytes only")
+                          "bound to the retested (candidate bytes, shape) "
+                          "pairs only — no cross-shape or cross-candidate "
+                          "confirmations")
     ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
     if (mode in ("optimization", "confirmation")
             and ledger_p.resolve() != DEFAULT_JOURNAL.resolve()):
@@ -354,6 +369,11 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         "prediction": prediction,
         "predict_min": predict_min,
         "predict_max": predict_max,
+        # Snapshot of the verdict record's non-blank line count: the guard
+        # refuses to consume this permit if the count changed (an audit
+        # verdict landed between issuance and execution — re-plan).
+        "verdict_lines": len([l for l in VERDICTS.read_text().splitlines()
+                              if l.strip()]) if VERDICTS.exists() else 0,
         "plan_ref": plan_ref,
         "issued": now(),
         "expires_epoch": time.time() + PERMIT_TTL_S,
@@ -651,9 +671,12 @@ def _reconcile_locked(st, fl, claim, new_rows) -> int:
             outcome["closed"] = True
             outcome["closure_nonce"] = grp["closure_nonce"]
     else:
-        grp["exec_failures"] = 0
         t = entry.get("timing") or {}
         speed = t.get("speedup")
+        # A row WITHOUT a measured speedup is not a success — it must not
+        # reset the consecutive-failure counter (screen-judge counts it).
+        if speed is not None:
+            grp["exec_failures"] = 0
         correct = bool((entry.get("correctness") or {}).get("passed"))
         clean = not ((t.get("wall_check") or {}).get("suspicious") or
                      (t.get("anti_cache_check") or {}).get("suspicious"))
@@ -719,11 +742,21 @@ def cmd_screen_judge(args) -> int:
             gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
                    "closed": False, "closure_nonce": None})
         grp["exec_failures"] = grp.get("exec_failures", 0) + 1
+        closed_now = False
+        if grp["exec_failures"] >= MAX_EXEC_FAILURES and not grp.get("closed"):
+            grp["closed"] = True
+            grp["closure_nonce"] = secrets.token_hex(8)
+            st.setdefault("pending_postmortem", []).append(gkey)
+            closed_now = True
         commit(st, {"ts": now(), "step": "screen_judge", "group": gkey,
-                    "result": "exec_failure", "computed": True})
+                    "result": "exec_failure", "computed": True,
+                    "exec_failures": grp["exec_failures"],
+                    "closed": grp.get("closed", False)})
         print(f"screening attempt has NO recorded speedup — logged as an "
               f"execution failure for {gkey} (no strike, no hit; "
-              f"{grp['exec_failures']}/{MAX_EXEC_FAILURES}).")
+              f"{grp['exec_failures']}/{MAX_EXEC_FAILURES})."
+              + (" GROUP CLOSED (repeated execution failures); postmortem "
+                 "now mandatory." if closed_now else ""))
         return 0
     try:
         stated = float(args.observed)
@@ -841,6 +874,28 @@ def cmd_verdict_clear(args) -> int:
                   f"(same_bytes={bool(same_bytes)} same_shape={same_shape} "
                   f"passed={passed} newer={newer} "
                   f"after_verdict={after_verdict}).")
+            return 1
+        # The confirmation must have been produced under a reconciled
+        # confirmation-mode PERMIT — a matching row alone (however it got
+        # into the journal) is not enough. The gate's own transition log is
+        # the witness.
+        recon_ok = False
+        try:
+            for line in LOG.read_text().splitlines():
+                if not line.strip():
+                    continue
+                e = json.loads(line)
+                if (e.get("step") == "reconcile"
+                        and e.get("mode") == "confirmation"
+                        and e.get("entry_id") == args.confirm_entry):
+                    recon_ok = True
+                    break
+        except Exception:
+            recon_ok = False
+        if not recon_ok:
+            print("REFUSED: no gate record of a reconciled confirmation-mode "
+                  "permit producing that row — retest evidence must come "
+                  "from a permitted, reconciled confirmation run.")
             return 1
         st.setdefault("cleared_verdicts", []).append(key)
         commit(st, {"ts": now(), "step": "verdict_clear", "kind": "retest",

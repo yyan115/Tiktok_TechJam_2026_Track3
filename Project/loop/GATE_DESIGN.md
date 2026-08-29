@@ -168,6 +168,22 @@ HONESTY LEDGER): frozen runner has no internal permit check; the reviewer's
 retest_request field is not preserved by the frozen recorder, so mechanical
 clears enforce bytes/shape/recency/correctness, not bespoke procedures.
 
+## Amendment v4.2 (30 Aug, convergence-loop round 1 REVISE folded)
+Real catches fixed: screen-judge's no-measurement path now closes the group
+at MAX_EXEC_FAILURES and reconcile no longer resets the counter on
+speed-less rows; prediction bounds must be FINITE; RETEST confirmations
+bind to (bytes, shape_id) pairs — no cross-shape/cross-candidate satisfying
+— and a mechanical clear additionally requires the gate log to witness a
+reconciled confirmation-mode permit producing that row; permits snapshot
+the verdict-record line count and the guard voids them at consumption if a
+new verdict landed; a missing/unreadable verdict record or conflicting
+duplicate rows brake everything; guard protections extend to the lock file,
+audit schema, and auto-audit store. DELIBERATE non-adoptions (owner-ratified,
+recorded in OWNER_PATCH): critic reopening stays (internal-heuristic class),
+cards stay agent-writable (closure authority lives in gate state), +0800
+timestamp ordering stays (single-writer box, with tamper brakes). CLI suite
+now 32/32.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

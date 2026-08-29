@@ -92,6 +92,11 @@ def main() -> int:
     check("screening plan without bounds refused (CLI reaches issue_permit)",
           rc == 1 and "predict-min" in out, out)
 
+    rc, out = run("plan", "--mode", "screening", "--shape", "3",
+                  "--impl", "cand.py", "--predict-min", "1.1",
+                  "--predict-max", "inf", *PLAN_STD)
+    check("infinite prediction bound refused", rc == 1 and "FINITE" in out, out)
+
     rc, out = run("plan", "--mode", "optimization", "--shape", "3",
                   "--impl", "cand.py", *PLAN_STD)
     check("optimization plan issues a permit via the CLI (Finding-1 catcher)",
@@ -165,7 +170,7 @@ def main() -> int:
           rc == 1 and "absent from the primary journal" in out, out)
 
     def jrow(eid, sha, passed):
-        return {"entry_id": eid, "impl": {"sha256": sha},
+        return {"entry_id": eid, "impl": {"sha256": sha}, "shape_id": 3,
                 "shape": {"batch_size": 4, "seq_len": 128},
                 "correctness": {"passed": passed}}
     OTHER_SHA = "f" * 64
@@ -173,13 +178,22 @@ def main() -> int:
     rc, out = run("plan", "--mode", "confirmation", "--shape", "3",
                   "--impl", "cand.py", *PLAN_STD)
     check("confirmation with WRONG bytes refused under retest",
-          rc == 1 and "retested candidate bytes" in out, out)
+          rc == 1 and "cross-shape or cross-candidate" in out, out)
 
     journal.write_text(json.dumps(jrow(RT_ENTRY, cand_sha, True)) + "\n")
+    rc, out = run("plan", "--mode", "confirmation", "--shape", "4",
+                  "--impl", "cand.py", *PLAN_STD)
+    check("confirmation on the WRONG shape refused under retest",
+          rc == 1 and "cross-shape or cross-candidate" in out, out)
+
     rc, out = run("plan", "--mode", "confirmation", "--shape", "3",
                   "--impl", "cand.py", *PLAN_STD)
-    check("confirmation with the retested bytes is allowed",
+    check("confirmation with the retested (bytes, shape) is allowed",
           rc == 0 and (loop / "permit.json").exists(), out)
+    permit_snapshot = json.loads((loop / "permit.json").read_text())
+    check("permit snapshots the verdict-record line count",
+          isinstance(permit_snapshot.get("verdict_lines"), int)
+          and permit_snapshot["verdict_lines"] >= 3, str(permit_snapshot))
     (loop / "permit.json").unlink()
 
     rc, out = research()
@@ -204,11 +218,43 @@ def main() -> int:
                        + json.dumps(good) + "\n")
     rc, out = run("verdict-clear", "--kind", "retest", "--entry-id", RT_ENTRY,
                   "--recorded", RT_REC, "--confirm-entry", "20990104-000000-conf")
+    check("matching row WITHOUT a reconciled confirmation permit refused",
+          rc == 1 and "reconciled confirmation" in out, out)
+
+    # witness the confirmation in the gate's own transition log (same seq —
+    # a higher seq would put state behind the log and fail closed)
+    seq_now = json.loads((loop / "gate_state.json").read_text())["seq"]
+    with (loop / "gate_log.jsonl").open("a") as fh:
+        fh.write(json.dumps({"ts": "t", "step": "reconcile",
+                             "mode": "confirmation",
+                             "entry_id": "20990104-000000-conf",
+                             "state_seq": seq_now}) + "\n")
+    rc, out = run("verdict-clear", "--kind", "retest", "--entry-id", RT_ENTRY,
+                  "--recorded", RT_REC, "--confirm-entry", "20990104-000000-conf")
     check("mechanical retest clear succeeds via CLI", rc == 0, out)
 
     rc, out = run("verdict-clear", "--kind", "retest", "--entry-id", RT_ENTRY,
                   "--recorded", RT_REC, "--confirm-entry", "20990104-000000-conf")
     check("cleared retest cannot be cleared twice", rc == 1, out)
+
+    # ---- verdict-record tampering fails closed ----
+    saved = verdicts.read_text()
+    verdicts.unlink()
+    rc, out = research()
+    rc, out = run("plan", "--mode", "optimization", "--shape", "5",
+                  "--impl", "cand.py", *PLAN_STD)
+    check("missing verdict record freezes permits",
+          rc == 1 and "OWNER-ONLY" in out, out)
+    verdicts.write_text(saved + json.dumps(
+        {"entry_id": "dup-e", "recorded": "2099-02-01T00:00:00+0800",
+         "verdict": "PASS"}) + "\n" + json.dumps(
+        {"entry_id": "dup-e", "recorded": "2099-02-01T00:00:00+0800",
+         "verdict": "RULE_VIOLATION"}) + "\n")
+    rc, out = run("plan", "--mode", "optimization", "--shape", "5",
+                  "--impl", "cand.py", *PLAN_STD)
+    check("conflicting duplicate verdict rows freeze permits",
+          rc == 1 and "OWNER-ONLY" in out, out)
+    verdicts.write_text(saved)
 
     # ---- misc CLI guards ----
     rc, out = run("screen-judge", "--direction", "TESTDIR", "--shape", "3",

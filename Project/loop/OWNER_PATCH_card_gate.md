@@ -105,6 +105,20 @@ def permit_gate_reason(command):
         try: permit_p.unlink()
         except Exception: pass
         return "Blocked: the ARMED permit expired. Issue a fresh think-step."
+    # Brake recheck at consumption (reviewer round 1): if any audit verdict
+    # landed after this permit was issued, the verdict brake must be
+    # re-evaluated — the stale permit is void.
+    _vf = root / "Project/audits/verdicts.jsonl"
+    try:
+        _vc = (len([l for l in _vf.read_text().splitlines() if l.strip()])
+               if _vf.exists() else 0)
+    except Exception:
+        return "Blocked: cannot read the verdict record (fail closed)."
+    if _vc != int(permit.get("verdict_lines", -1)):
+        try: permit_p.unlink()
+        except Exception: pass
+        return ("Blocked: audit verdicts changed since this permit was "
+                "issued — re-run the think-step so the brake re-evaluates.")
     used_dir = loop / "permits_used"
     pid = str(permit.get("permit_id", ""))
     if pid and used_dir.exists() and any(f.name.startswith(pid)
@@ -188,7 +202,8 @@ be able to edit its own referee):
 def state_write_reason(command):
     norm = command.replace("\\\n", "").replace('"', "").replace("'", "")
     GS = (r"Project/(loop/(gate_state\.json|gate_log\.jsonl|permit\.json|"
-          r"in_flight\.json|permits_used)|audits/(strategy/|verdicts\.jsonl)|"
+          r"in_flight\.json|permits_used|\.gate\.lock)|"
+          r"audits/(strategy/|verdicts\.jsonl|auto/|verdict_schema\.json)|"
           r"tools/(run_gate|audit_champion|champion_watch)\.py)")
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
     for s in segs:
@@ -255,11 +270,30 @@ bash). Paste inside the existing `"deny": [ ... ]` list:
       "Edit(Project/tools/run_gate.py)", "Write(Project/tools/run_gate.py)",
       "Edit(Project/tools/audit_champion.py)", "Write(Project/tools/audit_champion.py)",
       "Edit(Project/tools/champion_watch.py)", "Write(Project/tools/champion_watch.py)",
+      "Edit(Project/audits/verdict_schema.json)", "Write(Project/audits/verdict_schema.json)",
+      "Edit(Project/audits/auto/**)", "Write(Project/audits/auto/**)",
 ```
 
 Note the tradeoff you are accepting: after this paste, Fable cannot edit
 the gate or auditor at all — future gate fixes need you to lift the
 specific rule, let Fable patch, then re-add it.
+
+## Deliberate decisions from review round 1 (owner-ratified design, not bugs)
+- CRITIC-AUTHORIZED REOPENING STAYS. The reviewer wants every reopen to be
+  an owner decision. The 3-strike closure is an INTERNAL research
+  heuristic (policy taxonomy: internal heuristics may be reopened
+  prospectively), not a competition rule — the critic-appeal path is the
+  owner-approved design and keeps the owner out of routine research flow.
+  Receipts are length-checked, nonce-bound, one-use, sha-recorded, and
+  (post-paste) writable only via a real codex call. Residual: HONESTY
+  LEDGER item 3.
+- cards.jsonl STAYS AGENT-WRITABLE. Cards are research documents; closure
+  authority lives in gate_state groups, which a card edit cannot reopen
+  (plan checks the group, not the card status).
+- TIMESTAMP ORDERING is retained for the verdict cutoff: every writer on
+  this box stamps +0800; the brake additionally fails closed on missing,
+  malformed, or conflicting-duplicate verdict rows, and permits are void
+  if the verdict count changes before consumption.
 
 ## Test after applying (agent runs, expected results stated)
 1. Any `runner.py run ...` with no permit → BOUNCES with the think-step message.
