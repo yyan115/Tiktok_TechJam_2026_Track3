@@ -7,3 +7,4 @@ __pycache__/
 Project/tools/.champion_cache.json
 Project/audits/auto/
 Project/audits/strategy/*_raw.log
+Project/audits/strategy_review_codex.md
