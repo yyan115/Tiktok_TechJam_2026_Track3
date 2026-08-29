@@ -1,4 +1,4 @@
-# OWNER PATCH — FINAL (approved at review round 13; supersedes every earlier version): permit-consuming run gate
+# OWNER PATCH — FINAL v4 (round-13 approval + 30 Aug authority hardening; supersedes every earlier version): permit-consuming run gate + state-write protection
 
 Rebuilt after the external reviewer REJECTED v2 (stale-journal attribution,
 cross-shape strike nonsense, regex evasions, self-service unlock). v3 is a
@@ -164,17 +164,58 @@ def permit_gate_reason(command):
     return None
 ```
 
+Block A2 — insert immediately AFTER Block A (same anchor region). Protects
+the gate's memory, the verdict ledger, Sol's receipt store, and the three
+enforcer tools from direct agent writes (Track-2 lesson: the actor must not
+be able to edit its own referee):
+
+```python
+# --- State-write protection (owner mandate 30 Aug, Track-2 postmortem).
+# Gate state, the verdict ledger, critic receipts, and the enforcer tools
+# change ONLY through run_gate.py's validated commands, the audit pipeline,
+# or a real codex call. Deny-biased: unusual access patterns bounce.
+def state_write_reason(command):
+    norm = command.replace("\\\n", "").replace('"', "").replace("'", "")
+    GS = (r"Project/(loop/(gate_state\.json|gate_log\.jsonl|permit\.json|"
+          r"in_flight\.json|permits_used)|audits/(strategy/|verdicts\.jsonl)|"
+          r"tools/(run_gate|audit_champion|champion_watch)\.py)")
+    segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
+    for s in segs:
+        t = s.strip()
+        if re.search(r"\bcodex\s+exec\b", t):
+            continue  # real critic/audit consultations write their own logs
+        if re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
+                    r"reconcile|screen-judge|verdict-clear|reopen|status|"
+                    r"init)\b", t):
+            continue  # the gate's own validated commands
+        if (re.match(r"(python3?\s+)?\S*(audit_champion|champion_watch)\.py\b", t)
+                and ">" not in t):
+            continue  # launching the auditor/watcher, no redirection
+        if (re.match(r"(cat|head|tail|less|grep|wc|ls|stat|file|sha256sum|"
+                     r"diff|sed\s+-n)\b", t) and ">" not in t):
+            continue  # plain reads
+        if re.match(r"git\s+(add|commit|log|show|diff|status)\b", t):
+            continue  # version control on state is legit and auditable
+        return ("Blocked: gate state, the verdict ledger, critic receipts, "
+                "and the enforcer tools change only through run_gate.py, "
+                "the audit pipeline, or a real codex call — direct writes "
+                "are the Track-2 disease (self-serviced authority).")
+    return None
+```
+
 Block B — insert into `main()` at the VERY END, AFTER the WRITE_PATTERNS
 loop (i.e., after the last existing deny check, just before the function
 returns). Permit consumption must be the FINAL authorization action: a
 command that any other check would deny must be denied BEFORE its permit is
-consumed, or doomed commands burn permits and record false failures.
+consumed, or doomed commands burn permits and record false failures. The
+state-write check runs FIRST inside the same fail-closed wrapper (it never
+consumes anything).
 
 ```python
-    # FAIL CLOSED: any exception inside the gate is itself a DENY — a hook
+    # FAIL CLOSED: any exception inside the gates is itself a DENY — a hook
     # crash exits nonzero-but-not-2, which Claude Code treats as ALLOW.
     try:
-        gate = permit_gate_reason(command)
+        gate = state_write_reason(command) or permit_gate_reason(command)
     except Exception as exc:
         gate = f"Blocked: permit gate error ({type(exc).__name__}) — fail closed."
     if gate:
@@ -184,6 +225,27 @@ consumed, or doomed commands burn permits and record false failures.
         return
 ```
 
+## ALSO: add these lines to the "deny" array in .claude/settings.json
+(blocks the Edit/Write tools on the same files; the guard above covers
+bash). Paste inside the existing `"deny": [ ... ]` list:
+
+```json
+      "Edit(Project/loop/gate_state.json)", "Write(Project/loop/gate_state.json)",
+      "Edit(Project/loop/gate_log.jsonl)", "Write(Project/loop/gate_log.jsonl)",
+      "Edit(Project/loop/permit.json)", "Write(Project/loop/permit.json)",
+      "Edit(Project/loop/in_flight.json)", "Write(Project/loop/in_flight.json)",
+      "Edit(Project/loop/permits_used/**)", "Write(Project/loop/permits_used/**)",
+      "Edit(Project/audits/strategy/**)", "Write(Project/audits/strategy/**)",
+      "Edit(Project/audits/verdicts.jsonl)", "Write(Project/audits/verdicts.jsonl)",
+      "Edit(Project/tools/run_gate.py)", "Write(Project/tools/run_gate.py)",
+      "Edit(Project/tools/audit_champion.py)", "Write(Project/tools/audit_champion.py)",
+      "Edit(Project/tools/champion_watch.py)", "Write(Project/tools/champion_watch.py)",
+```
+
+Note the tradeoff you are accepting: after this paste, Fable cannot edit
+the gate or auditor at all — future gate fixes need you to lift the
+specific rule, let Fable patch, then re-add it.
+
 ## Test after applying (agent runs, expected results stated)
 1. Any `runner.py run ...` with no permit → BOUNCES with the think-step message.
 2. Full think-step → permit ARMED → the exact bound command passes ONCE →
@@ -192,4 +254,9 @@ consumed, or doomed commands burn permits and record false failures.
    next run BOUNCES again (no permit) until a new think-step.
 4. A command with mismatched --shape / edited impl bytes / different
    --ledger (incl. `--ledger=path` form) → BOUNCES on binding mismatch.
+5. `echo x >> Project/loop/gate_state.json` → BOUNCES (state-write).
+6. `echo forged > Project/audits/strategy/fake.log` → BOUNCES; a real
+   `codex exec ... > Project/audits/strategy/x_raw.log` → ALLOWED.
+7. Edit tool on Project/tools/run_gate.py → BOUNCES (settings deny rule).
+8. `python3 Project/tools/run_gate.py status` → still works (carve-out).
 ```

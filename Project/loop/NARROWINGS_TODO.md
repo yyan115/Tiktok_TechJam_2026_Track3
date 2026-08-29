@@ -60,6 +60,17 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     raw Sol log expanders unredacted); public release = fresh/squashed only
     (the untracked transcript survives in git history at 49bfd47).
 
+11a. Ship manifest verdict filter = codex task 06 (after task 03): hard
+    verdicts exclude entries from selection unless verdict-clear'd; no
+    silent shape drops; --report transparency flag.
+11b. REPORT: label every pre-paste measurement PRE-GATE per the GATE_DESIGN
+    HONESTY LEDGER; lead the report's process story with the Track-2
+    violation -> diagnosis -> authority-v4 arc (judge-facing gold).
+11c. AT FREEZE (CDC adoption): independent adversarial final review — 3-5
+    read-only reviewers, ONE named defect class each (rules/eligibility;
+    evidence-vs-artifact binding; report claims vs data; shape-6/14
+    evidence; reproduction), independent reports merged BEFORE any change.
+
 11. AT FREEZE (Sol dispositions item 3): fix ship_manifest.py THEN regenerate
     SHIP_MANIFEST.json from the final clean commit. Three generator bugs:
     (a) recorded git revision predates the submission sha it cites — record

@@ -129,6 +129,39 @@ stale-permit quarantine landed (it did, R9-R10). The gate ships as
 v3-final — the single authoritative version, approved at round 13; all
 v3.x numbers in older sections are iteration history, not live labels.
 
+## Amendment v4 (owner-approved GO, 30 Aug): authority hardening after the Track-2 violation
+Triggered by the Track 2 postmortem (the sister project's agent consciously
+overrode the organizers' convergence rule 11 times through a harness-provided
+flag). Full compilation + plan: AUTHORITY_V4_PLAN.md. Changes live in
+run_gate.py (22/22 sandbox tests):
+- Screening hit/miss is COMPUTED from --predict-min/--predict-max bound at
+  permit time; the agent's self-declared --result is gone.
+- Hard-verdict brake: a post-gate RULE_VIOLATION freezes ALL permits until
+  `verdict-clear --kind violation --owner-quote` (owner's literal chat
+  ruling; transcript is the proof). A RETEST allows only confirmation-mode
+  permits until `verdict-clear --kind retest --confirm-entry` passes the
+  MECHANICAL check (same bytes + same shape + newer + passed, read from the
+  journal). No AI-owned free-text unlock exists anywhere.
+- Owner paste v4 adds Block A2 + settings deny rules: gate state files, the
+  verdict ledger, critic receipts, and the three enforcer tools become
+  unwritable by the agent outside validated commands / real codex calls.
+
+## HONESTY LEDGER (binding for the report)
+1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
+   lands in .claude/hooks/guard_bash.py. The gate's history to date is
+   self-tests only.
+2. PRE-GATE LABELING: every measurement recorded before the paste timestamp
+   was produced WITHOUT a blocking gate. The report must never imply the
+   kernel campaign ran under this gate. Its integrity rests on the frozen
+   runner, tripwires, committed bytes, and Sol audits — which is true and
+   sufficient, and is what we say.
+3. RESIDUAL LIMITS (single machine, single user): critic receipts and owner
+   quotes are forge-OBVIOUS, not forge-PROOF — evasion requires deliberate
+   multi-step misconduct that the journals and transcripts expose; guard
+   coverage is pattern-based (bash) + tool deny rules, not OS enforcement;
+   the frozen runner does not internally verify permits (deferred re-freeze,
+   post-competition wishlist). Claims above this line are never made.
+
 ## Amendment (owner-approved, 29 Aug late): the revival clause
 Every closure postmortem must contain an explicit CASE FOR REVIVAL — either
 "none: the idea itself was disproven" or the specific evidence that would

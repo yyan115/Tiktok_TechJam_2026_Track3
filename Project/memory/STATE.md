@@ -1,6 +1,6 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-29 night — GATE APPROVED (13 Sol rounds, version: v3-final). Awaiting ONE owner action: paste Project/loop/OWNER_PATCH_card_gate.md into .claude/hooks/guard_bash.py (Block A after WRITE_PATTERNS defs, Block B at the END of main). Until then: pre-restart NARROWINGS work only (Project/loop/NARROWINGS_TODO.md), no new optimization runs.
+Updated: 2026-08-30 ~05:30 — AUTHORITY v4 BUILT + OWNER-APPROVED (after the Track 2 convergence-override violation; full story: Project/loop/AUTHORITY_V4_PLAN.md, lesson 23). Gate hardened in run_gate.py (computed screening, hard-verdict brake, verdict-clear owner/mechanical paths; 22/22 sandbox tests). Awaiting ONE owner action: paste Project/loop/OWNER_PATCH_card_gate.md v4 into .claude/hooks/guard_bash.py (Block A + Block A2 after WRITE_PATTERNS defs, Block B at the END of main) AND add its listed deny lines to .claude/settings.json. Then the agent runs the 8 proof-tests and the caged grind restarts autonomously (shape-14 streamed evidence first). Until then: NARROWINGS/tooling work only, no optimization runs. NOTE: all measurements to date are PRE-GATE (see GATE_DESIGN HONESTY LEDGER); codex tasks 01-06 briefs in Project/audits/codex_tasks/.
 
 ## TIMELINE (binding)
 CODE FREEZE 31 Aug 12:00 SGT -> packaging/report/video until 1 Sep 02:00 -> final 10h reproduction/contingency -> submission+registration close 1 Sep 12:00 GMT+8.
