@@ -101,13 +101,17 @@ def load_state_strict():
                          "from version control before any further attempts.")
     logged_seq = 0
     if LOG.exists():
-        for line in LOG.read_text().splitlines():
+        for i, line in enumerate(LOG.read_text().splitlines(), 1):
+            if not line.strip():
+                continue
             try:
                 s = json.loads(line).get("state_seq")
-                if isinstance(s, int):
-                    logged_seq = max(logged_seq, s)
             except Exception:
-                continue
+                raise SystemExit(f"REFUSED: gate_log.jsonl line {i} is "
+                                 "malformed — fail closed. Repair or remove "
+                                 "that line (with a note) before proceeding.")
+            if isinstance(s, int):
+                logged_seq = max(logged_seq, s)
     if st.get("seq", 0) < logged_seq:
         raise SystemExit(f"REFUSED: state seq {st.get('seq', 0)} is BEHIND the "
                          f"log's {logged_seq} — a stale restore is missing "

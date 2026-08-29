@@ -37,7 +37,9 @@ def permit_gate_reason(command):
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(REF, s)]
     if not segs:
         return None
-    if len(segs) > 1:
+    if len(segs) > 1 or len(re.findall(REF, norm)) > 1:
+        # Global match count catches multiple invocations INSIDE one segment
+        # too (e.g. two process substitutions).
         return "Blocked: multiple referee invocations in one command (one permit = one run)."
     seg = segs[0]
     # No other segment of this command may touch the permitted impl file
@@ -58,6 +60,11 @@ def permit_gate_reason(command):
     loop = root / "Project/loop"
     permit_p = loop / "permit.json"
     if (loop / "in_flight.json").exists():
+        if permit_p.exists():
+            # A crash between consume steps left BOTH artifacts: in_flight is
+            # authoritative; the permit must never be reusable. Repair here.
+            try: permit_p.unlink()
+            except Exception: pass
         return ("Blocked: a previous attempt is unreconciled (in_flight.json). "
                 "Run: python3 Project/tools/run_gate.py reconcile")
     try:
