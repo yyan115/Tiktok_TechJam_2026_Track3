@@ -41,11 +41,14 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
    an experiment that helps under NO scenario doesn't get a card.
 
 10. POST-RESTART (Sol dispositions, 29 Aug night; sharpened by the external
-    audit): capture FRESH evidence packets bound to the CURRENT submission
-    sha for shapes 14 and 6 — the existing packets cite the pre-integration
-    submission. Packets MUST use MULTIPLE deterministic seeds (shape-6
-    integrated smoke hit max err 0.00184 vs 0.002 atol — one seed is too
-    thin a margin), the exact official predicate (item 3), and record the
+    audit): capture FRESH evidence packets for shapes 14 and 6 that EXECUTE
+    THE GENERATED SUBMISSION FILE ITSELF (import UserOptimizedTransformer
+    from torch_transformer_benchmark_submission.py — NOT the standalone
+    k014/k015 kernel files; audit 7.3.1) — the existing packets cite the
+    pre-integration submission. Packets MUST use >=5 deterministic seeds
+    (the official script's --accuracy-trials default; shape-6 integrated
+    smoke hit max err 0.00184 vs 0.002 atol — one seed is too thin a
+    margin), the exact official predicate (item 3), and record the
     submission sha INSIDE the packet, and record peak RESERVED memory
     alongside peak allocated (audit P4 — reserved exposes fragmentation
     headroom on the 8GB card). Also:
