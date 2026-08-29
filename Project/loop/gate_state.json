@@ -1,12 +1,7 @@
 {
- "cycle": 1,
- "families": {
-  "test_kernel.py": {
-   "best_speedup": null,
-   "stopped": false,
-   "tries_without_improvement": 1
-  }
- },
+ "cycle": 2,
+ "families": {},
+ "pending_postmortem": [],
  "plan_done": false,
  "research_done": false
 }
