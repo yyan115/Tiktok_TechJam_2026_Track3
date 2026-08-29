@@ -38,3 +38,13 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     not left to packaging; dashboard is LOCAL-ONLY (never expose/record the
     raw Sol log expanders unredacted); public release = fresh/squashed only
     (the untracked transcript survives in git history at 49bfd47).
+
+11. AT FREEZE (Sol dispositions item 3): fix ship_manifest.py THEN regenerate
+    SHIP_MANIFEST.json from the final clean commit. Three generator bugs:
+    (a) recorded git revision predates the submission sha it cites — record
+    the revision AFTER the final commit; (b) shape-14 entry selection
+    compares B=1 vs B=2 latencies (incomparable) — select by recency/route
+    match, never cross-batch latency; (c) shape-6 labeled "oracle validated
+    vs official dense" — it is validated vs the batch-chunked official
+    baseline; label it exactly that. Loopback binding for the dashboard is
+    DONE (both .streamlit configs, 29 Aug night).

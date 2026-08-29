@@ -1,3 +1,8 @@
+[server]
+# Sol disposition (29 Aug): dashboard is LOCAL-ONLY — bind to loopback so
+# nothing else on the network can open it.
+address = "127.0.0.1"
+
 [theme]
 base = "dark"
 primaryColor = "#22d3ee"
