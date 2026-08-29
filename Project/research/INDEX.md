@@ -16,3 +16,5 @@ what we act on). One topic per file.
 | [competition-scoring.md](competition-scoring.md) | FULL transcript decoded: judges NEVER rerun (tech report+code+skills+history ARE the deliverable); SINGLE GPU type; own-machine preferred => rental contra-indicated; shape-14 block-decomposition expected; weights undecided (hedge) |
 | [roofline-table.md](roofline-table.md) | Per-shape FLOPs/bytes/AI + achieved TF: d=128 shapes LATENCY-bound; 8 = chunked-fp16-acc GEMM lever; 14 = FA2-style attention lever; 6 = local candidate-only |
 | [kernelagent.md](kernelagent.md) | Meta/PyTorch KernelAgent (organizer-shown): Profile-Diagnose-Prescribe-Orchestrate, top-K beam, reflexion records — the loop template |
+| [harness-engineering-baidu.md](harness-engineering-baidu.md) | Baidu/FlashInfer: harness engineering beats agent autonomy 1.35-13x; the 6-field compressed profile decision record to adopt |
+| [cuda-agent-tiktok.md](cuda-agent-tiktok.md) | Sponsor's CUDA Agent: protected-scripts anti-hacking design = our harness independently; SKILL.md structure for the skills deliverable |
