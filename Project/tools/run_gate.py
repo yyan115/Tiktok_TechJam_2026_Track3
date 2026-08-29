@@ -426,6 +426,8 @@ def cmd_reconcile(args) -> int:
         return 0
     gate_lock()  # idempotent process-wide acquisition
     try:
+        if not INFLIGHT.exists():
+            return 0  # re-check under the lock: another reconciler won
         USED.mkdir(exist_ok=True)
         # Crash-leftover quarantine FIRST — while in_flight.json still blocks
         # the guard, so no window exists in which a stale ARMED permit is
@@ -444,18 +446,32 @@ def cmd_reconcile(args) -> int:
         except FileNotFoundError:
             return 0
         fl = load_json(claim, None)
-        if fl is None:
-            # Malformed payload: the stranded claim file itself blocks all
-            # future permits (issuance and guard both refuse on claim.*) —
+        def _schema_ok(d):
+            try:
+                return (isinstance(d, dict)
+                        and d.get("mode") in MODES
+                        and isinstance(d.get("permit_id"), str) and d["permit_id"]
+                        and isinstance(d.get("direction_id"), str) and d["direction_id"]
+                        and int(d.get("shape")) >= 0
+                        and isinstance(d.get("ledger"), str)
+                        and int(d.get("ledger_pre_lines")) >= 0
+                        and (d.get("impl_sha256") is None
+                             or isinstance(d.get("impl_sha256"), str)))
+            except Exception:
+                return False
+        if not _schema_ok(fl):
+            # Invalid payload (bad JSON OR bad schema): the stranded claim
+            # blocks all future permits at issuance AND at the guard —
             # fail closed, human/agent repairs against the log.
-            raise SystemExit("REFUSED: in-flight payload malformed — claim "
-                             "stranded to keep the gate closed; repair "
+            raise SystemExit("REFUSED: in-flight payload malformed/invalid — "
+                             "claim stranded to keep the gate closed; repair "
                              "against gate_log.jsonl.")
         st = load_state_strict()  # fail closed before any effects
         # Orphan protection: referee still running (script or module form) or
         # young rowless attempt -> RESTORE the claim and wait for a later pass.
-        running = subprocess.run(["pgrep", "-f", r"harness[./]runner"],
-                                 capture_output=True, text=True).stdout.strip()
+        running = subprocess.run(
+            ["pgrep", "-f", r"(runner\.py|harness[./]runner)\s+(run|calibrate)"],
+            capture_output=True, text=True).stdout.strip()
         ledger = Path(fl["ledger"])
         rows = ([l for l in ledger.read_text().splitlines() if l.strip()]
                 if ledger.exists() else [])

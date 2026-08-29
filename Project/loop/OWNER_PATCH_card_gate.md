@@ -129,10 +129,18 @@ def permit_gate_reason(command):
                    ("--dtype", "--warmup", "--repeats", "--rounds")):
                 return ("Blocked: optimization permits are bound to the "
                         f"primary profile — override option {tok} present.")
-    # CONSUME: ARMED -> IN_FLIGHT, atomically (O_EXCL prevents double
-    # consumption), pre-run ledger offset captured NOW, before execution.
+    # CONSUME: ARMED -> IN_FLIGHT under the SAME shared lock the gate
+    # machinery uses (non-blocking; contention = deny), O_EXCL for the
+    # destination, pre-run ledger offset captured NOW, before execution.
     try:
         import os as _os
+        import fcntl as _f
+        _lock_fh = open(loop / ".gate.lock", "w")
+        try:
+            _f.flock(_lock_fh, _f.LOCK_EX | _f.LOCK_NB)
+        except OSError:
+            return ("Blocked: the gate lock is held (reconciliation or a "
+                    "think-step in progress) — retry in a moment.")
         lp2 = pathlib.Path(permit["ledger"])
         permit["ledger_pre_lines"] = (
             len([l for l in lp2.read_text().splitlines() if l.strip()])
