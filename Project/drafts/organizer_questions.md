@@ -1,5 +1,8 @@
 # Questions for the Track-3 organizers — SEND TODAY (29 Aug)
 
+> **RETIRED / NO-SEND (owner decision 29 Aug): the webinar transcript answered items 1-5 and 7; remaining unknowns are hedged in the sensitivity board. Kept for history only.**
+
+
 Copy-paste ready. Channel: the track's Telegram/Devpost Q&A or
 apac-earlycareers@tiktok.com. Answer cutoff for our planning: 30 Aug 12:00
 SGT (rental booking); silence => we default to candidate-only evidence for

@@ -1,4 +1,4 @@
-# The Run Gate — full design (v3, permit architecture; v2 was REJECTED by external review)
+# The Run Gate — full design (FINAL, approved review round 13; version labels v3.x unified as 'v3-final')
 
 Goal (owner's spec): after every benchmark attempt the system must FORCE a
 stop-and-rethink, no matter what the agent believes. Two explicit ordered
@@ -32,7 +32,7 @@ DIFFERENT direction; no human unlock in the loop.
      copies the EXACT QUOTED TEXT into the log,
    - reasoning (>=100 chars) why those sources justify the plan.
 4. One referee run is now allowed. The moment it executes, the PostToolUse
-   watcher calls `run_gate.py post`: gate CLOSES again, the try is counted
+   watcher calls `run_gate.py reconcile`: gate CLOSES again, the try is counted
    against the impl's direction, and improvement is judged from the
    REFEREE'S OWN JOURNAL entry (never the agent's claim).
 5. Improvement resets the direction's counter. 3 tries without improvement

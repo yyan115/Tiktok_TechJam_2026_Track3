@@ -1,5 +1,8 @@
 # Day 2 plan — for the user's noon review (drafted ~03:00, 29 Aug)
 
+> **SUPERSEDED 29 Aug by harness_v2_proposal.md's converged allocation. Kept for history only.**
+
+
 ## Where Day 1 ended (headline)
 
 - **Ship board (quiet-box, referee-verified): geomean ~11.0x across all 12

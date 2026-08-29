@@ -1,5 +1,8 @@
 # Amendment bundle v1.1 (PROPOSAL — frozen runner untouched)
 
+> **SUPERSEDED 29 Aug: the frozen runner is NOT edited. Shape-14 evidence comes from the independently pinned side evaluator (Project/tools/shape14_eval.py) with packets in Project/results_side/. Kept for history only.**
+
+
 Drafted 28 Aug 2026 (Day 1) so the timeboxed re-freeze session with the user
 is fast: review, approve, apply, Sol re-audit, pin update. Per the freeze
 checklist, nothing here counts until that procedure completes.

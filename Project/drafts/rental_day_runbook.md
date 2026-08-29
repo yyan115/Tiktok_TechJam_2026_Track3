@@ -1,5 +1,8 @@
 # Rental runbook — REWRITTEN 29 Aug (post strategy-review convergence)
 
+> **ARCHIVED 29 Aug: rental cancelled (single-GPU rule + own-machine preference, see research/competition-scoring.md). Kept for history only.**
+
+
 Purpose: ONE rented session, shape-14 first and primary. Shape 6 is
 piggyback-only and conditional. The frozen runner is NOT used for shape 14
 (it refuses it by design); evidence comes from the independently pinned

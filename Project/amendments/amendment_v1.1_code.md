@@ -1,5 +1,8 @@
 # Amendment v1.1 — exact code (against runner.py v1.0.2, 937 lines)
 
+> **SUPERSEDED 29 Aug: see note in amendment_v1.1_bundle.md. Kept for history only.**
+
+
 Companion to amendment_v1.1_bundle.md. Every block below is complete and
 insertion-ready; line anchors reference v1.0.2 exactly. The Bash guard
 (correctly) refuses to let the agent copy or touch the runner, so the person
