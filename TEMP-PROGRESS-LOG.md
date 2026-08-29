@@ -1,71 +1,67 @@
-# TEMP — read this when you're back (Track 3)
+# TEMP — the simple version (updated 29 Aug afternoon)
 
-*Updated 28 Aug 16:06. Delete this file once done.*
+*This file is for you, not the judges. Delete before submitting.*
 
-## Where things stand (10-second version)
+## Where we are (10 seconds)
 
-Everything is built, tested, and committed on branch `initial-architecture` (pushed to GitHub).
-The referee works and already has one verified result: **1.61x speedup on test size 1** (measurement auditor-certified genuine; flagged as development-reference-only for the final answer, since the webinar's custom-kernels-only rule excludes its PyTorch-builtin approach from shipping — the grind's own kernels are what ship).
-It survived 4 rounds of independent AI review — flaws were found, fixed, and re-verified each time.
-Nothing can start until you do the steps below.
+- All 14 test shapes work and have proof. Average ~11x faster on the 12
+  comparable ones. The two "impossible" shapes (6 and 14) are solved on
+  YOUR card the way the organizer said to (split the work into chunks).
+- No rental needed. No questions to organizers needed (your transcript
+  answered them).
+- The judges never re-run our code. They read our REPORT + code + the
+  history of how the AI worked. So our paper trail IS the score.
 
-## YOUR TO-DO, in order
+## The new "thinking cage" you asked for (built today)
 
-**1. Restart Claude in this folder** (`claude --continue` in a terminal here, or open a fresh session — both work; the project's memory files bring any session up to speed automatically).
+Think of it as a lock on the benchmark button. Here's the whole idea:
 
-**2. Do the freeze (~3 min).** Open `Project/audits/freeze_checklist.md` and follow it top to bottom. Plain version: you paste 2 lines into `.claude/settings.json` (they lock the referee so nobody, including the AI, can quietly change the measuring stick), restart once more, check the lock actually blocks, then tell Claude **"freeze approved"**.
+1. The benchmark button starts LOCKED.
+2. To unlock it, I must do 2 steps, in order, and a robot checks each:
+   - STEP 1 — RESEARCH: I must prove I re-read our saved research folder
+     (the robot checks a fingerprint of the index file — if I skip
+     reading, the fingerprint is wrong and it refuses). I must name at
+     least 2 real research files and write a real summary.
+   - STEP 2 — PLAN: I must write what I expect to happen WITH A NUMBER,
+     what would prove me wrong, and EXACTLY which lines of which research
+     files my idea comes from. The robot opens those files, copies the
+     actual quoted lines into a logbook. If I cite a fake file or fake
+     lines — refused.
+3. That unlocks ONE try. The moment the try runs, the button locks again
+   automatically. Every try = full stop = think again. No exceptions,
+   no matter what I believe.
+4. Three tries on one idea without the scoreboard improving (the
+   SCOREBOARD decides, not me) = that idea is DEAD. I must write a
+   honest "what went wrong" note before I'm allowed to research again,
+   and I must move to a DIFFERENT idea. A dead idea only comes back if
+   the outside reviewer (GPT Sol) reads the evidence and says so.
+   You never have to come unlock anything — it keeps itself moving.
+5. Cheating check: the automatic Sol audit that fires on every new
+   champion now ALSO opens my cited lines and compares them to the
+   quotes in the logbook. Faked citations = red flag on the record.
 
-**3. Say "grind".** That starts the real work: optimizing all 13 runnable test sizes. Fully autonomous, every result logged and verifiable.
+All of this is code, tested, committed. Sol is blind-reviewing the whole
+design right now (it thinks the review request came from you). I'll keep
+revising until it's satisfied or only hair-splitting remains.
 
-**4. Say "go track 2" too** (see the other repo's TEMP file) — both can run.
+## The ONE thing you need to do (2 minutes)
 
-**5. Sometime today/tomorrow (5 min):** check your Devpost — you must be registered, and confirm you can create TWO submissions (one per track). The submission window is **29 Aug 12:00 noon → 1 Sep 12:00 noon**.
+The final lock lives in a folder you protected from me (that's good —
+a lock I could edit isn't a lock). So:
 
-**6. This weekend (not urgent today):** make a RunPod account (~$20–50 budget). Needed only for test size 14 (too big for your GPU) and the final official numbers.
+1. Open the file: `Project/loop/OWNER_PATCH_card_gate.md`
+2. It shows ~20 lines of code and says exactly where to paste them
+   inside `.claude/hooks/guard_bash.py`.
+3. Paste, save. Tell me "applied". I'll run two tests to prove the lock
+   bites (one run must bounce, one must pass after the two steps).
 
-## Review status (updated ~11:30)
+NOTE: wait for my "Sol approved the gate design" message before pasting —
+its review may adjust those 20 lines slightly.
 
-CLOSED with a YES. Codex reviewed the referee SIX times, finding real flaws each round
-until there were none load-bearing left ("Overall competition-weekend reliance: YES, after
-the mandatory freeze-arm steps" — the freeze-arm steps are YOUR checklist steps). The
-referee is v1.0.2, fingerprint-pinned in the manifest (a drifted referee refuses to run
-any command). Full verdict: Project/audits/track3_handoff_verdict_round6.md. Track 2's
-bench is in the same loop (round 4 pending as of this writing) — ask "review status".
+## After that
 
-
-## WHAT WE ACTUALLY BUILT (plain words, one line each, with the file to open)
-
-**The machine:**
-- **The referee** — one script that tests every speed-up attempt: checks the answers match TikTok's original, times it fairly, writes the result to the logbook. I run it; I can't change it. → `Project/harness/runner.py`
-- **The traps inside the referee** — catch the known ways AIs fake speed results: cached answers, hidden work, tampered math, modified inputs. All were proven to fire by attacking them. → `Project/harness/redteam/` (the attack files)
-- **The fingerprint pin** — the referee's exact fingerprint is recorded; if even one byte of it changes, it refuses to run anything. Tampering turns itself off. → `Project/manifest.json`
-- **The locks** — settings that make my editing tools refuse to touch TikTok's files, the referee, or the results. YOU arm these (your 2-line paste + restart). → `.claude/settings.json`
-- **The exact 14 test sizes** — written down because TikTok's script silently tests the WRONG sizes on default settings. → `Project/shapes.json`
-
-**The memory (so no session ever starts blank):**
-- **Status board** — where we are, what's next; auto-loaded into every new session. → `Project/memory/STATE.md`
-- **Diary** — everything we discussed and decided, in plain language, dated. → `Project/memory/DECISIONS.md`
-- **Mistakes list** — things proven not to work, never to be retried. → `Project/memory/LESSONS.md`
-- **Logbook** — every test result, machine-written, one line each; I cannot edit it by hand. → `Project/results/JOURNAL.jsonl`
-- **Scoreboard** — best verified result per test size, auto-generated from the logbook. → `Project/results/LEADERBOARD.md`
-
-**The oversight:**
-- **Auto-audit** — every newly crowned champion automatically triggers a background GPT review of that result (mechanical trigger, not Claude's choice); verdicts fill the scoreboard's audit column. → `Project/tools/champion_watch.py`
-- **Second-AI review trail** — codex (GPT) reviewed the referee SIX times, rejecting it for real flaws until none remained. Its final sign-off, verbatim: → `Project/audits/track3_handoff_verdict_round6.md`
-- **Operating manual** — every command, what writes what, how to recover. → `Project/RUNBOOK.md`
-
-## HOW TO CHECK IT YOURSELF (10 min, no code reading)
-
-1. Read the reviewer's final verdict (short, plain English): `Project/audits/track3_handoff_verdict_round6.md`
-2. Skim the diary for the story: `Project/memory/DECISIONS.md`
-3. Watch a cheater get caught LIVE — run these two commands in this folder:
-   `python3 Project/harness/runner.py check`   (integrity: should print green/verified)
-   `python3 Project/harness/runner.py run --shape 1 --impl Project/harness/redteam/rt01_monkeypatch.py --ledger /tmp/rt.jsonl`   (should print TAMPER DETECTED and abort)
-4. After your restart: tell Claude "try to edit the runner" — watch the lock block it.
-5. Anytime, forever: any number Claude claims → say "show me the journal entry" — every result traces to one logbook line.
-
-## What the plan is after your steps
-
-Grind on 13 sizes (your GPU) → rent big GPU for size 14 + official final numbers →
-tech report + README + 3-min video (day 3) → submit BEFORE the deadline with hours to spare.
-Full plan: `Project/PLAN.md`. Current status always in: `Project/memory/STATE.md`.
+Nothing else needed from you. Once Sol and I converge on the gate, I
+start optimization again — every single try going through the cage:
+research → plan → try → forced stop → repeat. Deadline plan: code stops
+31 Aug noon, then packaging (report, video, cleanup), submit before
+1 Sep noon.
