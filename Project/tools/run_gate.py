@@ -78,22 +78,47 @@ def load_json(p: Path, default):
         return default
 
 
+_LOCK_REF = []
+
+
 def load_state_strict():
     """Fail CLOSED: issuance and reconciliation refuse to run on missing or
-    corrupt state — a wiped state file must not erase closures/debts."""
+    corrupt state — a wiped state file must not erase closures/debts. Also
+    acquires the shared gate lock for the life of this process, serializing
+    every state transition against the watcher; and checks the state's
+    sequence number against the log so a stale git-restored file (missing
+    later transitions) is refused."""
+    if not _LOCK_REF:
+        _LOCK_REF.append(gate_lock())
     if not STATE.exists():
         raise SystemExit("REFUSED: gate state missing. Run `run_gate.py init` "
                          "once (records the event) if this is genuinely new.")
     try:
-        return json.loads(STATE.read_text())
+        st = json.loads(STATE.read_text())
     except Exception:
         raise SystemExit("REFUSED: gate state unreadable/corrupt — fail "
-                         "closed. Restore Project/loop/gate_state.json from "
-                         "git before any further attempts.")
+                         "closed. Bring Project/loop/gate_state.json back "
+                         "from version control before any further attempts.")
+    logged_seq = 0
+    if LOG.exists():
+        for line in LOG.read_text().splitlines():
+            try:
+                s = json.loads(line).get("state_seq")
+                if isinstance(s, int):
+                    logged_seq = max(logged_seq, s)
+            except Exception:
+                continue
+    if st.get("seq", 0) < logged_seq:
+        raise SystemExit(f"REFUSED: state seq {st.get('seq', 0)} is BEHIND the "
+                         f"log's {logged_seq} — a stale restore is missing "
+                         "transitions. Reconstruct state to match the log "
+                         "before proceeding.")
+    return st
 
 
 def save_state(st: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
+    st["seq"] = st.get("seq", 0) + 1
     tmp = STATE.with_suffix(".tmp")
     tmp.write_text(json.dumps(st, indent=1, sort_keys=True))
     tmp.replace(STATE)
@@ -101,6 +126,10 @@ def save_state(st: dict) -> None:
 
 def log(entry: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
+    try:
+        entry.setdefault("state_seq", json.loads(STATE.read_text()).get("seq", 0))
+    except Exception:
+        pass
     with open(LOG, "a") as f:
         f.write(json.dumps(entry, sort_keys=True) + "\n")
 
@@ -348,37 +377,63 @@ def cmd_delta(args) -> int:
     return 0
 
 
+def gate_lock():
+    """One shared advisory lock serializing EVERY state transition (CLI and
+    watcher). Blocks up to 30s, then fails CLOSED."""
+    import fcntl
+    LOOP.mkdir(parents=True, exist_ok=True)
+    fh = open(LOOP / ".gate.lock", "w")
+    deadline = time.time() + 30
+    while True:
+        try:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fh
+        except OSError:
+            if time.time() > deadline:
+                raise SystemExit("REFUSED: gate lock busy >30s — fail closed.")
+            time.sleep(0.2)
+
+
 def cmd_reconcile(args) -> int:
     """Called by the PostToolUse watcher (and idempotently by anyone):
-    resolves an IN_FLIGHT attempt from its bound ledger."""
+    resolves an IN_FLIGHT attempt from its bound ledger. CLAIM-FIRST: the
+    in-flight file is atomically claimed BEFORE any derived read, under the
+    shared gate lock; a still-running attempt is restored intact."""
     import subprocess
-    fl = load_json(INFLIGHT, None)
-    if fl is None:
+    if not INFLIGHT.exists():
         return 0
-    st_check = load_state_strict()  # fail closed before any effects
-    del st_check
-    # Orphan protection: if the referee is still running, or the attempt is
-    # young and produced no row yet (backgrounded/compiling), WAIT — never
-    # record an execution failure for a run that hasn't finished.
-    running = subprocess.run(["pgrep", "-f", "runner.py (run|calibrate)"],
-                             capture_output=True, text=True).stdout.strip()
-    st = load_json(STATE, {})
-    ledger = Path(fl["ledger"])
-    rows = [l for l in ledger.read_text().splitlines() if l.strip()] if ledger.exists() else []
-    new_rows = rows[fl["ledger_pre_lines"]:]
-    import time as _t
-    age = _t.time() - float(fl.get("consumed_epoch", fl.get("expires_epoch", _t.time()) - PERMIT_TTL_S))
-    if running or (not new_rows and age < 120):
-        return 0  # still in flight; a later watcher pass reconciles
-    USED.mkdir(exist_ok=True)
-    claim = USED / f"claim.{secrets.token_hex(4)}.json"
+    lock = gate_lock()
     try:
-        INFLIGHT.rename(claim)  # atomic claim: replayers lose the rename race
-    except FileNotFoundError:
-        return 0
-    fl = load_json(claim, None)  # re-read AFTER claiming (claimed payload only)
-    if fl is None:
-        return 0
+        USED.mkdir(exist_ok=True)
+        claim = USED / f"claim.{secrets.token_hex(4)}.json"
+        try:
+            INFLIGHT.rename(claim)  # atomic claim precedes every read
+        except FileNotFoundError:
+            return 0
+        fl = load_json(claim, None)
+        if fl is None:
+            return 0
+        st = load_state_strict()  # fail closed before any effects
+        # Orphan protection: referee still running (script or module form) or
+        # young rowless attempt -> RESTORE the claim and wait for a later pass.
+        running = subprocess.run(["pgrep", "-f", r"harness[./]runner"],
+                                 capture_output=True, text=True).stdout.strip()
+        ledger = Path(fl["ledger"])
+        rows = ([l for l in ledger.read_text().splitlines() if l.strip()]
+                if ledger.exists() else [])
+        new_rows = rows[fl["ledger_pre_lines"]:]
+        import time as _t
+        age = _t.time() - float(fl.get("consumed_epoch",
+                                fl.get("expires_epoch", _t.time()) - PERMIT_TTL_S))
+        if running or (not new_rows and age < 120):
+            claim.rename(INFLIGHT)  # restore untouched; reconcile later
+            return 0
+        return _reconcile_locked(st, fl, claim, new_rows)
+    finally:
+        lock.close()
+
+
+def _reconcile_locked(st, fl, claim, new_rows) -> int:
     gkey = f"{fl['direction_id']}|{int(fl['shape'])}"
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,

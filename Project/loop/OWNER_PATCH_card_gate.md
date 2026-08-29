@@ -17,16 +17,25 @@ Block A — insert AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line:
 # validated think-step issued (Project/tools/run_gate.py). Anything
 # unparseable, mismatched, duplicated, or stale => DENY (fail closed).
 def permit_gate_reason(command):
-    # REMOVE quotes entirely so fragmented paths ("runner".py, "runner.py")
-    # reform into matchable text; split on separators INCLUDING newlines.
-    norm = command.replace('"', "").replace("'", "")
+    # Normalize: join backslash-continuations, REMOVE quotes so fragmented
+    # paths reform, then split on separators INCLUDING raw newlines.
+    norm = command.replace("\\\n", " ").replace('"', "").replace("'", "")
     REF = r"(runner\.py|Project\.harness\.runner)\s+(?:\S+\s+)*(run|calibrate)\b"
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(REF, s)]
     if not segs:
         return None
     if len(segs) > 1:
         return "Blocked: multiple referee invocations in one command (one permit = one run)."
+    if re.search(r"\b(for|while|until)\b", norm):
+        return ("Blocked: shell loops around a referee invocation violate "
+                "one-permit-one-run. Write the single literal command.")
+    if "$" in norm or "`" in norm:
+        return ("Blocked: variable/command substitution in a referee command "
+                "makes permit bindings unverifiable. Write literal values.")
     seg = segs[0]
+    # No other segment of this command may touch the permitted impl file
+    # (write-then-run in one command would benchmark unpermitted bytes).
+    other = [s for s in re.split(r"[|;&\n\r]+", norm) if s is not seg and s.strip()]
     # Abbreviated long options are DENIED outright — the guard refuses to
     # guess argparse's expansion, so bindings can't be split across
     # duplicate abbreviated flags.
@@ -75,6 +84,11 @@ def permit_gate_reason(command):
         if str(cand.resolve().relative_to(root)) != pi or actual != permit.get("impl_sha256"):
             return ("Blocked: permit is bound to different candidate bytes "
                     f"({pi} @ {str(permit.get('impl_sha256'))[:12]}…).")
+        base = cand.name
+        if any(base in s for s in other):
+            return ("Blocked: another segment of this command references the "
+                    "permitted candidate file — modify-then-run in one "
+                    "command would benchmark unpermitted bytes.")
     lp = pathlib.Path(ledger).resolve() if ledger else (root / "Project/results/JOURNAL.jsonl")
     if str(lp) != permit.get("ledger"):
         return f"Blocked: permit is bound to ledger {permit.get('ledger')}."
@@ -111,7 +125,12 @@ def permit_gate_reason(command):
 Block B — insert into `main()`, after the `recursive_rm_outside_tmp` check:
 
 ```python
-    gate = permit_gate_reason(command)
+    # FAIL CLOSED: any exception inside the gate is itself a DENY — a hook
+    # crash exits nonzero-but-not-2, which Claude Code treats as ALLOW.
+    try:
+        gate = permit_gate_reason(command)
+    except Exception as exc:
+        gate = f"Blocked: permit gate error ({type(exc).__name__}) — fail closed."
     if gate:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
               "permissionDecision": "deny",
