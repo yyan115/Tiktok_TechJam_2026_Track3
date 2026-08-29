@@ -1,10 +1,11 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-29 13:55 — DAY 2 (user's numbering). Usage-limit outage ~07:00-13:40 swallowed the morning. MODE: harness-hardening + research ONLY until the user restarts optimization ("get proper harness up before we start again").
+Updated: 2026-08-29 night — GATE APPROVED (13 Sol rounds, v3.12). Awaiting ONE owner action: paste Project/loop/OWNER_PATCH_card_gate.md into .claude/hooks/guard_bash.py (Block A after WRITE_PATTERNS defs, Block B at the END of main). Until then: pre-restart NARROWINGS work only (Project/loop/NARROWINGS_TODO.md), no new optimization runs.
 
-## TIMELINE (user-corrected, binding)
-Day 2 = 29 Aug afternoon onward. CLOCKS NOW TIGHT: organizer-question cutoff 30 Aug 12:00 SGT (~22h); rental 30 Aug; code freeze 31 Aug 12:00; packaging 31 Aug noon → 1 Sep 02:00; final 10h contingency; submission+registration close 1 Sep 12:00 GMT+8.
-USER-GATED ITEMS OUTSTANDING (do these first, five minutes total): send Project/drafts/organizer_questions.md · reserve 48GB rental for 30 Aug · verify Devpost registration · apply Project/loop/OWNER_PATCH_card_gate.md (the mechanical card gate you asked for).
+## TIMELINE (binding)
+CODE FREEZE 31 Aug 12:00 SGT -> packaging/report/video until 1 Sep 02:00 -> final 10h reproduction/contingency -> submission+registration close 1 Sep 12:00 GMT+8.
+SUPERSEDED by the webinar transcript (research/competition-scoring.md): NO rental (single-GPU rule, own-machine; shape-14 = block decomposition locally). NO organizer questions (retired/no-send). Amendment v1.1 docs superseded (frozen runner untouched; side evaluator + results_side packets instead).
+OWNER ITEMS: (1) the gate paste above; (2) verify Devpost registration. Nothing else.
 
 ## FIRST ACTIONS FOR A FRESH SESSION (in order)
 1. Locks test (Edit on torch_transformer_benchmark.py AND Project/harness/runner.py MUST bounce — verified again 28 Aug 19:47). Guard etiquette: never put 'clean'/'reset'/'restore' after 'git' in one command segment.
