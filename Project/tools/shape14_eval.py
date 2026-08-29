@@ -25,21 +25,30 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import platform
+import statistics
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "Project"
 MANIFEST_PATH = PROJECT / "manifest.json"
 OFFICIAL_TORCH = ROOT / "torch_transformer_benchmark.py"
+SUBMISSION_FILE = (PROJECT / "submission" /
+                   "torch_transformer_benchmark_submission.py")
 SIDE_RESULTS = PROJECT / "results_side"
 
 ATOL, RTOL = 0.002, 0.02
 SEED0 = 1234
+TIMING_SEED = SEED0 + 100000
+OFFICIAL_BATCH = 32
+OFFICIAL_SEQ = 100000
+SLICE_SEED_FORMULA = "base_seed * 1000 + batch_index"
 
 
 def sha256_file(path: Path) -> str:
@@ -204,25 +213,301 @@ def cmd_validate(args) -> int:
     return 0 if ok else 1
 
 
-def load_candidate(impl_path: Path):
-    import types
-    source_bytes = impl_path.read_bytes()
-    sha = hashlib.sha256(source_bytes).hexdigest()
-    module = types.ModuleType(impl_path.stem)
-    module.__file__ = str(impl_path)
-    sys.modules[impl_path.stem] = module
-    exec(compile(source_bytes, str(impl_path), "exec"), module.__dict__)
-    if not hasattr(module, "build"):
-        raise SystemExit(f"{impl_path} must define build(otb, config)")
-    return module, sha
+def load_submission():
+    """Import the exact generated submission artifact without running main."""
+    module_name = "track3_shape14_submission"
+    spec = importlib.util.spec_from_file_location(module_name, SUBMISSION_FILE)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"cannot import submission from {SUBMISSION_FILE}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    if not hasattr(module, "UserOptimizedTransformer"):
+        raise SystemExit(f"{SUBMISSION_FILE} has no UserOptimizedTransformer")
+    return module
+
+
+def build_submission_candidate(submission, cfg, state, device):
+    candidate = submission.UserOptimizedTransformer(cfg)
+    candidate.load_state_dict(state, strict=True)
+    return candidate.to(device=device).eval()
+
+
+def fresh_slice(torch, seq, device, base_seed, batch_index):
+    """Generate exactly one deterministic B=1 input and stage it on device."""
+    gen = torch.Generator(device="cpu")
+    gen.manual_seed(base_seed * 1000 + batch_index)
+    return torch.randn(1, seq, 1024, generator=gen).to(device)
+
+
+def official_error_stats(torch, reference, optimized) -> dict:
+    """Apply the official finite AND (absolute OR relative) predicate."""
+    if reference.shape != optimized.shape:
+        raise AssertionError(
+            f"shape mismatch: reference={tuple(reference.shape)}, "
+            f"candidate={tuple(optimized.shape)}"
+        )
+    ref = reference.detach().float()
+    opt = optimized.detach().float()
+
+    finite_mask = torch.isfinite(ref) & torch.isfinite(opt)
+    abs_error = (opt - ref).abs()
+    abs_ok = abs_error <= ATOL
+    rel_ok = abs_error <= RTOL * ref.abs()
+    passed_mask = finite_mask & (abs_ok | rel_ok)
+
+    failed_mask = ~passed_mask
+    failed_elements = int(failed_mask.sum().item())
+    nonfinite_elements = int((~finite_mask).sum().item())
+    if nonfinite_elements:
+        max_abs_error = None
+        abs_error_sum = None
+    else:
+        max_abs_error = abs_error.max().item()
+        abs_error_sum = abs_error.sum(dtype=torch.float64).item()
+    return {
+        "violations": failed_elements,
+        "nonfinite_elements": nonfinite_elements,
+        "max_abs_error": max_abs_error,
+        "abs_error_sum": abs_error_sum,
+        "elements": reference.numel(),
+    }
+
+
+def utc_now():
+    now = datetime.now(timezone.utc)
+    return now.isoformat(), now.strftime("%Y%m%d-%H%M%S")
 
 
 def cmd_eval(args) -> int:
-    """Candidate vs streamed oracle at the requested size; batch-streamed
-    comparison; microchunked candidate; evidence packet."""
+    """Evaluate the official workload as 32 serial, independently staged B=1 slices."""
+    if args.correctness_seeds <= 0:
+        raise SystemExit("--correctness-seeds must be positive")
+    if args.timing_repeats <= 0:
+        raise SystemExit("--timing-repeats must be positive")
+    if args.warmup < 0:
+        raise SystemExit("--warmup must be non-negative")
+
     integrity = verify_official()
     import torch
     otb = load_official()
+    submission = load_submission()
+    device = torch.device("cuda")
+    cfg = make_config(otb, OFFICIAL_BATCH, OFFICIAL_SEQ)
+
+    torch.manual_seed(SEED0)
+    template = otb.BaselineTransformer(cfg)
+    state = {k: v.detach().clone() for k, v in template.state_dict().items()}
+    del template
+
+    submission_sha = sha256_file(SUBMISSION_FILE)
+    candidate = build_submission_candidate(submission, cfg, state, device)
+    oracle_cfg = make_config(otb, 1, OFFICIAL_SEQ)
+    oracle = build_oracle(otb, oracle_cfg, state, device)
+
+    correctness_seeds = [SEED0 + trial for trial in range(args.correctness_seeds)]
+    trials = []
+    total_violations = 0
+    total_nonfinite = 0
+    total_abs_error = 0.0
+    total_elements = 0
+    global_max_abs_error = -1.0
+    worst_seed = None
+    worst_slice_index = None
+    with torch.inference_mode():
+        for base_seed in correctness_seeds:
+            trial_violations = 0
+            trial_nonfinite = 0
+            trial_abs_error = 0.0
+            trial_elements = 0
+            trial_max_abs_error = -1.0
+            trial_worst_slice = None
+            for batch_index in range(OFFICIAL_BATCH):
+                x = fresh_slice(torch, OFFICIAL_SEQ, device, base_seed, batch_index)
+                out = candidate(x, None)
+                ref = oracle(x, None)
+                stats = official_error_stats(torch, ref, out)
+                trial_violations += stats["violations"]
+                trial_nonfinite += stats["nonfinite_elements"]
+                trial_elements += stats["elements"]
+                if stats["abs_error_sum"] is not None:
+                    trial_abs_error += stats["abs_error_sum"]
+                if stats["nonfinite_elements"]:
+                    if trial_nonfinite == stats["nonfinite_elements"]:
+                        trial_worst_slice = batch_index
+                elif (trial_nonfinite == 0 and
+                      stats["max_abs_error"] > trial_max_abs_error):
+                    trial_max_abs_error = stats["max_abs_error"]
+                    trial_worst_slice = batch_index
+                del stats, ref, out, x
+                torch.cuda.empty_cache()
+
+            trial_mean = (None if trial_nonfinite else
+                          trial_abs_error / trial_elements)
+            trials.append({
+                "base_seed": base_seed,
+                "violations": trial_violations,
+                "nonfinite_elements": trial_nonfinite,
+                "elements": trial_elements,
+                "max_abs_error": None if trial_nonfinite else trial_max_abs_error,
+                "mean_abs_error": trial_mean,
+                "worst_slice_index": trial_worst_slice,
+            })
+            total_violations += trial_violations
+            total_elements += trial_elements
+            if not trial_nonfinite:
+                total_abs_error += trial_abs_error
+            if trial_nonfinite:
+                if total_nonfinite == 0:
+                    worst_seed = base_seed
+                    worst_slice_index = trial_worst_slice
+            elif total_nonfinite == 0 and trial_max_abs_error > global_max_abs_error:
+                global_max_abs_error = trial_max_abs_error
+                worst_seed = base_seed
+                worst_slice_index = trial_worst_slice
+            total_nonfinite += trial_nonfinite
+
+        del oracle
+        torch.cuda.empty_cache()
+
+        # Size-aware warmup: individual B=1 calls only, never a full B=32 tensor.
+        for warmup_index in range(args.warmup):
+            batch_index = warmup_index % OFFICIAL_BATCH
+            x = fresh_slice(torch, OFFICIAL_SEQ, device, TIMING_SEED, batch_index)
+            out = candidate(x, None)
+            torch.cuda.synchronize()
+            del out, x
+            torch.cuda.empty_cache()
+
+        repeat_slice_times = []
+        repeat_sums = []
+        wall_times = []
+        peak_allocated = []
+        peak_reserved = []
+        for _repeat in range(args.timing_repeats):
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
+            wall_start = time.perf_counter()
+            slice_times = []
+            for batch_index in range(OFFICIAL_BATCH):
+                x = fresh_slice(torch, OFFICIAL_SEQ, device,
+                                TIMING_SEED, batch_index)
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
+                out = candidate(x, None)
+                end.record()
+                end.synchronize()
+                slice_times.append(start.elapsed_time(end))
+                del out, x, start, end
+                torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            wall_times.append((time.perf_counter() - wall_start) * 1000.0)
+            repeat_slice_times.append(slice_times)
+            repeat_sums.append(sum(slice_times))
+            peak_allocated.append(torch.cuda.max_memory_allocated())
+            peak_reserved.append(torch.cuda.max_memory_reserved())
+
+    matrix_by_batch = [
+        [round(repeat_slice_times[repeat][batch_index], 6)
+         for repeat in range(args.timing_repeats)]
+        for batch_index in range(OFFICIAL_BATCH)
+    ]
+    median_of_sums = statistics.median(repeat_sums)
+    all_pass = total_violations == 0
+    mean_abs_error = (None if total_nonfinite else
+                      total_abs_error / total_elements)
+    max_abs_error = None if total_nonfinite else global_max_abs_error
+    timestamp, stamp = utc_now()
+    evaluator_sha = sha256_file(Path(__file__).resolve())
+    packet = {
+        "schema_version": "streamed-v1",
+        "type": "shape14_side_evaluation",
+        "timestamp": timestamp,
+        "shape": {"id": 14, "batch_size": cfg.batch_size, "seq_len": cfg.seq_len,
+                  "d_model": 1024, "num_heads": 16, "ffn_dim": 1024,
+                  "num_layers": 2, "causal": True},
+        "config": {"batch_size": cfg.batch_size, "seq_len": cfg.seq_len,
+                   "d_model": 1024, "num_heads": 16, "ffn_dim": 1024,
+                   "num_layers": 2, "causal": True},
+        "official": integrity,
+        "candidate": {
+            "path": str(SUBMISSION_FILE.relative_to(ROOT)),
+            "sha256": submission_sha,
+            "name": "UserOptimizedTransformer (generated submission)",
+        },
+        "submission_sha256": submission_sha,
+        "evaluator_sha256": evaluator_sha,
+        "env": env_fingerprint(torch),
+        "seeds": correctness_seeds,
+        "seeding": {
+            "correctness_base_seeds": correctness_seeds,
+            "timing_base_seed": TIMING_SEED,
+            "slice_seed_formula": SLICE_SEED_FORMULA,
+            "timing_repeat_policy": "same 32 deterministic slices in every repeat",
+        },
+        "predicate": "official-abs-OR-rel",
+        "tolerance": {"atol": ATOL, "rtol": RTOL},
+        "correctness": {
+            "trials": trials,
+            "passed": all_pass,
+            "violations": total_violations,
+            "nonfinite_elements": total_nonfinite,
+            "elements": total_elements,
+            "max_abs_error": max_abs_error,
+            "mean_abs_error": mean_abs_error,
+            "worst_base_seed": worst_seed,
+            "worst_slice_index": worst_slice_index,
+            "predicate": "official-abs-OR-rel",
+            "reference": "streamed fp32 oracle (validated vs pinned dense)",
+        },
+        "timing": {
+            "protocol": "serial batch-decomposed GPU compute time",
+            "warmup_slices": args.warmup,
+            "timing_repeats": args.timing_repeats,
+            "slice_times_ms": {
+                "orientation": "batch_index x timing_repeat",
+                "values": matrix_by_batch,
+            },
+            "sums_ms": [round(value, 6) for value in repeat_sums],
+            "median_of_sums_ms": median_of_sums,
+            "wall_ms": [round(value, 6) for value in wall_times],
+        },
+        "memory": {
+            "peak_allocated_bytes_per_repeat": peak_allocated,
+            "peak_reserved_bytes_per_repeat": peak_reserved,
+            "max_peak_allocated_bytes": max(peak_allocated),
+            "max_peak_reserved_bytes": max(peak_reserved),
+            "max_peak_allocated_gib": max(peak_allocated) / 2**30,
+            "max_peak_reserved_gib": max(peak_reserved) / 2**30,
+        },
+        "limitation": "official dense baseline infeasible at this shape; "
+                      "reference is the validated streamed oracle; timing is "
+                      "32 serial B=1 submission calls, not one literal B=32 call",
+    }
+    SIDE_RESULTS.mkdir(parents=True, exist_ok=True)
+    out_path = SIDE_RESULTS / f"shape14_streamed_{stamp}.json"
+    out_path.write_text(json.dumps(packet, indent=2, sort_keys=True))
+    print(json.dumps({"passed": all_pass,
+                      "median_of_sums_ms": median_of_sums,
+                      "peak_gib": round(packet["memory"]["max_peak_allocated_gib"], 2),
+                      "packet": str(out_path)}, indent=2))
+    return 0 if all_pass else 1
+
+
+def cmd_decomp_check(args) -> int:
+    """Compare one reduced full-batch call with independent B=1 calls."""
+    if args.batch <= 0 or args.seq <= 0:
+        raise SystemExit("--batch and --seq must be positive")
+
+    verify_official()
+    import torch
+    otb = load_official()
+    submission = load_submission()
     device = torch.device("cuda")
     cfg = make_config(otb, args.batch, args.seq)
 
@@ -230,92 +515,30 @@ def cmd_eval(args) -> int:
     template = otb.BaselineTransformer(cfg)
     state = {k: v.detach().clone() for k, v in template.state_dict().items()}
     del template
+    full_candidate = build_submission_candidate(submission, cfg, state, device)
+    slice_candidate = build_submission_candidate(submission, cfg, state, device)
+    x = fresh_x(torch, cfg, device, args.seed)
 
-    impl_path = Path(args.impl).resolve()
-    candidate_module, candidate_sha = load_candidate(impl_path)
-    candidate = candidate_module.build(otb, cfg)
-    candidate.load_state_dict(state, strict=True)
-    candidate = candidate.to(device).eval()
-
-    torch.cuda.reset_peak_memory_stats()
-    trials = []
-    all_pass = True
     with torch.inference_mode():
-        for trial in range(args.seeds):
-            x = fresh_x(torch, cfg, device, SEED0 + trial)
-            out = candidate(x, None)
-            # Streamed comparison: oracle recomputed per batch slice.
-            worst = 0.0
-            bad_total = 0
-            for bs in range(0, cfg.batch_size, args.oracle_batch_slice):
-                be = min(bs + args.oracle_batch_slice, cfg.batch_size)
-                sl_cfg = make_config(otb, be - bs, args.seq)
-                oracle = build_oracle(otb, sl_cfg, state, device)
-                ref = oracle(x[bs:be], None)
-                o = out[bs:be].float()
-                bad_total += (~torch.isclose(o, ref, atol=ATOL, rtol=RTOL)).sum().item()
-                worst = max(worst, (o - ref).abs().max().item())
-                del oracle, ref
-                torch.cuda.empty_cache()
-            trials.append({"seed": SEED0 + trial, "max_abs_err": worst,
-                           "violations": bad_total})
-            all_pass &= bad_total == 0
-            del out
-            torch.cuda.empty_cache()
-
-        # Timing: candidate only (no runnable dense baseline at this scale).
-        x = fresh_x(torch, cfg, device, SEED0 + 100000)
-        for _ in range(args.warmup):
-            candidate(x, None)
-        torch.cuda.synchronize()
-        samples = []
-        for _ in range(args.repeats):
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-            candidate(x, None)
-            end.record()
-            torch.cuda.synchronize()
-            samples.append(start.elapsed_time(end))
-
-    samples_sorted = sorted(samples)
-    median_ms = samples_sorted[len(samples_sorted) // 2]
-    packet = {
-        "type": "shape14_side_evaluation",
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-        "shape": {"id": 14, "batch_size": cfg.batch_size, "seq_len": cfg.seq_len,
-                  "d_model": 1024, "num_heads": 16, "ffn_dim": 1024,
-                  "num_layers": 2, "causal": True},
-        "official": integrity,
-        "candidate": {"path": str(impl_path.relative_to(ROOT)),
-                      "sha256": candidate_sha,
-                      "name": getattr(candidate_module, "NAME", impl_path.stem)},
-        "submission_sha256": (sha256_file(PROJECT / "submission" /
-                              "torch_transformer_benchmark_submission.py")
-                              if (PROJECT / "submission" /
-                                  "torch_transformer_benchmark_submission.py").exists()
-                              else None),
-        "env": env_fingerprint(torch),
-        "seeds": [SEED0 + t for t in range(args.seeds)],
-        "tolerance": {"atol": ATOL, "rtol": RTOL},
-        "correctness": {"trials": trials, "passed": all_pass,
-                        "reference": "streamed fp32 oracle (validated vs pinned dense)"},
-        "timing": {"warmup": args.warmup, "repeats": args.repeats,
-                   "median_ms": median_ms,
-                   "raw_samples_ms": [round(s, 6) for s in samples]},
-        "memory": {"peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
-                   "peak_reserved_gib": torch.cuda.max_memory_reserved() / 2**30},
-        "limitation": "official dense baseline infeasible at this shape; "
-                      "reference is the validated streamed oracle",
-    }
-    SIDE_RESULTS.mkdir(parents=True, exist_ok=True)
-    out_path = SIDE_RESULTS / (f"shape14_{time.strftime('%Y%m%d-%H%M%S')}"
-                               f"_B{cfg.batch_size}_S{cfg.seq_len}.json")
-    out_path.write_text(json.dumps(packet, indent=2, sort_keys=True))
-    print(json.dumps({"passed": all_pass, "median_ms": median_ms,
-                      "peak_gib": round(packet["memory"]["peak_allocated_gib"], 2),
-                      "packet": str(out_path)}, indent=2))
-    return 0 if all_pass else 1
+        full_output = full_candidate(x, None)
+        slice_outputs = [
+            slice_candidate(x[index:index + 1], None)
+            for index in range(args.batch)
+        ]
+        decomposed_output = torch.cat(slice_outputs, dim=0)
+        max_abs_difference = (full_output.float() -
+                              decomposed_output.float()).abs().max().item()
+    torch.cuda.synchronize()
+    print(json.dumps({
+        "type": "shape14_batch_decomposition_check",
+        "batch_size": args.batch,
+        "seq_len": args.seq,
+        "seed": args.seed,
+        "max_abs_difference": max_abs_difference,
+        "expectation": "exact or approximately 1e-6; must not approach 2e-3",
+        "submission_sha256": sha256_file(SUBMISSION_FILE),
+    }, indent=2))
+    return 0
 
 
 def main() -> int:
@@ -323,16 +546,20 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     v = sub.add_parser("validate", help="streamed oracle vs pinned dense (gate)")
     v.add_argument("--seeds", type=int, default=3)
-    e = sub.add_parser("eval", help="candidate vs validated oracle + packet")
-    e.add_argument("--impl", required=True)
-    e.add_argument("--batch", type=int, default=32)
-    e.add_argument("--seq", type=int, default=100000)
-    e.add_argument("--seeds", type=int, default=2)
-    e.add_argument("--oracle-batch-slice", type=int, default=1)
+    e = sub.add_parser("eval", help="streamed official-shape submission evaluation")
+    e.add_argument("--correctness-seeds", type=int, default=5)
+    e.add_argument("--timing-repeats", type=int, default=3)
     e.add_argument("--warmup", type=int, default=3)
-    e.add_argument("--repeats", type=int, default=10)
+    d = sub.add_parser("decomp-check", help="reduced full-batch vs B=1 equivalence")
+    d.add_argument("--batch", type=int, default=8)
+    d.add_argument("--seq", type=int, default=2048)
+    d.add_argument("--seed", type=int, default=SEED0)
     args = ap.parse_args()
-    return cmd_validate(args) if args.cmd == "validate" else cmd_eval(args)
+    if args.cmd == "validate":
+        return cmd_validate(args)
+    if args.cmd == "eval":
+        return cmd_eval(args)
+    return cmd_decomp_check(args)
 
 
 if __name__ == "__main__":
