@@ -135,9 +135,12 @@ def commit(st: dict, entry: dict) -> None:
 
 
 def log(entry: dict) -> None:
+    import os
     LOOP.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a") as f:
         f.write(json.dumps(entry, sort_keys=True) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def index_hash() -> str:
@@ -241,9 +244,15 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         "issued": now(),
         "expires_epoch": time.time() + PERMIT_TTL_S,
     }
+    return permit, None
+
+
+def arm_permit(permit) -> None:
+    """Write the permit file LAST — after the thinking transition committed.
+    A crash in between leaves a committed plan and no permit (safe: redo the
+    delta), never a usable permit without its committed thinking step."""
     LOOP.mkdir(parents=True, exist_ok=True)
     PERMIT.write_text(json.dumps(permit, indent=1, sort_keys=True))
-    return permit, None
 
 
 def cmd_research(args) -> int:
@@ -325,6 +334,7 @@ def cmd_plan(args) -> int:
          "hypothesis": args.hypothesis, "prediction": args.prediction,
          "kill": args.kill, "citations": citations,
          "reasoning": args.reasoning, "permit_id": permit["permit_id"]})
+    arm_permit(permit)
     print(f"PLAN accepted. Permit {permit['permit_id']} ARMED for ONE run: "
           f"direction={args.direction} mode={args.mode} shape={args.shape}.")
     return 0
@@ -376,6 +386,7 @@ def cmd_delta(args) -> int:
          "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "changed": args.changed, "prediction": args.prediction,
          "permit_id": permit["permit_id"]})
+    arm_permit(permit)
     print(f"DELTA accepted. Permit {permit['permit_id']} ARMED for ONE run.")
     return 0
 

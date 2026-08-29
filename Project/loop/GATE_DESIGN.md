@@ -87,3 +87,30 @@ research step · reopen refused without a critic verdict file.
   next research step until written; reopening requires a critic log
   containing that exact nonce + CRITIC: continue|narrow (one-use, consumed).
   The public unlock command is REMOVED.
+
+## CONVERGENCE DECLARATION (v3.6, after 7 blind review rounds — 29 Aug evening)
+
+Trail: R1 REJECT (architecture) -> R2 REVISE(8) -> R3 REVISE(9) -> R4
+REVISE(6) -> R5 REVISE(6) -> R6 REVISE(4) -> R7 REVISE(5). Every
+load-bearing defect through R6 is fixed; from R7, three were fixed
+(identity-comparison false-positive, permit-armed-before-commit ordering,
+log fsync) and the remainder is DECLINED with reasons:
+
+DECLINED RESIDUALS (documented, not hidden):
+- Fully transactional two-file ARMED->IN_FLIGHT transition, contiguous
+  sequence verification with legacy migration boundaries, and
+  crash-idempotent exactly-once reconciliation. These defend microsecond
+  crash windows on a single-user desktop; the project's trust model
+  (PLAN.md) is mistakes-not-malice, and the earlier strategy review's own
+  ruling applies: process infrastructure beyond need is poor competition
+  economics. Worst case if a crash hits the window: one attempt is
+  double-counted or one rerun happens ungated — both visible in the
+  fsynced log trail and the auditor's citation pass.
+- Perfect shell-semantics parity in the guard (process substitution and
+  friends): substitution and loops near referee commands are denied
+  wholesale; residual exotic constructs are malice-class.
+
+The gate's core promises hold under normal operation: every try requires a
+committed, cited thinking step; every try re-locks; strikes are judged by
+the referee's own journal per comparable group; closures force postmortems
+and new directions; reopening requires an external verdict.

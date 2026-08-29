@@ -42,7 +42,8 @@ def permit_gate_reason(command):
     seg = segs[0]
     # No other segment of this command may touch the permitted impl file
     # (write-then-run in one command would benchmark unpermitted bytes).
-    other = [s for s in re.split(r"[|;&\n\r]+", norm) if s is not seg and s.strip()]
+    all_segs = [s for s in re.split(r"[|;&\n\r]+", norm) if s.strip()]
+    other = [s for s in all_segs if not re.search(REF, s)]
     # Abbreviated long options are DENIED outright — the guard refuses to
     # guess argparse's expansion, so bindings can't be split across
     # duplicate abbreviated flags.
