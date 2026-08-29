@@ -65,11 +65,28 @@ def permit_gate_reason(command):
     lp = pathlib.Path(ledger).resolve() if ledger else (root / "Project/results/JOURNAL.jsonl")
     if str(lp) != permit.get("ledger"):
         return f"Blocked: permit is bound to ledger {permit.get('ledger')}."
-    # CONSUME: ARMED -> IN_FLIGHT, atomically, before execution.
+    if permit.get("mode") == "optimization":
+        for flag in ("--dtype", "--warmup", "--repeats", "--rounds"):
+            if flag in seg:
+                return ("Blocked: optimization permits are bound to the "
+                        "primary profile — no timing/dtype overrides "
+                        f"({flag} present).")
+    # CONSUME: ARMED -> IN_FLIGHT, atomically (O_EXCL prevents double
+    # consumption), pre-run ledger offset captured NOW, before execution.
     try:
+        import os as _os
+        lp2 = pathlib.Path(permit["ledger"])
+        permit["ledger_pre_lines"] = (
+            len(lp2.read_text().splitlines()) if lp2.exists() else 0)
         permit["consumed"] = _t.strftime("%Y-%m-%dT%H:%M:%S%z")
-        (loop / "in_flight.json").write_text(json.dumps(permit, indent=1, sort_keys=True))
+        permit["consumed_epoch"] = _t.time()
+        fd = _os.open(str(loop / "in_flight.json"),
+                      _os.O_CREAT | _os.O_EXCL | _os.O_WRONLY, 0o644)
+        with _os.fdopen(fd, "w") as fh:
+            fh.write(json.dumps(permit, indent=1, sort_keys=True))
         permit_p.unlink()
+    except FileExistsError:
+        return "Blocked: another attempt is already IN_FLIGHT."
     except Exception:
         return "Blocked: permit consumption failed (fail closed)."
     return None

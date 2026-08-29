@@ -140,17 +140,45 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         return None, "a permit is already ARMED — one attempt at a time"
     if INFLIGHT.exists():
         return None, "an attempt is IN_FLIGHT and unreconciled — run `reconcile` first"
+    if st.get("pending_screen_judgment"):
+        return None, ("the previous screening attempt has no recorded hit/miss "
+                      "judgment — run `screen-judge` first")
+    if mode not in MODES:
+        return None, f"mode must be one of {MODES}"
+    shape = int(shape)  # canonical — '014' == 14 everywhere
+    if st.get("pending_postmortem"):
+        return None, (f"postmortem debt outstanding for "
+                      f"{st['pending_postmortem']} — a research step with "
+                      "--postmortem must come first")
+    gkey = f"{direction}|{shape}"
+    grp = st.get("groups", {}).get(gkey, {})
+    if grp.get("closed"):
+        return None, f"group {gkey} is CLOSED (reopen needs a critic receipt)"
+    if mode == "calibration":
+        if impl:
+            return None, "calibration permits must not carry --impl (that's a candidate run)"
+    if mode in ("confirmation", "correctness"):
+        if grp.get("nonstrike_budget", 2) <= 0:
+            return None, (f"non-strike budget exhausted for {gkey} — further "
+                          "attempts must be optimization or screening (which "
+                          "can strike)")
     impl_p = (ROOT / impl).resolve() if impl else None
     if mode != "calibration":
         if impl_p is None or not impl_p.exists():
             return None, f"impl file not found: {impl}"
+        if mode == "optimization":
+            last_sha = grp.get("last_attempt_sha")
+            if last_sha and sha_file(impl_p) == last_sha:
+                return None, ("optimization permit refused: candidate bytes "
+                              "unchanged since the last attempt — an identical "
+                              "re-run is 'confirmation', label it honestly")
     ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
     pre_lines = len(ledger_p.read_text().splitlines()) if ledger_p.exists() else 0
     permit = {
         "permit_id": secrets.token_hex(8),
         "direction_id": direction,
         "mode": mode,
-        "shape": int(shape),
+        "shape": shape,
         "impl_path": str(impl_p.relative_to(ROOT)) if impl_p else None,
         "impl_sha256": sha_file(impl_p) if impl_p else None,
         "ledger": str(ledger_p),
@@ -167,6 +195,10 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
 
 def cmd_research(args) -> int:
     st = load_json(STATE, {})
+    if PERMIT.exists() or INFLIGHT.exists():
+        print("REFUSED: an attempt is armed or in flight — finish and "
+              "reconcile it before starting a new research cycle.")
+        return 1
     pending = st.get("pending_postmortem", [])
     if pending and len((args.postmortem or "").strip()) < 200:
         print(f"REFUSED: direction(s) {pending} were CLOSED. A >=200-char "
@@ -256,9 +288,24 @@ def cmd_delta(args) -> int:
         print(f"REFUSED: no open card for '{args.direction}'.")
         return 1
     st = load_json(STATE, {})
-    grp = st.get("groups", {}).get(f"{args.direction}|{args.shape}", {})
-    if grp.get("closed"):
-        print("REFUSED: this direction+shape group is CLOSED.")
+    had_plan = False
+    if LOG.exists():
+        for line in LOG.read_text().splitlines():
+            if '"step": "plan"' in line and args.direction in line:
+                had_plan = True
+                break
+    if not had_plan:
+        print("REFUSED: this direction has never had a FULL plan step — "
+              "deltas only continue an already-planned direction.")
+        return 1
+    gkey = f"{args.direction}|{int(args.shape)}"
+    grp = st.get("groups", {}).get(gkey, {})
+    attempts = grp.get("attempts", 0)
+    budget_attempts = int(card.get("budget_attempts", 6))
+    if attempts >= budget_attempts:
+        print(f"REFUSED: attempt budget exhausted for {gkey} "
+              f"({attempts}/{budget_attempts}). Requires a full research+plan "
+              "cycle (which forces the rethink) or the card's closure.")
         return 1
     if len(args.changed.strip()) < 40 or not re.search(r"\d", args.prediction):
         print("REFUSED: --changed (>=40 chars, the exact delta from the last "
@@ -282,17 +329,34 @@ def cmd_delta(args) -> int:
 def cmd_reconcile(args) -> int:
     """Called by the PostToolUse watcher (and idempotently by anyone):
     resolves an IN_FLIGHT attempt from its bound ledger."""
+    import subprocess
     fl = load_json(INFLIGHT, None)
     if fl is None:
         return 0
+    # Orphan protection: if the referee is still running, or the attempt is
+    # young and produced no row yet (backgrounded/compiling), WAIT — never
+    # record an execution failure for a run that hasn't finished.
+    running = subprocess.run(["pgrep", "-f", "runner.py (run|calibrate)"],
+                             capture_output=True, text=True).stdout.strip()
     st = load_json(STATE, {})
     ledger = Path(fl["ledger"])
     rows = [l for l in ledger.read_text().splitlines() if l.strip()] if ledger.exists() else []
     new_rows = rows[fl["ledger_pre_lines"]:]
-    gkey = f"{fl['direction_id']}|{fl['shape']}"
+    import time as _t
+    age = _t.time() - float(fl.get("consumed_epoch", fl.get("expires_epoch", _t.time()) - PERMIT_TTL_S))
+    if running or (not new_rows and age < 120):
+        return 0  # still in flight; a later watcher pass reconciles
+    gkey = f"{fl['direction_id']}|{int(fl['shape'])}"
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
-               "closed": False, "closure_nonce": None})
+               "closed": False, "closure_nonce": None, "attempts": 0,
+               "nonstrike_budget": 2, "last_attempt_sha": None})
+    grp.setdefault("attempts", 0)
+    grp.setdefault("nonstrike_budget", 2)
+    grp["attempts"] += 1
+    grp["last_attempt_sha"] = fl.get("impl_sha256")
+    if fl["mode"] in ("confirmation", "correctness"):
+        grp["nonstrike_budget"] = grp.get("nonstrike_budget", 2) - 1
     outcome = {"ts": now(), "step": "reconcile", "permit_id": fl["permit_id"],
                "direction": fl["direction_id"], "shape": fl["shape"],
                "mode": fl["mode"]}
@@ -300,9 +364,12 @@ def cmd_reconcile(args) -> int:
     if len(new_rows) == 1:
         try:
             e = json.loads(new_rows[0])
-            if fl["impl_sha256"] is None or \
-               e.get("impl", {}).get("sha256") == fl["impl_sha256"]:
-                entry = e
+            row_ok = (
+                (fl["impl_sha256"] is None or
+                 e.get("impl", {}).get("sha256") == fl["impl_sha256"])
+                and int(e.get("shape_id", -1)) == int(fl["shape"])
+            )
+            entry = e if row_ok else None
         except Exception:
             entry = None
     if entry is None:
@@ -324,8 +391,11 @@ def cmd_reconcile(args) -> int:
                      (t.get("anti_cache_check") or {}).get("suspicious"))
         outcome.update({"speedup": speed, "correct": correct, "clean": clean,
                         "entry_id": entry.get("entry_id")})
+        comparable = (entry.get("type") == "candidate" and
+                      entry.get("profile") == "primary")
+        outcome["comparable_primary"] = comparable
         if fl["mode"] == "optimization":
-            improved = (correct and clean and speed is not None and
+            improved = (comparable and correct and clean and speed is not None and
                         (grp["best_speedup"] is None or
                          speed > grp["best_speedup"] * IMPROVE_MARGIN))
             if improved:
@@ -336,8 +406,11 @@ def cmd_reconcile(args) -> int:
             outcome["improved"] = improved
         elif fl["mode"] == "screening":
             outcome["declared_prediction"] = fl.get("prediction")
-            outcome["needs_range_judgment"] = True
-            grp["strikes"] += 0 if correct else 1
+            st["pending_screen_judgment"] = {
+                "permit_id": fl["permit_id"], "group": gkey,
+                "observed_speedup": speed}
+            if not correct:
+                grp["strikes"] += 1
         # confirmation/correctness/calibration: recorded, never strike.
         if grp["strikes"] >= MAX_STRIKES:
             grp["closed"] = True
@@ -357,9 +430,25 @@ def cmd_reconcile(args) -> int:
 
 
 def cmd_screen_judge(args) -> int:
-    """Record the screening range hit/miss explicitly (auditable)."""
+    """Record the screening range hit/miss — bound to the pending screening
+    attempt (one-use); the observed value must match the reconciled row."""
     st = load_json(STATE, {})
-    gkey = f"{args.direction}|{args.shape}"
+    pend = st.get("pending_screen_judgment")
+    gkey = f"{args.direction}|{int(args.shape)}"
+    if not pend or pend.get("group") != gkey:
+        print("REFUSED: no pending screening judgment for this group.")
+        return 1
+    obs = pend.get("observed_speedup")
+    try:
+        stated = float(args.observed)
+    except ValueError:
+        print("REFUSED: --observed must be the numeric speedup from the row.")
+        return 1
+    if obs is not None and abs(stated - obs) > max(0.01 * abs(obs), 1e-6):
+        print(f"REFUSED: --observed {stated} does not match the reconciled "
+              f"row's speedup {obs}.")
+        return 1
+    st["pending_screen_judgment"] = None
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
                "closed": False, "closure_nonce": None})
@@ -389,12 +478,24 @@ def cmd_reopen(args) -> int:
     if not (nonce and critic.exists()):
         print("REFUSED: closure nonce or critic log missing.")
         return 1
-    text = critic.read_text(errors="ignore")
-    if nonce not in text or not re.search(r"CRITIC:\s*(continue|narrow)", text):
-        print("REFUSED: the critic log must contain the EXACT closure nonce "
-              f"({nonce}) and end CRITIC: continue|narrow. Receipts are "
-              "one-use and closure-bound.")
+    strategy_dir = (ROOT / "Project" / "audits" / "strategy").resolve()
+    if strategy_dir not in critic.resolve().parents:
+        print("REFUSED: critic receipts must live in Project/audits/strategy/ "
+              "(real critic output, not an arbitrary file).")
         return 1
+    text = critic.read_text(errors="ignore")
+    tail_lines = [l.strip() for l in text.strip().splitlines() if l.strip()][-5:]
+    verdict_ok = any(re.fullmatch(r"CRITIC:\s*(continue|narrow)", l)
+                     for l in tail_lines)
+    if nonce not in text or not verdict_ok:
+        print("REFUSED: the critic log must contain the EXACT closure nonce "
+              f"({nonce}) and CONCLUDE (final lines) with CRITIC: continue|"
+              "narrow. Receipts are one-use and closure-bound.")
+        return 1
+    if nonce in st.get("consumed_nonces", []):
+        print("REFUSED: this closure nonce was already consumed.")
+        return 1
+    st.setdefault("consumed_nonces", []).append(nonce)
     grp["closed"] = False
     grp["strikes"] = 0
     grp["exec_failures"] = 0
