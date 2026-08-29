@@ -118,18 +118,24 @@ def load_state_strict():
 
 def save_state(st: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
-    st["seq"] = st.get("seq", 0) + 1
     tmp = STATE.with_suffix(".tmp")
     tmp.write_text(json.dumps(st, indent=1, sort_keys=True))
     tmp.replace(STATE)
 
 
+def commit(st: dict, entry: dict) -> None:
+    """Crash-safe transition: the log row carrying the NEW seq is durably
+    appended BEFORE state is saved. A crash in between leaves state BEHIND
+    the log, which the strict loader refuses — fail closed, never laundered."""
+    seq = st.get("seq", 0) + 1
+    entry["state_seq"] = seq
+    log(entry)
+    st["seq"] = seq
+    save_state(st)
+
+
 def log(entry: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
-    try:
-        entry.setdefault("state_seq", json.loads(STATE.read_text()).get("seq", 0))
-    except Exception:
-        pass
     with open(LOG, "a") as f:
         f.write(json.dumps(entry, sort_keys=True) + "\n")
 
@@ -268,13 +274,12 @@ def cmd_research(args) -> int:
     st["research_open"] = True
     if pending:
         st["pending_postmortem"] = []
-    save_state(st)
     entry = {"ts": now(), "step": "research", "cycle": st["research_cycle"],
              "index_hash": args.index_hash, "notes": notes, "summary": args.summary}
     if pending:
         entry["postmortem_for"] = pending
         entry["postmortem"] = args.postmortem
-    log(entry)
+    commit(st, entry)
     print(f"RESEARCH accepted (cycle {st['research_cycle']}). Next: plan (new "
           "direction card required).")
     return 0
@@ -315,8 +320,7 @@ def cmd_plan(args) -> int:
         print(f"REFUSED: {perr}")
         return 1
     st["research_open"] = False
-    save_state(st)
-    log({"ts": now(), "step": "plan", "plan_id": plan_id,
+    commit(st, {"ts": now(), "step": "plan", "plan_id": plan_id,
          "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "hypothesis": args.hypothesis, "prediction": args.prediction,
          "kill": args.kill, "citations": citations,
@@ -368,8 +372,7 @@ def cmd_delta(args) -> int:
     if perr:
         print(f"REFUSED: {perr}")
         return 1
-    save_state(st)
-    log({"ts": now(), "step": "delta", "plan_id": plan_id,
+    commit(st, {"ts": now(), "step": "delta", "plan_id": plan_id,
          "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "changed": args.changed, "prediction": args.prediction,
          "permit_id": permit["permit_id"]})
@@ -379,14 +382,18 @@ def cmd_delta(args) -> int:
 
 def gate_lock():
     """One shared advisory lock serializing EVERY state transition (CLI and
-    watcher). Blocks up to 30s, then fails CLOSED."""
+    watcher). IDEMPOTENT within a process (flock on a second fd of the same
+    file would self-deadlock). Blocks up to 30s, then fails CLOSED."""
     import fcntl
+    if _LOCK_REF:
+        return _LOCK_REF[0]
     LOOP.mkdir(parents=True, exist_ok=True)
     fh = open(LOOP / ".gate.lock", "w")
     deadline = time.time() + 30
     while True:
         try:
             fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _LOCK_REF.append(fh)
             return fh
         except OSError:
             if time.time() > deadline:
@@ -402,7 +409,7 @@ def cmd_reconcile(args) -> int:
     import subprocess
     if not INFLIGHT.exists():
         return 0
-    lock = gate_lock()
+    gate_lock()  # idempotent process-wide acquisition
     try:
         USED.mkdir(exist_ok=True)
         claim = USED / f"claim.{secrets.token_hex(4)}.json"
@@ -430,7 +437,7 @@ def cmd_reconcile(args) -> int:
             return 0
         return _reconcile_locked(st, fl, claim, new_rows)
     finally:
-        lock.close()
+        pass  # the process-wide lock is held until exit by design
 
 
 def _reconcile_locked(st, fl, claim, new_rows) -> int:
@@ -510,8 +517,7 @@ def _reconcile_locked(st, fl, claim, new_rows) -> int:
             st.setdefault("pending_postmortem", []).append(gkey)
             outcome["closed"] = True
             outcome["closure_nonce"] = grp["closure_nonce"]
-    save_state(st)
-    log(outcome)
+    commit(st, outcome)
     USED.mkdir(exist_ok=True)
     claim.replace(USED / f"{fl['permit_id']}.reconciled.json")
     if outcome.get("closed"):
@@ -524,7 +530,7 @@ def _reconcile_locked(st, fl, claim, new_rows) -> int:
 def cmd_screen_judge(args) -> int:
     """Record the screening range hit/miss — bound to the pending screening
     attempt (one-use); the observed value must match the reconciled row."""
-    st = load_json(STATE, {})
+    st = load_state_strict()  # locked + seq-checked from the first read
     pend = st.get("pending_screen_judgment")
     gkey = f"{args.direction}|{int(args.shape)}"
     if not pend or pend.get("group") != gkey:
@@ -554,8 +560,7 @@ def cmd_screen_judge(args) -> int:
             grp["closed"] = True
             grp["closure_nonce"] = secrets.token_hex(8)
             st.setdefault("pending_postmortem", []).append(gkey)
-    save_state(st)
-    log({"ts": now(), "step": "screen_judge", "group": gkey,
+    commit(st, {"ts": now(), "step": "screen_judge", "group": gkey,
          "result": args.result, "observed": args.observed,
          "strikes": grp["strikes"], "closed": grp["closed"]})
     print(f"screening {args.result} recorded for {gkey} "
@@ -596,8 +601,7 @@ def cmd_reopen(args) -> int:
     grp["strikes"] = 0
     grp["exec_failures"] = 0
     grp["closure_nonce"] = None
-    save_state(st)
-    log({"ts": now(), "step": "reopen", "group": args.group,
+    commit(st, {"ts": now(), "step": "reopen", "group": args.group,
          "critic_log": str(critic), "consumed_nonce": nonce})
     print(f"Reopened {args.group} on critic authority (nonce consumed).")
     return 0
@@ -616,10 +620,10 @@ def cmd_init(_args) -> int:
         print("REFUSED: consumed permits exist — bring state back from "
               "version control.")
         return 1
-    save_state({"research_cycle": 0, "research_open": False, "groups": {},
-                "pending_postmortem": [], "consumed_nonces": [],
-                "pending_screen_judgment": None})
-    log({"ts": now(), "step": "init"})
+    st = {"research_cycle": 0, "research_open": False, "groups": {},
+          "pending_postmortem": [], "consumed_nonces": [],
+          "pending_screen_judgment": None, "seq": 0}
+    commit(st, {"ts": now(), "step": "init"})
     print("Gate state initialized CLOSED (event logged).")
     return 0
 
