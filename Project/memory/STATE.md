@@ -1,9 +1,10 @@
 # STATE — read this first in every session
 
-Updated: 2026-08-29 03:15 (Day 1 grind, autonomous window until NOON 29 Aug — user returns then to review + plan Day 2 from Project/drafts/day2_plan.md)
+Updated: 2026-08-29 13:55 — DAY 2 (user's numbering). Usage-limit outage ~07:00-13:40 swallowed the morning. MODE: harness-hardening + research ONLY until the user restarts optimization ("get proper harness up before we start again").
 
 ## TIMELINE (user-corrected, binding)
-Day 1 officially ends 12:00 noon 29 Aug (user's word, ~02:00). Days 2-3 = amendment re-freeze + rental (shapes 6+14, MFU) + polish · Final day = packaging; submission AND registration close 1 Sep 12:00 GMT+8. No "closed" days — continuous work, only the user's stop ends a day.
+Day 2 = 29 Aug afternoon onward. CLOCKS NOW TIGHT: organizer-question cutoff 30 Aug 12:00 SGT (~22h); rental 30 Aug; code freeze 31 Aug 12:00; packaging 31 Aug noon → 1 Sep 02:00; final 10h contingency; submission+registration close 1 Sep 12:00 GMT+8.
+USER-GATED ITEMS OUTSTANDING (do these first, five minutes total): send Project/drafts/organizer_questions.md · reserve 48GB rental for 30 Aug · verify Devpost registration · apply Project/loop/OWNER_PATCH_card_gate.md (the mechanical card gate you asked for).
 
 ## FIRST ACTIONS FOR A FRESH SESSION (in order)
 1. Locks test (Edit on torch_transformer_benchmark.py AND Project/harness/runner.py MUST bounce — verified again 28 Aug 19:47). Guard etiquette: never put 'clean'/'reset'/'restore' after 'git' in one command segment.
