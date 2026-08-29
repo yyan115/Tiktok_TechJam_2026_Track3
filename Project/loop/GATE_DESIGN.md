@@ -88,7 +88,7 @@ research step · reopen refused without a critic verdict file.
   containing that exact nonce + CRITIC: continue|narrow (one-use, consumed).
   The public unlock command is REMOVED.
 
-## CONVERGENCE DECLARATION (v3.6, after 7 blind review rounds — 29 Aug evening)
+## CONVERGENCE DECLARATION (historical — after 7 of the eventual 13 blind review rounds, 29 Aug evening)
 
 Trail: R1 REJECT (architecture) -> R2 REVISE(8) -> R3 REVISE(9) -> R4
 REVISE(6) -> R5 REVISE(6) -> R6 REVISE(4) -> R7 REVISE(5). Every
@@ -125,4 +125,6 @@ Thirteen blind rounds: R1 REJECT -> R2(8) R3(9) R4(6) R5(6) R6(4) R7(5)
 R8(3) R9(2) R10(4) R11(2) R12(1) -> R13 APPROVE. Every load-bearing defect
 fixed; the single documented override (exactly-once reconciliation
 machinery) was explicitly judged defensible by the reviewer in R8 once the
-stale-permit quarantine landed (it did, R9-R10). The gate ships at v3.12.
+stale-permit quarantine landed (it did, R9-R10). The gate ships as
+v3-final — the single authoritative version, approved at round 13; all
+v3.x numbers in older sections are iteration history, not live labels.

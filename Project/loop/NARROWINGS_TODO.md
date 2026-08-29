@@ -30,3 +30,11 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
    Baidu: diagnosis_evidence (the 6-field compressed profile record) +
    prescription_source (research-note/pattern citation). ncu confirmed
    installed; selected-metrics only, on the current direction's hotspot.
+
+10. POST-RESTART (Sol dispositions, 29 Aug night): capture FRESH evidence
+    packets bound to the CURRENT submission sha (4408f94f...) for shapes 14
+    and 6 — the existing packets cite the pre-integration submission. Also:
+    report prose + skills/interaction-history curation DONE BY CODE FREEZE,
+    not left to packaging; dashboard is LOCAL-ONLY (never expose/record the
+    raw Sol log expanders unredacted); public release = fresh/squashed only
+    (the untracked transcript survives in git history at 49bfd47).

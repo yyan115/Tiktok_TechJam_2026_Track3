@@ -1,4 +1,4 @@
-# OWNER PATCH v3.2 (supersedes v1/v2/v3): permit-consuming run gate
+# OWNER PATCH — FINAL (approved at review round 13; supersedes every earlier version): permit-consuming run gate
 
 Rebuilt after the external reviewer REJECTED v2 (stale-journal attribution,
 cross-shape strike nonsense, regex evasions, self-service unlock). v3 is a
