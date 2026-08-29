@@ -24,8 +24,8 @@ def permit_gate_reason(command):
     # A referee-adjacent command with substitution or loops is denied BEFORE
     # any segment matching — `a=run; runner.py "$a"` must not slip through
     # because the literal word run is missing.
-    ANCHOR = r"(runner\.py|harness\.runner)"
-    touches_referee = re.search(r"(runner\.py|harness[./]runner)", norm)
+    ANCHOR = r"(runner\.py|harness[./]runner)"  # single source of truth
+    touches_referee = re.search(ANCHOR, norm)
     if touches_referee:
         if re.search(r"\b(for|while|until)\b", norm):
             return ("Blocked: shell loops around a referee invocation violate "
@@ -68,6 +68,11 @@ def permit_gate_reason(command):
             except Exception: pass
         return ("Blocked: a previous attempt is unreconciled (in_flight.json). "
                 "Run: python3 Project/tools/run_gate.py reconcile")
+    used_dir2 = loop / "permits_used"
+    if used_dir2.exists() and any(f.name.startswith("claim.")
+                                  for f in used_dir2.iterdir()):
+        return ("Blocked: a stranded reconciliation claim exists — the gate "
+                "stays closed until it is repaired against gate_log.jsonl.")
     try:
         permit = json.loads(permit_p.read_text())
     except Exception:
