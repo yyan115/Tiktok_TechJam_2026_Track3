@@ -1,89 +1,80 @@
-# OWNER PATCH: mechanical card gate + research-index injection
+# OWNER PATCH v2 (supersedes v1): the mechanical two-step run gate
 
-Purpose (your ask, 29 Aug afternoon): a hook that PHYSICALLY blocks
-benchmarking any kernel that has no open experiment card. Card existence is
-a binary invariant a hook can enforce; card QUALITY stays with the critic
-and the preregistered-prediction rules. You apply this because
-.claude/** is (correctly) locked against the agent.
+What you asked for, verbatim implemented: after EVERY referee run the gate
+closes mechanically; the next run is DENIED until Claude completes TWO
+explicit ordered steps — (1) RESEARCH, validated against the saved research
+base (current INDEX hash + existing note files + written summary), then
+(2) PLAN (numeric prediction + kill criteria). Max 3 runs per direction
+without improvement (improvement judged from the referee's own journal, not
+Claude's claims) → the direction is STOPPED until YOU unlock it.
 
-## 1. Edit .claude/hooks/guard_bash.py
+Already built and self-tested by the agent (it cannot build the blocking
+side — .claude/ is locked against it, by your design):
+- Project/tools/run_gate.py         (the gate CLI: research/plan/post/status/unlock)
+- Project/tools/champion_watch.py   (extended: mechanically closes the gate
+                                     after every run via the existing PostToolUse hook)
+- Project/loop/gate_state.json      (state, initialized CLOSED)
+- Project/loop/gate_log.jsonl       (auditable trail of every step)
+Verified behaviors: bad index-hash refused · plan-before-research refused ·
+gate auto-closes after each run · 3 non-improving tries → STOPPED.
 
-Insert this block AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line
-(~line 49) and BEFORE `def recursive_rm_outside_tmp`:
+## THE ONE THING YOU DO: paste this into .claude/hooks/guard_bash.py
+
+Insert AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line (~line 49):
 
 ```python
-# --- Card gate (research-first loop, 29 Aug): running the referee on a
-# kernel file requires an OPEN experiment card naming it. Binary check
-# only — card quality is enforced by the critic rules, not here.
-# Grandfathered: pre-loop champions that re-run during board re-passes.
-GRANDFATHERED_IMPLS = {
-    "k001_sdpa.py", "k002_fused_qkv.py", "k003_triton_attention.py",
-    "k004_graphed_triton.py", "k005_fp16_graphed.py", "k006_fp16_hd128.py",
-    "k007_fused_block.py", "k009_fused_tuned.py", "k010_fused_ln.py",
-    "k012_split_heads.py",
-}
-
-
-def card_gate_reason(command: str):
+# --- Two-step run gate (owner mandate 29 Aug): a referee run is allowed
+# only when Project/loop/gate_state.json shows research_done AND plan_done
+# (both are set only by validated run_gate.py steps and are cleared
+# mechanically after every run by the PostToolUse watcher). A direction
+# stopped after 3 non-improving tries stays blocked until owner unlock.
+def run_gate_reason(command):
     m = re.search(r"runner\.py\s+(?:\S+\s+)*run\b[^|;&]*?--impl\s+(\S+)", command)
-    if not m:
-        return None
-    base = m.group(1).strip("'\"").split("/")[-1]
-    if base in GRANDFATHERED_IMPLS:
+    if m is None:
         return None
     import pathlib
-    cards = pathlib.Path(__file__).resolve().parents[2] / "Project/loop/cards.jsonl"
+    root = pathlib.Path(__file__).resolve().parents[2]
     try:
-        for line in cards.read_text().splitlines():
-            if not line.strip():
-                continue
-            card = json.loads(line)
-            if "killed" in str(card.get("status", "")).lower():
-                continue
-            if base in json.dumps(card):
-                return None
+        st = json.loads((root / "Project/loop/gate_state.json").read_text())
     except Exception:
-        pass  # unreadable cards file falls through to deny (deny-biased)
-    return (f"Blocked by the card gate: '{base}' has no open experiment card "
-            "in Project/loop/cards.jsonl. Preregister the card (hypothesis, "
-            "prediction ranges, kill criteria) before the referee touches it "
-            "- research-first loop, Project/drafts/harness_v2_proposal.md.")
+        return ("Blocked: run-gate state unreadable. Complete the two-step "
+                "gate (Project/tools/run_gate.py research, then plan).")
+    base = m.group(1).strip("'\"").split("/")[-1]
+    fam = st.get("families", {}).get(base, {})
+    if fam.get("stopped"):
+        return (f"Blocked: direction '{base}' is STOPPED (3 tries without "
+                "improvement per the referee journal). OWNER unlock required: "
+                "python3 Project/tools/run_gate.py unlock --family " + base)
+    if not (st.get("research_done") and st.get("plan_done")):
+        return ("Blocked by the two-step gate: (1) python3 Project/tools/"
+                "run_gate.py research --index-hash <sha16 of research/INDEX.md> "
+                "--notes <files read> --summary <what was learned>; THEN "
+                "(2) run_gate.py plan --hypothesis ... --prediction <numeric> "
+                "--kill ... Then exactly one referee run is allowed.")
+    return None
 ```
 
-Then insert into `main()`, directly after the `recursive_rm_outside_tmp`
-check and before the WRITE_PATTERNS loop:
+Insert into `main()`, directly after the `recursive_rm_outside_tmp` check:
 
 ```python
-    reason = card_gate_reason(command)
-    if reason:
+    gate = run_gate_reason(command)
+    if gate:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
               "permissionDecision": "deny",
-              "permissionDecisionReason": reason}}))
+              "permissionDecisionReason": gate}}))
         return
 ```
 
-## 2. Edit .claude/settings.json — SessionStart also injects the research index
+(Optional, from patch v1 — still recommended: the SessionStart change that
+also injects Project/research/INDEX.md, in .claude/settings.json.)
 
-Change the SessionStart command value to:
+## Test after applying (agent runs; expected results stated)
+1. `python3 Project/harness/runner.py run --shape 3 --impl Project/kernels/k009_fused_tuned.py --ledger /tmp/x.jsonl`
+   → MUST BOUNCE with the two-step gate message (gate is currently closed).
+2. Agent performs research+plan steps, run allowed once, then the very next
+   run attempt MUST BOUNCE again without new steps.
 
-```
-echo '=== PROJECT STATE (auto-injected by SessionStart hook; read Project/PLAN.md for the full plan) ==='; cat "$CLAUDE_PROJECT_DIR/Project/memory/STATE.md" 2>/dev/null || echo 'STATE.md not found'; echo '=== RESEARCH INDEX (check before any research or build) ==='; cat "$CLAUDE_PROJECT_DIR/Project/research/INDEX.md" 2>/dev/null || true
-```
-
-## 3. Test after applying (agent runs these; both must behave as stated)
-
-- `python3 Project/harness/runner.py run --shape 3 --impl Project/kernels/zzz_nocard.py`
-  → must BOUNCE with the card-gate message (file existence irrelevant —
-  the gate fires first).
-- `python3 Project/harness/runner.py run --shape 11 --impl Project/kernels/k012_split_heads.py --ledger /tmp/x.jsonl`
-  → must pass the gate (grandfathered).
-- Restart the session once so the new SessionStart injection is live.
-
-## 4. Optional knob you asked about ("rethink after 1-2 failed optimizations")
-
-The converged rule is TWO preregistered-prediction misses per direction
-family → forced critic review (plus kill-criteria hits and budget
-exhaustion, each forcing it alone). It fired correctly last night (C3
-killed, C4 closed). If you want ONE miss to force the rethink, say so and
-the agent flips the threshold in harness_v2_proposal.md §1 and cards
-tooling — no hook change needed.
+## Honesty note (trust model, unchanged from PLAN.md)
+State lives in Project/loop/ which the agent can write; the guard in
+.claude/ it cannot. This stops momentum and self-deception mechanically —
+the same mistakes-not-malice standard as every other lock in this project.
