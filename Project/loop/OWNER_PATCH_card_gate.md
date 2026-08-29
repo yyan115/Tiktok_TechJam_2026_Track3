@@ -17,15 +17,25 @@ Block A — insert AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line:
 # validated think-step issued (Project/tools/run_gate.py). Anything
 # unparseable, mismatched, duplicated, or stale => DENY (fail closed).
 def permit_gate_reason(command):
-    # Normalize quotes so `"Project/harness/runner.py"` can't dodge matching.
-    norm = command.replace('"', " ").replace("'", " ")
-    segs = [s for s in re.split(r"[|;&]+", norm)
-            if re.search(r"runner\.py\s+(?:\S+\s+)*(run|calibrate)\b", s)]
+    # REMOVE quotes entirely so fragmented paths ("runner".py, "runner.py")
+    # reform into matchable text; split on separators INCLUDING newlines.
+    norm = command.replace('"', "").replace("'", "")
+    REF = r"(runner\.py|Project\.harness\.runner)\s+(?:\S+\s+)*(run|calibrate)\b"
+    segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(REF, s)]
     if not segs:
         return None
     if len(segs) > 1:
         return "Blocked: multiple referee invocations in one command (one permit = one run)."
     seg = segs[0]
+    # Abbreviated long options are DENIED outright — the guard refuses to
+    # guess argparse's expansion, so bindings can't be split across
+    # duplicate abbreviated flags.
+    known = ("--shape", "--impl", "--ledger", "--dtype", "--warmup",
+             "--repeats", "--rounds")
+    for tok in set(re.findall(r"--[a-z-]+", seg)):
+        if tok not in known and any(k.startswith(tok) for k in known):
+            return (f"Blocked: abbreviated option {tok} — spell referee "
+                    "options in full so permit bindings are unambiguous.")
     import pathlib, time as _t
     root = pathlib.Path(__file__).resolve().parents[2]
     loop = root / "Project/loop"

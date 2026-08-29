@@ -154,6 +154,9 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         return None, "a permit is already ARMED — one attempt at a time"
     if INFLIGHT.exists():
         return None, "an attempt is IN_FLIGHT and unreconciled — run `reconcile` first"
+    if USED.exists() and any(f.name.startswith("claim.") for f in USED.iterdir()):
+        return None, ("a stranded reconciliation claim exists in permits_used/ "
+                      "— investigate and restore it before new permits")
     if st.get("pending_screen_judgment"):
         return None, ("the previous screening attempt has no recorded hit/miss "
                       "judgment — run `screen-judge` first")
@@ -302,7 +305,7 @@ def cmd_delta(args) -> int:
     if card is None:
         print(f"REFUSED: no open card for '{args.direction}'.")
         return 1
-    st = load_json(STATE, {})
+    st = load_state_strict()
     had_plan = False
     if LOG.exists():
         for line in LOG.read_text().splitlines():
@@ -367,10 +370,14 @@ def cmd_reconcile(args) -> int:
     age = _t.time() - float(fl.get("consumed_epoch", fl.get("expires_epoch", _t.time()) - PERMIT_TTL_S))
     if running or (not new_rows and age < 120):
         return 0  # still in flight; a later watcher pass reconciles
-    claim = INFLIGHT.with_suffix(".claimed")
+    USED.mkdir(exist_ok=True)
+    claim = USED / f"claim.{secrets.token_hex(4)}.json"
     try:
         INFLIGHT.rename(claim)  # atomic claim: replayers lose the rename race
     except FileNotFoundError:
+        return 0
+    fl = load_json(claim, None)  # re-read AFTER claiming (claimed payload only)
+    if fl is None:
         return 0
     gkey = f"{fl['direction_id']}|{int(fl['shape'])}"
     grp = st.setdefault("groups", {}).setdefault(
@@ -380,7 +387,7 @@ def cmd_reconcile(args) -> int:
     grp.setdefault("attempts", 0)
     grp.setdefault("nonstrike_budget", 2)
     grp["attempts"] += 1
-    if fl.get("impl_sha256") and fl["mode"] in ("optimization", "screening"):
+    if fl.get("impl_sha256"):
         shas = grp.setdefault("attempted_shas", [])
         if fl["impl_sha256"] not in shas:
             shas.append(fl["impl_sha256"])
@@ -424,15 +431,18 @@ def cmd_reconcile(args) -> int:
                       entry.get("profile") == "primary")
         outcome["comparable_primary"] = comparable
         if fl["mode"] == "optimization":
-            improved = (comparable and correct and clean and speed is not None and
-                        (grp["best_speedup"] is None or
-                         speed > grp["best_speedup"] * IMPROVE_MARGIN))
+            prev_best = grp["best_speedup"]
+            qualifying = (comparable and correct and clean and speed is not None)
+            if qualifying and (prev_best is None or speed > prev_best):
+                grp["best_speedup"] = speed  # true best, ANY margin
+            improved = (qualifying and
+                        (prev_best is None or speed > prev_best * IMPROVE_MARGIN))
             if improved:
-                grp["best_speedup"] = speed
                 grp["strikes"] = 0
             else:
                 grp["strikes"] += 1
             outcome["improved"] = improved
+            outcome["prev_best"] = prev_best
         elif fl["mode"] == "screening":
             outcome["declared_prediction"] = fl.get("prediction")
             st["pending_screen_judgment"] = {
@@ -541,6 +551,15 @@ def cmd_reopen(args) -> int:
 def cmd_init(_args) -> int:
     if STATE.exists():
         print("REFUSED: state already exists — init is first-time only.")
+        return 1
+    if LOG.exists() and LOG.stat().st_size > 0:
+        print("REFUSED: gate history exists (gate_log.jsonl) — a missing "
+              "state file must be brought back from version control, "
+              "never re-initialized.")
+        return 1
+    if USED.exists() and any(USED.iterdir()):
+        print("REFUSED: consumed permits exist — bring state back from "
+              "version control.")
         return 1
     save_state({"research_cycle": 0, "research_open": False, "groups": {},
                 "pending_postmortem": [], "consumed_nonces": [],
