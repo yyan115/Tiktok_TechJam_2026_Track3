@@ -1,7 +1,6 @@
 {
- "cycle": 2,
- "families": {},
+ "groups": {},
  "pending_postmortem": [],
- "plan_done": false,
- "research_done": false
+ "research_cycle": 0,
+ "research_open": false
 }

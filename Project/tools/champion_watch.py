@@ -41,17 +41,14 @@ def current_champions() -> list:
 
 
 def run_gate_post() -> None:
-    """Mechanical gate-close (owner mandate 29 Aug): after ANY referee run,
-    slam the two-step gate shut and count the try. Reads the PostToolUse
-    payload from stdin (this hook receives it); never blocks audits."""
+    """v3: reconcile any IN_FLIGHT attempt after every shell command —
+    idempotent (run_gate.py reconcile no-ops when nothing is in flight).
+    Never blocks audits."""
     try:
-        payload = json.load(sys.stdin)
-        command = payload.get("tool_input", {}).get("command", "") or ""
-        if "runner.py" in command and "--impl" in command:
-            subprocess.run(
-                [sys.executable, str(Path(__file__).parent / "run_gate.py"),
-                 "post", "--command", command],
-                timeout=15, check=False)
+        subprocess.run(
+            [sys.executable, str(Path(__file__).parent / "run_gate.py"),
+             "reconcile"],
+            timeout=20, check=False, stdin=subprocess.DEVNULL)
     except Exception:
         pass
 

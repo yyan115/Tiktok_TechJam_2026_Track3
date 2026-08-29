@@ -1,4 +1,4 @@
-# The Run Gate — full design (v2, for external review)
+# The Run Gate — full design (v3, permit architecture; v2 was REJECTED by external review)
 
 Goal (owner's spec): after every benchmark attempt the system must FORCE a
 stop-and-rethink, no matter what the agent believes. Two explicit ordered
@@ -59,3 +59,31 @@ research step · reopen refused without a critic verdict file.
   trust model, and the gate_log + auditor citations make it visible.
 - Improvement = higher speedup in the journal the run wrote; calibration
   runs and non-run commands don't touch the gate.
+
+
+## v3 changes (responding to the round-1 REJECT, all its points)
+- ONE-USE PERMITS: a validated think-step ARMS exactly one permit bound to
+  direction card, mode, shape, impl path + sha256 of the exact bytes,
+  canonical ledger path, numeric prediction, and a 45-min expiry. The
+  owner-side guard atomically CONSUMES it (ARMED->IN_FLIGHT) before the run
+  executes; --ledger= and quoted forms parsed; multiple invocations in one
+  command denied; everything unparseable denied (fail closed).
+- ATTRIBUTION: the permit records the bound ledger's pre-run line count;
+  reconcile accepts EXACTLY one new row whose impl sha matches the permit —
+  otherwise it is an execution_failure (separate capped counter, 3 => close).
+  Stale-journal misattribution is gone.
+- MODES with correct semantics: optimization (improvement = correct + clean
+  + >3% over the group's best — epsilon noise never resets strikes) ·
+  screening (declared range decides; miss = strike, via an explicit
+  auditable screen-judge record) · confirmation / correctness / calibration
+  (gated but never strike, never improve).
+- GROUPS: strikes and bests are per (direction_card x shape) — no more
+  basename-wide cross-shape comparisons; direction identity is the card's
+  immutable family id, not a filename.
+- TIERS: full research+plan only to OPEN a direction; a concise structured
+  DELTA (what changed + numeric prediction) for each further attempt within
+  it — no filler-packet incentive; every tier still issues one permit.
+- CLOSURE + AUTONOMY: closure generates a NONCE; postmortem debt blocks the
+  next research step until written; reopening requires a critic log
+  containing that exact nonce + CRITIC: continue|narrow (one-use, consumed).
+  The public unlock command is REMOVED.

@@ -1,28 +1,43 @@
 #!/usr/bin/env python3
-"""Two-step run gate (owner-mandated 29 Aug): RESEARCH -> PLAN -> one run.
+"""Run gate v3 — permit architecture (rebuilt after external REJECT, 29 Aug).
 
-The blocking side lives in .claude/hooks/guard_bash.py (owner-applied patch;
-locked against the agent). This tool is the only way to open the gate, and it
-validates artifacts, not promises:
+Every referee invocation consumes a ONE-USE PERMIT that was issued by a
+validated thinking step and is bound to the exact attempt (direction card,
+mode, shape, impl file + sha, canonical ledger, expiry). The owner-side
+guard consumes the permit atomically BEFORE execution (ARMED -> IN_FLIGHT);
+the post watcher reconciles the outcome from the bound ledger's new row
+(exactly one, sha-matched) or records an execution failure. Everything
+fails CLOSED.
 
-  research  requires the CURRENT research INDEX hash (proves it was read
-            this cycle, not from memory), >=2 existing research-base files
-            cited, and a >=200-char summary of what was learned. Appends an
-            auditable entry to Project/loop/gate_log.jsonl.
-  plan      only accepted AFTER research in the same cycle; requires a
-            hypothesis, a prediction CONTAINING A NUMBER, and kill criteria.
-  post      called mechanically from the PostToolUse watcher after every
-            referee run: closes the gate again (research+plan reset), counts
-            the try against the impl's direction, reads the run's OWN journal
-            entry for the speedup, resets the count on improvement, and
-            STOPS the direction after 3 tries without improvement.
-  status    prints the gate state.
-  unlock    OWNER-ONLY by trust-model convention: reopens a stopped
-            direction or resets the cycle.
+Thinking tiers (anti-filler, per review):
+  research + plan   full two steps — required to OPEN a new direction card
+                    (research: current INDEX hash, >=2 existing notes,
+                    summary; plan: hypothesis, numeric prediction, kill
+                    criteria, file:line citations quoted into the log).
+  delta             concise structured step for the NEXT attempt within an
+                    open direction: what changed since the last attempt +
+                    a numeric prediction. No filler packets for tuning
+                    iterations; budget still enforced.
+Both tiers issue exactly one permit.
 
-State: Project/loop/gate_state.json · Log: Project/loop/gate_log.jsonl
-Trust model unchanged (PLAN.md): guards against drift and momentum, not a
-deliberately malicious agent editing state files.
+Strikes (per direction card, per shape+profile comparison group):
+  optimization mode: improvement = clean, correct, promoted-comparable row
+    whose speedup exceeds the group's best by >=3% (the promotion margin
+    floor — epsilon noise never resets strikes).
+  screening mode: the attempt's declared prediction range decides
+    hit/miss; a miss is a strike.
+  confirmation / correctness / calibration modes: never strike, never
+    "improve" — they exist so those runs are gated without being punished.
+  execution failure (no new row / crash / sha mismatch): separate counter;
+    3 consecutive execution failures also close the direction.
+  3 strikes without improvement => direction CLOSED, postmortem debt
+  registered. Closed directions reopen ONLY via a one-use critic receipt
+  bound to the closure nonce. There is no unlock command.
+
+State: Project/loop/gate_state.json · Permits: Project/loop/permit.json
+(consumed -> Project/loop/permits_used/) · Log: Project/loop/gate_log.jsonl
+Trust model (PLAN.md): mistakes-not-malice; the guard side lives in the
+owner-locked hook, and the citation/receipt trails are auditor-verified.
 """
 from __future__ import annotations
 
@@ -30,6 +45,7 @@ import argparse
 import hashlib
 import json
 import re
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -37,26 +53,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LOOP = ROOT / "Project" / "loop"
 STATE = LOOP / "gate_state.json"
+PERMIT = LOOP / "permit.json"
+USED = LOOP / "permits_used"
+INFLIGHT = LOOP / "in_flight.json"
 LOG = LOOP / "gate_log.jsonl"
 INDEX = ROOT / "Project" / "research" / "INDEX.md"
-MAX_TRIES = 3
+CARDS = LOOP / "cards.jsonl"
+DEFAULT_JOURNAL = ROOT / "Project" / "results" / "JOURNAL.jsonl"
+MAX_STRIKES = 3
+MAX_EXEC_FAILURES = 3
+PERMIT_TTL_S = 45 * 60
+IMPROVE_MARGIN = 1.03
+MODES = ("optimization", "screening", "confirmation", "correctness", "calibration")
 
 
 def now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
 
-def load_state() -> dict:
+def load_json(p: Path, default):
     try:
-        return json.loads(STATE.read_text())
+        return json.loads(p.read_text())
     except Exception:
-        return {"research_done": False, "plan_done": False,
-                "cycle": 0, "families": {}}
+        return default
 
 
 def save_state(st: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(st, indent=1, sort_keys=True))
+    tmp = STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(st, indent=1, sort_keys=True))
+    tmp.replace(STATE)
 
 
 def log(entry: dict) -> None:
@@ -69,238 +95,359 @@ def index_hash() -> str:
     return hashlib.sha256(INDEX.read_bytes()).hexdigest()[:16]
 
 
+def sha_file(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def open_cards() -> dict:
+    """direction_family_id -> card (latest row per family), non-closed only."""
+    fams = {}
+    for line in (CARDS.read_text().splitlines() if CARDS.exists() else []):
+        if not line.strip():
+            continue
+        try:
+            c = json.loads(line)
+        except Exception:
+            continue
+        fams[c.get("direction_family_id")] = c
+    return {k: v for k, v in fams.items()
+            if "killed" not in str(v.get("status", "")).lower()
+            and "closed" not in str(v.get("status", "")).lower()}
+
+
 def parse_citations(spec: str):
-    """'research/kernelagent.md:12-20,Project/loop/cards.jsonl:1' ->
-    [(path, start, end, quoted_text)] — files must exist, lines must resolve.
-    The QUOTED TEXT is captured so the auditor can verify nothing was faked."""
     out = []
     for item in [s.strip() for s in spec.split(",") if s.strip()]:
         m = re.fullmatch(r"(.+?):(\d+)(?:-(\d+))?", item)
         if not m:
-            return None, f"bad citation format: '{item}' (want path:line or path:start-end)"
+            return None, f"bad citation format: '{item}'"
         rel, a, b = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2))
-        path = (ROOT / rel) if not rel.startswith("Project/") else (ROOT / rel)
+        path = ROOT / rel
         if not path.exists():
             path = ROOT / "Project" / rel
         if not path.exists():
             return None, f"cited file does not exist: '{rel}'"
         lines = path.read_text().splitlines()
         if not (1 <= a <= b <= len(lines)):
-            return None, f"cited lines {a}-{b} out of range for {rel} ({len(lines)} lines)"
+            return None, f"cited lines {a}-{b} out of range for {rel}"
         out.append({"file": rel, "lines": f"{a}-{b}",
                     "quoted": "\n".join(lines[a - 1:b])[:2000]})
     return out, None
 
 
+def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref):
+    if PERMIT.exists():
+        return None, "a permit is already ARMED — one attempt at a time"
+    if INFLIGHT.exists():
+        return None, "an attempt is IN_FLIGHT and unreconciled — run `reconcile` first"
+    impl_p = (ROOT / impl).resolve() if impl else None
+    if mode != "calibration":
+        if impl_p is None or not impl_p.exists():
+            return None, f"impl file not found: {impl}"
+    ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
+    pre_lines = len(ledger_p.read_text().splitlines()) if ledger_p.exists() else 0
+    permit = {
+        "permit_id": secrets.token_hex(8),
+        "direction_id": direction,
+        "mode": mode,
+        "shape": int(shape),
+        "impl_path": str(impl_p.relative_to(ROOT)) if impl_p else None,
+        "impl_sha256": sha_file(impl_p) if impl_p else None,
+        "ledger": str(ledger_p),
+        "ledger_pre_lines": pre_lines,
+        "prediction": prediction,
+        "plan_ref": plan_ref,
+        "issued": now(),
+        "expires_epoch": time.time() + PERMIT_TTL_S,
+    }
+    LOOP.mkdir(parents=True, exist_ok=True)
+    PERMIT.write_text(json.dumps(permit, indent=1, sort_keys=True))
+    return permit, None
+
+
 def cmd_research(args) -> int:
-    st = load_state()
+    st = load_json(STATE, {})
     pending = st.get("pending_postmortem", [])
     if pending and len((args.postmortem or "").strip()) < 200:
-        print(f"REFUSED: direction(s) {pending} were STOPPED. Before any new "
-              "research cycle, write a >=200-char --postmortem: what was "
-              "predicted, what actually happened, why the approach failed, "
-              "and what the failure rules out. Fresh eyes are mandatory.")
+        print(f"REFUSED: direction(s) {pending} were CLOSED. A >=200-char "
+              "--postmortem (predicted vs happened, why it failed, what it "
+              "rules out) is mandatory before any new research cycle.")
         return 1
     if args.index_hash != index_hash():
-        print(f"REFUSED: --index-hash does not match the CURRENT research index "
-              f"(expected {index_hash()}). Read Project/research/INDEX.md first "
-              f"— this cycle, not from memory.")
+        print(f"REFUSED: --index-hash mismatch (current: {index_hash()}). "
+              "Read Project/research/INDEX.md THIS cycle.")
         return 1
     notes = [n.strip() for n in args.notes.split(",") if n.strip()]
     missing = [n for n in notes if not (ROOT / "Project" / "research" / n).exists()]
     if len(notes) < 2 or missing:
-        print(f"REFUSED: cite >=2 EXISTING research-base files (missing: {missing}).")
+        print(f"REFUSED: >=2 existing research-base files (missing: {missing}).")
         return 1
     if len(args.summary.strip()) < 200:
-        print("REFUSED: summary under 200 chars — write down what was actually "
-              "learned and how it bears on the next run.")
+        print("REFUSED: summary under 200 chars.")
         return 1
-    st["research_done"] = True
-    st["plan_done"] = False
-    st["cycle"] = st.get("cycle", 0) + 1
-    entry = {"ts": now(), "step": "research", "cycle": st["cycle"],
+    st["research_cycle"] = st.get("research_cycle", 0) + 1
+    st["research_open"] = True
+    if pending:
+        st["pending_postmortem"] = []
+    save_state(st)
+    entry = {"ts": now(), "step": "research", "cycle": st["research_cycle"],
              "index_hash": args.index_hash, "notes": notes, "summary": args.summary}
     if pending:
         entry["postmortem_for"] = pending
         entry["postmortem"] = args.postmortem
-        st["pending_postmortem"] = []
-    save_state(st)
     log(entry)
-    print(f"RESEARCH step accepted (cycle {st['cycle']}). Next: run_gate.py plan ...")
+    print(f"RESEARCH accepted (cycle {st['research_cycle']}). Next: plan (new "
+          "direction card required).")
     return 0
 
 
 def cmd_plan(args) -> int:
-    st = load_state()
-    if not st.get("research_done"):
-        print("REFUSED: the RESEARCH step has not been completed this cycle. "
-              "Two steps, in order.")
+    st = load_json(STATE, {})
+    if not st.get("research_open"):
+        print("REFUSED: research step required first (this cycle). Two steps, in order.")
         return 1
-    if st.get("plan_done"):
-        print("NOTE: plan already recorded this cycle.")
-        return 0
+    cards = open_cards()
+    card = cards.get(args.direction)
+    if card is None:
+        print(f"REFUSED: --direction must name an OPEN card family in "
+              f"{CARDS} (found: {sorted(cards)}). Open the card first — the "
+              "card IS the direction's identity.")
+        return 1
+    if args.mode not in MODES:
+        print(f"REFUSED: --mode must be one of {MODES}.")
+        return 1
     if not re.search(r"\d", args.prediction):
-        print("REFUSED: the prediction must contain a NUMBER (a preregistered "
-              "quantitative range).")
+        print("REFUSED: numeric prediction required.")
         return 1
     if len(args.hypothesis.strip()) < 50 or len(args.kill.strip()) < 20:
-        print("REFUSED: hypothesis (>=50 chars) and kill criteria (>=20 chars) required.")
+        print("REFUSED: hypothesis >=50 chars and kill criteria >=20 chars.")
         return 1
     citations, err = parse_citations(args.sources or "")
     if err or not citations:
-        print(f"REFUSED: --sources must cite the exact material this plan is "
-              f"based on, as file:line-line (validated; quoted text is stored "
-              f"for the auditor). {err or 'at least one citation required'}")
+        print(f"REFUSED: valid --sources citations required ({err}).")
         return 1
     if len(args.reasoning.strip()) < 100:
-        print("REFUSED: --reasoning (>=100 chars) — WHY these sources justify "
-              "this plan, in your own words.")
+        print("REFUSED: --reasoning >=100 chars.")
         return 1
-    st["plan_done"] = True
+    plan_id = secrets.token_hex(6)
+    permit, perr = issue_permit(st, args.direction, args.mode, args.shape,
+                                args.impl, args.ledger, args.prediction, plan_id)
+    if perr:
+        print(f"REFUSED: {perr}")
+        return 1
+    st["research_open"] = False
     save_state(st)
-    log({"ts": now(), "step": "plan", "cycle": st.get("cycle"),
+    log({"ts": now(), "step": "plan", "plan_id": plan_id,
+         "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "hypothesis": args.hypothesis, "prediction": args.prediction,
-         "kill": args.kill, "citations": citations, "reasoning": args.reasoning})
-    print("PLAN step accepted (citations verified and quoted into the log). "
-          "The gate is OPEN for exactly one referee run.")
+         "kill": args.kill, "citations": citations,
+         "reasoning": args.reasoning, "permit_id": permit["permit_id"]})
+    print(f"PLAN accepted. Permit {permit['permit_id']} ARMED for ONE run: "
+          f"direction={args.direction} mode={args.mode} shape={args.shape}.")
     return 0
 
 
-def _last_journal_speedup(journal_path: Path):
-    try:
-        lines = [l for l in journal_path.read_text().splitlines() if l.strip()]
-        e = json.loads(lines[-1])
-        t = e.get("timing") or {}
-        return t.get("speedup"), e.get("impl", {}).get("name")
-    except Exception:
-        return None, None
+def cmd_delta(args) -> int:
+    """Concise continuation within an open direction — no research packet,
+    but still: what changed + numeric prediction + one permit."""
+    cards = open_cards()
+    card = cards.get(args.direction)
+    if card is None:
+        print(f"REFUSED: no open card for '{args.direction}'.")
+        return 1
+    st = load_json(STATE, {})
+    grp = st.get("groups", {}).get(f"{args.direction}|{args.shape}", {})
+    if grp.get("closed"):
+        print("REFUSED: this direction+shape group is CLOSED.")
+        return 1
+    if len(args.changed.strip()) < 40 or not re.search(r"\d", args.prediction):
+        print("REFUSED: --changed (>=40 chars, the exact delta from the last "
+              "attempt) and a numeric --prediction are required.")
+        return 1
+    plan_id = secrets.token_hex(6)
+    permit, perr = issue_permit(st, args.direction, args.mode, args.shape,
+                                args.impl, args.ledger, args.prediction, plan_id)
+    if perr:
+        print(f"REFUSED: {perr}")
+        return 1
+    save_state(st)
+    log({"ts": now(), "step": "delta", "plan_id": plan_id,
+         "direction": args.direction, "mode": args.mode, "shape": args.shape,
+         "changed": args.changed, "prediction": args.prediction,
+         "permit_id": permit["permit_id"]})
+    print(f"DELTA accepted. Permit {permit['permit_id']} ARMED for ONE run.")
+    return 0
 
 
-def cmd_post(args) -> int:
-    """Called from the PostToolUse watcher with the observed Bash command."""
-    cmd = args.command or ""
-    m = re.search(r"runner\.py\s+(?:\S+\s+)*run\b[^|;&]*?--impl\s+(\S+)", cmd)
-    if not m:
+def cmd_reconcile(args) -> int:
+    """Called by the PostToolUse watcher (and idempotently by anyone):
+    resolves an IN_FLIGHT attempt from its bound ledger."""
+    fl = load_json(INFLIGHT, None)
+    if fl is None:
         return 0
-    st = load_state()
-    # The try consumed the open gate — slam it shut for the next run.
-    st["research_done"] = False
-    st["plan_done"] = False
-    base = m.group(1).strip("'\"").split("/")[-1]
-    fam = st.setdefault("families", {}).setdefault(
-        base, {"tries_without_improvement": 0, "best_speedup": None, "stopped": False})
-    lm = re.search(r"--ledger\s+(\S+)", cmd)
-    journal = Path(lm.group(1).strip("'\"")) if lm else ROOT / "Project/results/JOURNAL.jsonl"
-    speedup, _name = _last_journal_speedup(journal)
-    improved = (speedup is not None and
-                (fam["best_speedup"] is None or speedup > fam["best_speedup"]))
-    if improved:
-        fam["best_speedup"] = speedup
-        fam["tries_without_improvement"] = 0
+    st = load_json(STATE, {})
+    ledger = Path(fl["ledger"])
+    rows = [l for l in ledger.read_text().splitlines() if l.strip()] if ledger.exists() else []
+    new_rows = rows[fl["ledger_pre_lines"]:]
+    gkey = f"{fl['direction_id']}|{fl['shape']}"
+    grp = st.setdefault("groups", {}).setdefault(
+        gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
+               "closed": False, "closure_nonce": None})
+    outcome = {"ts": now(), "step": "reconcile", "permit_id": fl["permit_id"],
+               "direction": fl["direction_id"], "shape": fl["shape"],
+               "mode": fl["mode"]}
+    entry = None
+    if len(new_rows) == 1:
+        try:
+            e = json.loads(new_rows[0])
+            if fl["impl_sha256"] is None or \
+               e.get("impl", {}).get("sha256") == fl["impl_sha256"]:
+                entry = e
+        except Exception:
+            entry = None
+    if entry is None:
+        grp["exec_failures"] += 1
+        outcome["result"] = "execution_failure"
+        outcome["new_rows"] = len(new_rows)
+        if grp["exec_failures"] >= MAX_EXEC_FAILURES:
+            grp["closed"] = True
+            grp["closure_nonce"] = secrets.token_hex(8)
+            st.setdefault("pending_postmortem", []).append(gkey)
+            outcome["closed"] = True
+            outcome["closure_nonce"] = grp["closure_nonce"]
     else:
-        fam["tries_without_improvement"] += 1
-        if fam["tries_without_improvement"] >= MAX_TRIES:
-            fam["stopped"] = True
-            pend = st.setdefault("pending_postmortem", [])
-            if base not in pend:
-                pend.append(base)
+        grp["exec_failures"] = 0
+        t = entry.get("timing") or {}
+        speed = t.get("speedup")
+        correct = bool((entry.get("correctness") or {}).get("passed"))
+        clean = not ((t.get("wall_check") or {}).get("suspicious") or
+                     (t.get("anti_cache_check") or {}).get("suspicious"))
+        outcome.update({"speedup": speed, "correct": correct, "clean": clean,
+                        "entry_id": entry.get("entry_id")})
+        if fl["mode"] == "optimization":
+            improved = (correct and clean and speed is not None and
+                        (grp["best_speedup"] is None or
+                         speed > grp["best_speedup"] * IMPROVE_MARGIN))
+            if improved:
+                grp["best_speedup"] = speed
+                grp["strikes"] = 0
+            else:
+                grp["strikes"] += 1
+            outcome["improved"] = improved
+        elif fl["mode"] == "screening":
+            outcome["declared_prediction"] = fl.get("prediction")
+            outcome["needs_range_judgment"] = True
+            grp["strikes"] += 0 if correct else 1
+        # confirmation/correctness/calibration: recorded, never strike.
+        if grp["strikes"] >= MAX_STRIKES:
+            grp["closed"] = True
+            grp["closure_nonce"] = secrets.token_hex(8)
+            st.setdefault("pending_postmortem", []).append(gkey)
+            outcome["closed"] = True
+            outcome["closure_nonce"] = grp["closure_nonce"]
     save_state(st)
-    log({"ts": now(), "step": "post_run", "impl": base, "speedup": speedup,
-         "improved": improved,
-         "tries_without_improvement": fam["tries_without_improvement"],
-         "stopped": fam["stopped"]})
-    if fam["stopped"]:
-        print(f"[run-gate] DIRECTION CLOSED: {base} — {MAX_TRIES} tries without "
-              "improvement. The agent must write a postmortem in its next "
-              "research step and take a DIFFERENT direction. Reopening THIS "
-              "direction needs a critic verdict file (run_gate.py reopen).")
+    log(outcome)
+    USED.mkdir(exist_ok=True)
+    Path(INFLIGHT).replace(USED / f"{fl['permit_id']}.reconciled.json")
+    if outcome.get("closed"):
+        print(f"[run-gate] GROUP CLOSED: {gkey} (nonce {grp['closure_nonce']}). "
+              "Postmortem now mandatory; reopening needs a critic receipt "
+              "bound to this nonce.")
     return 0
 
 
-def cmd_status(_args) -> int:
-    st = load_state()
-    st["_current_index_hash"] = index_hash()
-    print(json.dumps(st, indent=1, sort_keys=True))
-    return 0
-
-
-def cmd_unlock(args) -> int:
-    st = load_state()
-    if args.family:
-        fam = st.get("families", {}).get(args.family)
-        if fam:
-            fam["stopped"] = False
-            fam["tries_without_improvement"] = 0
-    else:
-        st["research_done"] = False
-        st["plan_done"] = False
+def cmd_screen_judge(args) -> int:
+    """Record the screening range hit/miss explicitly (auditable)."""
+    st = load_json(STATE, {})
+    gkey = f"{args.direction}|{args.shape}"
+    grp = st.setdefault("groups", {}).setdefault(
+        gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
+               "closed": False, "closure_nonce": None})
+    if args.result == "miss":
+        grp["strikes"] += 1
+        if grp["strikes"] >= MAX_STRIKES:
+            grp["closed"] = True
+            grp["closure_nonce"] = secrets.token_hex(8)
+            st.setdefault("pending_postmortem", []).append(gkey)
     save_state(st)
-    log({"ts": now(), "step": "owner_unlock", "family": args.family})
-    print("Unlocked. (Owner-only action by trust-model convention.)")
+    log({"ts": now(), "step": "screen_judge", "group": gkey,
+         "result": args.result, "observed": args.observed,
+         "strikes": grp["strikes"], "closed": grp["closed"]})
+    print(f"screening {args.result} recorded for {gkey} "
+          f"(strikes {grp['strikes']}/{MAX_STRIKES}).")
     return 0
 
 
 def cmd_reopen(args) -> int:
-    """Autonomous reopen of a CLOSED direction: requires an existing critic
-    verdict log whose text names the family and contains a 'continue' or
-    'narrow' verdict — i.e., a fresh external review blessed the retry under
-    a changed premise. No owner needed; no self-blessing possible."""
-    st = load_state()
-    fam = st.get("families", {}).get(args.family)
-    if not fam or not fam.get("stopped"):
-        print("Nothing to reopen for that family.")
+    st = load_json(STATE, {})
+    grp = st.get("groups", {}).get(args.group)
+    if not grp or not grp.get("closed"):
+        print("Nothing closed under that group key.")
         return 1
+    nonce = grp.get("closure_nonce")
     critic = Path(args.critic_log)
-    if not critic.exists():
-        print(f"REFUSED: critic log '{args.critic_log}' does not exist.")
+    if not (nonce and critic.exists()):
+        print("REFUSED: closure nonce or critic log missing.")
         return 1
     text = critic.read_text(errors="ignore")
-    if args.family.split(".")[0] not in text or not re.search(
-            r"CRITIC:\s*(continue|narrow)", text):
-        print("REFUSED: the critic log must name this direction and end with "
-              "CRITIC: continue|narrow. A closed direction reopens only on an "
-              "external verdict, never on the agent's own judgment.")
+    if nonce not in text or not re.search(r"CRITIC:\s*(continue|narrow)", text):
+        print("REFUSED: the critic log must contain the EXACT closure nonce "
+              f"({nonce}) and end CRITIC: continue|narrow. Receipts are "
+              "one-use and closure-bound.")
         return 1
-    fam["stopped"] = False
-    fam["tries_without_improvement"] = 0
+    grp["closed"] = False
+    grp["strikes"] = 0
+    grp["exec_failures"] = 0
+    grp["closure_nonce"] = None
     save_state(st)
-    log({"ts": now(), "step": "reopen", "family": args.family,
-         "critic_log": str(critic)})
-    print(f"Reopened {args.family} on critic authority ({critic.name}).")
+    log({"ts": now(), "step": "reopen", "group": args.group,
+         "critic_log": str(critic), "consumed_nonce": nonce})
+    print(f"Reopened {args.group} on critic authority (nonce consumed).")
+    return 0
+
+
+def cmd_status(_args) -> int:
+    st = load_json(STATE, {})
+    st["_index_hash_now"] = index_hash()
+    st["_permit_armed"] = PERMIT.exists()
+    st["_in_flight"] = INFLIGHT.exists()
+    print(json.dumps(st, indent=1, sort_keys=True))
     return 0
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Two-step run gate")
+    ap = argparse.ArgumentParser(description="Run gate v3 (permit architecture)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("research")
-    r.add_argument("--index-hash", required=True,
-                   help="first 16 hex chars of sha256(Project/research/INDEX.md)")
-    r.add_argument("--notes", required=True,
-                   help="comma-separated research-base filenames actually read")
+    r.add_argument("--index-hash", required=True)
+    r.add_argument("--notes", required=True)
     r.add_argument("--summary", required=True)
-    r.add_argument("--postmortem", default=None,
-                   help="required when a direction was just CLOSED")
+    r.add_argument("--postmortem", default=None)
     p = sub.add_parser("plan")
-    p.add_argument("--hypothesis", required=True)
-    p.add_argument("--prediction", required=True)
-    p.add_argument("--kill", required=True)
-    p.add_argument("--sources", required=True,
-                   help="citations file:line-line (comma-separated); validated, quoted into the log")
-    p.add_argument("--reasoning", required=True,
-                   help="why these sources justify this plan (>=100 chars)")
-    po = sub.add_parser("post")
-    po.add_argument("--command", required=True)
-    sub.add_parser("status")
-    u = sub.add_parser("unlock")
-    u.add_argument("--family", default=None)
+    for a, req in (("--direction", True), ("--mode", True), ("--shape", True),
+                   ("--impl", False), ("--ledger", False),
+                   ("--hypothesis", True), ("--prediction", True),
+                   ("--kill", True), ("--sources", True), ("--reasoning", True)):
+        p.add_argument(a, required=req, default=None)
+    d = sub.add_parser("delta")
+    for a, req in (("--direction", True), ("--mode", True), ("--shape", True),
+                   ("--impl", False), ("--ledger", False),
+                   ("--changed", True), ("--prediction", True)):
+        d.add_argument(a, required=req, default=None)
+    sub.add_parser("reconcile")
+    sj = sub.add_parser("screen-judge")
+    sj.add_argument("--direction", required=True)
+    sj.add_argument("--shape", required=True)
+    sj.add_argument("--result", required=True, choices=("hit", "miss"))
+    sj.add_argument("--observed", required=True)
     ro = sub.add_parser("reopen")
-    ro.add_argument("--family", required=True)
+    ro.add_argument("--group", required=True)
     ro.add_argument("--critic-log", required=True)
+    sub.add_parser("status")
     args = ap.parse_args()
-    return {"research": cmd_research, "plan": cmd_plan, "post": cmd_post,
-            "status": cmd_status, "unlock": cmd_unlock,
-            "reopen": cmd_reopen}[args.cmd](args)
+    return {"research": cmd_research, "plan": cmd_plan, "delta": cmd_delta,
+            "reconcile": cmd_reconcile, "screen-judge": cmd_screen_judge,
+            "reopen": cmd_reopen, "status": cmd_status}[args.cmd](args)
 
 
 if __name__ == "__main__":
