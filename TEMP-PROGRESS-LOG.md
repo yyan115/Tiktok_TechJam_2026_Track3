@@ -41,23 +41,39 @@ the organizer literally described: split into chunks on your card.
 APPROVE. Every hole fixed or — once — skipped with written "genuinely not
 an issue" reasoning that Sol itself later agreed with.
 
-## PART 2 — ARE WE DOING CUDA NOW?
+## PART 2 — ARE WE DOING CUDA NOW? (and why "CUDA = fastest" is a myth here)
 
-**We CAN (you unlocked it — gcc15 installed, test kernel compiled and ran)
-and we WILL wherever it wins. But the reviewed math says the remaining
-CUDA-only ideas don't win:**
-- The shape-2 CUDA kernel: impossible (see above, killed by arithmetic).
-- The CUDA persistent-kernel family for shapes 3/4/12: ranked LAST by the
-  review ("only if everything else is green"), and the cheap version of
-  that idea works in Triton anyway.
-- The rules don't care about language — organizer said "Triton, CUDA, or
-  even lower level, whatever you like." Judges score the speed numbers
-  and the report. Our 11x average is language-blind.
+**The intuition "CUDA should be the best" is understandable but wrong in
+an important way. Here's the real picture:**
 
-So: CUDA sits loaded in the toolbox; the cage decides. If a new card's
-pre-test shows a CUDA route beating a Triton route, CUDA gets written.
-Nothing currently queued needs it — what's left is shape retunes, then
-the report/video (65% of the score, remember).
+- Triton and CUDA both turn into THE SAME machine code on the GPU.
+  Triton is a power tool that writes that machine code for you; CUDA C++
+  is writing it by hand. Hand-writing gives you more CONTROL, not more
+  speed by default. Think manual vs automatic transmission: the manual
+  doesn't make the engine bigger — it only wins on the rare corner where
+  you need clutch control.
+- The engine is the GPU, and our kernels are already near its redline:
+  shape 8 runs at ~64% of the chip's theoretical ceiling (and our
+  hand-rolled GEMM measured 98% as fast as NVIDIA's own library); shape
+  14 and 13 are at ~60-80% of their ceilings. The wall we're hitting now
+  is PHYSICS, not language. Rewriting the same kernel in CUDA gets the
+  same machine code and the same number.
+- CUDA's genuinely exclusive trick is making many GPU blocks talk to each
+  other mid-kernel (Triton can't). We checked what that trick is worth on
+  OUR test shapes, with math and published measurements: shape 2 has at
+  most ~5% left before its hard ceiling (137µs floor vs our 144µs — in
+  ANY language), and the published best for that whole trick-class vs
+  what we already do is ~1.2x on a couple of small shapes. Real, but the
+  smallest prize on the board — that's why the review ranked it last,
+  NOT because CUDA is bad.
+- The judges score the speed numbers and the report. The organizer
+  literally said "Triton, CUDA, or even lower level, whatever you like."
+
+**So yes — CUDA is unlocked (you installed the compiler, I verified it
+works) and it WILL be used the moment any experiment's pre-test shows a
+CUDA route beating the Triton route.** The cage decides with numbers, not
+taste. Right now the biggest remaining points are shape retunes and the
+report/video (65% of the score), and those are language-neutral.
 
 ## PART 3 — WHAT YOU DO (the only thing, ~2 min)
 
