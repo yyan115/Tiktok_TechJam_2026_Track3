@@ -274,7 +274,15 @@ def cmd_research(args) -> int:
     if pending and len((args.postmortem or "").strip()) < 200:
         print(f"REFUSED: direction(s) {pending} were CLOSED. A >=200-char "
               "--postmortem (predicted vs happened, why it failed, what it "
-              "rules out) is mandatory before any new research cycle.")
+              "rules out) is mandatory before any new research cycle. It "
+              "MUST also state a CASE FOR REVIVAL — either 'none: the idea "
+              "itself was disproven' or the specific evidence that would "
+              "justify a critic-appealed reopen (the critic weighs this on "
+              "any future appeal).")
+        return 1
+    if pending and "revival" not in (args.postmortem or "").lower():
+        print("REFUSED: the postmortem must contain a 'case for revival' "
+              "statement (even if it is 'revival case: none — disproven').")
         return 1
     if args.index_hash != index_hash():
         print(f"REFUSED: --index-hash mismatch (current: {index_hash()}). "

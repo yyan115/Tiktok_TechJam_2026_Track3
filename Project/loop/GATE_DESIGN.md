@@ -128,3 +128,11 @@ machinery) was explicitly judged defensible by the reviewer in R8 once the
 stale-permit quarantine landed (it did, R9-R10). The gate ships as
 v3-final — the single authoritative version, approved at round 13; all
 v3.x numbers in older sections are iteration history, not live labels.
+
+## Amendment (owner-approved, 29 Aug late): the revival clause
+Every closure postmortem must contain an explicit CASE FOR REVIVAL — either
+"none: the idea itself was disproven" or the specific evidence that would
+justify reopening (enforced by the research step's validator). On any
+reopen appeal, the critic must address that recorded case directly. This
+keeps the 3-strike brake tight while guaranteeing a genuinely promising
+idea gets its hearing on the record, never by the agent's own conviction.
