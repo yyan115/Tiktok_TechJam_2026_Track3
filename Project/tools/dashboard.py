@@ -51,7 +51,18 @@ def jload(path):
     return out
 
 
-st.set_page_config(page_title="Track 3 Live", layout="wide")
+st.set_page_config(page_title="Track 3 Live", page_icon="🏁", layout="wide")
+st.markdown("""
+<style>
+  .block-container {padding-top: 1.2rem; max-width: 1250px;}
+  [data-testid="stMetric"] {background: #151b2e; border: 1px solid #26314f;
+      border-radius: 12px; padding: 12px 16px;}
+  [data-testid="stMetricValue"] {font-size: 1.35rem;}
+  h1 {font-size: 1.9rem; margin-bottom: 0;}
+  h3 {margin-top: 1.4rem; border-bottom: 1px solid #26314f; padding-bottom: 4px;}
+  .stDataFrame {border-radius: 10px; overflow: hidden;}
+  code {color: #7dd3fc;}
+</style>""", unsafe_allow_html=True)
 st.title("🏁 Track 3 — Live Board")
 
 
@@ -89,21 +100,39 @@ def render():
     geo = geo ** (1 / len(speeds)) if speeds else 0
 
     st.subheader("Speed scoreboard")
-    st.metric("Average speedup (12 comparable tests)", f"{geo:.1f}x")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Average speedup", f"{geo:.1f}x", "12 comparable tests")
+    if best:
+        top_sid = max(best, key=lambda s: best[s]["speed"])
+        m2.metric("Best test", f"#{top_sid}: {best[top_sid]['speed']:.1f}x")
+    m3.metric("Tests passing", f"{len(best) + len(side_rows)} / 14")
+    m4.metric("Audits passed",
+              f"{sum(1 for b in best.values() if b['verdict'] == 'PASS')} / {len(best)}")
     rows = []
     for sid in sorted(set(best) | set(side_rows)):
         r = best.get(sid) or side_rows.get(sid)
         rows.append({
             "Test": f"#{sid}",
-            "Speed": f"{r['speed']:.1f}x" if r.get("speed") else "proven ✔",
+            "Speedup": r.get("speed"),
+            "": f"{r['speed']:.1f}x" if r.get("speed") else "proven ✔",
             "Method": friendly(r["impl"]),
             "When": r["when"][:16].replace("T", " "),
-            "Audit": ("✅ " + r["verdict"]) if r.get("verdict") in ("PASS",) else r.get("verdict", "special test"),
-            "Remark": r.get("remark", "") or "",
+            "Audit": ("✅ pass" if r.get("verdict") == "PASS"
+                      else "🔎 " + r["verdict"].lower() if r.get("verdict")
+                      else "🧪 special test"),
+            "Remark": r.get("remark", "") or "—",
         })
-    st.dataframe(rows, width="stretch", hide_index=True)
-    chart = {f"#{sid}": best[sid]["speed"] for sid in sorted(best)}
-    st.bar_chart(chart)
+    max_speed = max((b["speed"] for b in best.values()), default=1)
+    st.dataframe(
+        rows, width="stretch", hide_index=True, height=560,
+        column_config={
+            "Test": st.column_config.TextColumn(width="small"),
+            "Speedup": st.column_config.ProgressColumn(
+                "Speed vs baseline", format="%.1fx",
+                min_value=0, max_value=max_speed, width="medium"),
+            "": st.column_config.TextColumn(width="small"),
+            "When": st.column_config.TextColumn(width="small"),
+        })
 
     # ---------- Right now ----------
     st.subheader("Right now")
@@ -168,14 +197,15 @@ def render():
                                f"🧠 [SOL] {lg.stem.replace('_raw', '').replace('_', ' ')}: {m.group(2)}",
                                str(lg)))
     events.sort(key=lambda x: x[0], reverse=True)
-    for ts, msg, detail in events[:100]:
-        line = f"`{ts[:16].replace('T', ' ')}`  {msg}"
-        if detail and Path(detail).exists():
-            with st.expander(line):
-                txt = Path(detail).read_text(errors="ignore")
-                st.code(txt[-4000:], language=None)
-        else:
-            st.markdown(line)
+    with st.container(height=460, border=True):
+        for ts, msg, detail in events[:100]:
+            line = f"`{ts[:16].replace('T', ' ')}` &nbsp; {msg}"
+            if detail and Path(detail).exists():
+                with st.expander(line):
+                    txt = Path(detail).read_text(errors="ignore")
+                    st.code(txt[-4000:], language=None)
+            else:
+                st.markdown(line)
 
 
 render()
