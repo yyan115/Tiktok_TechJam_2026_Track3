@@ -37,6 +37,29 @@ next shape = item 9 (ncu selected metrics). P7 score-sensitivity scenarios
 = item 8 (sharpened today). P9 one full current-artifact board at freeze =
 item 11.
 
+## Where the AUDIT itself is off (adversarial re-read, 30 Aug)
+1. RUBRIC: it asserts Devpost rules = "four equally weighted criteria" and
+   never reconciles README §3.6 — the official track statement's explicit
+   5-way 35/20/20/15/10 table (verified in-file; Presentation 10% is
+   "final event only"). The specific statement controls; the audit's
+   downstream strategy framing leans on the weaker 4-equal reading.
+2. VARIANCE BLINDNESS: it printed shape-3 official results of 11.961x
+   (historical sweep) and 15.173x (post-integration retest) — a 27% swing
+   on the SAME route — without flagging that launch-bound small shapes are
+   noisy on the official script. Consequence queued (item 11d: N>=3
+   sweeps for small shapes on the final board).
+3. MEMORY INVERSION unremarked: shape-14 B=1 packet peaks at 4.894 GiB vs
+   B=2 at 4.738 GiB — smaller workload, MORE memory. Needs an allocator/
+   staging explanation before these numbers go in the report; the audit
+   repeated both blindly.
+Verified-ACCURATE side (so the above is calibration, not dismissal): all 7
+sha256 hashes, all 12 sweep rows digit-for-digit, the 38-file count, the
+line-312 predicate description, CHUNK=500, single-seed packets (1234), and
+every arithmetic spot-check (12.207 GiB, 9.20% superlinearity, 14.01 TF/s,
+53,582.332 = 1674.448x32). Painful bonus: the official script's OWN comment
+at the predicate says isclose "is slightly more permissive and is not used"
+— our side tools ignored a warning written in the official file.
+
 ## Genuinely new points folded into the queue today
 1. Extreme-shape packets need MULTIPLE SEEDS (shape-6 integrated smoke max
    err 0.00184 vs 0.002 atol — margin too thin for one seed) + the official

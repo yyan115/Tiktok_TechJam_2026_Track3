@@ -20,9 +20,12 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
    report): weights; MFU denominator+cap; bandwidth adjustment; zero-one-
    shape vs zero-everything; compute-only slice timing acceptance;
    built-ins policy; whether/when organizer I/O pairs appear; RUBRIC
-   DUALITY (external audit): repo README says 35/20/20/15/10, current
-   Devpost rules say 4 equally weighted criteria — the report frames
-   against BOTH, official rules control on conflict.
+   DUALITY (external audit — CORRECTED 30 Aug): the audit claimed Devpost
+   rules = 4 equal criteria but never reconciled README §3.6, which is the
+   OFFICIAL TRACK STATEMENT (per shapes.json provenance) and gives an
+   explicit 5-way 35/20/20/15/10 table (Presentation 10% = final event
+   only). The specific statement controls over generic site boilerplate:
+   README rubric LEADS, Devpost framing mentioned as secondary.
 8. Sensitivity board: recompute + SOURCE every denominator. 3060 Ti GA104:
    fp16-tensor-with-FP32-acc ~= 2x fp32 shader rate (~32.4 TF, what OUR
    kernels use); fp16-with-fp16-acc dense ~= 4x (~65 TF, absolute fp16
@@ -72,4 +75,8 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     packets at that same sha. One sha, one board, every number cites it.
     The historical 12-shape sweep predates the extreme-route integration
     and must be labeled historical in the report, never presented as a
-    measurement of the final artifact.
+    measurement of the final artifact. VARIANCE (found re-auditing the
+    audit): shape 3 official-dials swung 11.961x -> 15.173x between two
+    runs of the SAME route — tiny launch-bound shapes are noisy on the
+    official script. Final board = best-of-N or median-of-N sweeps per
+    small shape, N>=3, all N reported; the report states the noise.
