@@ -78,6 +78,20 @@ def load_json(p: Path, default):
         return default
 
 
+def load_state_strict():
+    """Fail CLOSED: issuance and reconciliation refuse to run on missing or
+    corrupt state — a wiped state file must not erase closures/debts."""
+    if not STATE.exists():
+        raise SystemExit("REFUSED: gate state missing. Run `run_gate.py init` "
+                         "once (records the event) if this is genuinely new.")
+    try:
+        return json.loads(STATE.read_text())
+    except Exception:
+        raise SystemExit("REFUSED: gate state unreadable/corrupt — fail "
+                         "closed. Restore Project/loop/gate_state.json from "
+                         "git before any further attempts.")
+
+
 def save_state(st: dict) -> None:
     LOOP.mkdir(parents=True, exist_ok=True)
     tmp = STATE.with_suffix(".tmp")
@@ -167,13 +181,14 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         if impl_p is None or not impl_p.exists():
             return None, f"impl file not found: {impl}"
         if mode == "optimization":
-            last_sha = grp.get("last_attempt_sha")
-            if last_sha and sha_file(impl_p) == last_sha:
-                return None, ("optimization permit refused: candidate bytes "
-                              "unchanged since the last attempt — an identical "
-                              "re-run is 'confirmation', label it honestly")
+            if sha_file(impl_p) in grp.get("attempted_shas", []):
+                return None, ("optimization permit refused: these exact "
+                              "candidate bytes were already attempted in this "
+                              "group — an identical re-run is 'confirmation', "
+                              "label it honestly")
     ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
-    pre_lines = len(ledger_p.read_text().splitlines()) if ledger_p.exists() else 0
+    pre_lines = (len([l for l in ledger_p.read_text().splitlines() if l.strip()])
+                 if ledger_p.exists() else 0)
     permit = {
         "permit_id": secrets.token_hex(8),
         "direction_id": direction,
@@ -194,7 +209,7 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
 
 
 def cmd_research(args) -> int:
-    st = load_json(STATE, {})
+    st = load_state_strict()
     if PERMIT.exists() or INFLIGHT.exists():
         print("REFUSED: an attempt is armed or in flight — finish and "
               "reconcile it before starting a new research cycle.")
@@ -234,7 +249,7 @@ def cmd_research(args) -> int:
 
 
 def cmd_plan(args) -> int:
-    st = load_json(STATE, {})
+    st = load_state_strict()
     if not st.get("research_open"):
         print("REFUSED: research step required first (this cycle). Two steps, in order.")
         return 1
@@ -291,7 +306,11 @@ def cmd_delta(args) -> int:
     had_plan = False
     if LOG.exists():
         for line in LOG.read_text().splitlines():
-            if '"step": "plan"' in line and args.direction in line:
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            if e.get("step") == "plan" and e.get("direction") == args.direction:
                 had_plan = True
                 break
     if not had_plan:
@@ -333,6 +352,8 @@ def cmd_reconcile(args) -> int:
     fl = load_json(INFLIGHT, None)
     if fl is None:
         return 0
+    st_check = load_state_strict()  # fail closed before any effects
+    del st_check
     # Orphan protection: if the referee is still running, or the attempt is
     # young and produced no row yet (backgrounded/compiling), WAIT — never
     # record an execution failure for a run that hasn't finished.
@@ -346,6 +367,11 @@ def cmd_reconcile(args) -> int:
     age = _t.time() - float(fl.get("consumed_epoch", fl.get("expires_epoch", _t.time()) - PERMIT_TTL_S))
     if running or (not new_rows and age < 120):
         return 0  # still in flight; a later watcher pass reconciles
+    claim = INFLIGHT.with_suffix(".claimed")
+    try:
+        INFLIGHT.rename(claim)  # atomic claim: replayers lose the rename race
+    except FileNotFoundError:
+        return 0
     gkey = f"{fl['direction_id']}|{int(fl['shape'])}"
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
@@ -354,7 +380,10 @@ def cmd_reconcile(args) -> int:
     grp.setdefault("attempts", 0)
     grp.setdefault("nonstrike_budget", 2)
     grp["attempts"] += 1
-    grp["last_attempt_sha"] = fl.get("impl_sha256")
+    if fl.get("impl_sha256") and fl["mode"] in ("optimization", "screening"):
+        shas = grp.setdefault("attempted_shas", [])
+        if fl["impl_sha256"] not in shas:
+            shas.append(fl["impl_sha256"])
     if fl["mode"] in ("confirmation", "correctness"):
         grp["nonstrike_budget"] = grp.get("nonstrike_budget", 2) - 1
     outcome = {"ts": now(), "step": "reconcile", "permit_id": fl["permit_id"],
@@ -408,9 +437,7 @@ def cmd_reconcile(args) -> int:
             outcome["declared_prediction"] = fl.get("prediction")
             st["pending_screen_judgment"] = {
                 "permit_id": fl["permit_id"], "group": gkey,
-                "observed_speedup": speed}
-            if not correct:
-                grp["strikes"] += 1
+                "observed_speedup": speed, "row_correct": correct}
         # confirmation/correctness/calibration: recorded, never strike.
         if grp["strikes"] >= MAX_STRIKES:
             grp["closed"] = True
@@ -421,7 +448,7 @@ def cmd_reconcile(args) -> int:
     save_state(st)
     log(outcome)
     USED.mkdir(exist_ok=True)
-    Path(INFLIGHT).replace(USED / f"{fl['permit_id']}.reconciled.json")
+    claim.replace(USED / f"{fl['permit_id']}.reconciled.json")
     if outcome.get("closed"):
         print(f"[run-gate] GROUP CLOSED: {gkey} (nonce {grp['closure_nonce']}). "
               "Postmortem now mandatory; reopening needs a critic receipt "
@@ -448,11 +475,15 @@ def cmd_screen_judge(args) -> int:
         print(f"REFUSED: --observed {stated} does not match the reconciled "
               f"row's speedup {obs}.")
         return 1
+    forced_miss = not pend.get("row_correct", True)
     st["pending_screen_judgment"] = None
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
                "closed": False, "closure_nonce": None})
-    if args.result == "miss":
+    if forced_miss and args.result == "hit":
+        print("NOTE: the row failed correctness — recorded as a MISS "
+              "regardless of the stated result.")
+    if args.result == "miss" or forced_miss:
         grp["strikes"] += 1
         if grp["strikes"] >= MAX_STRIKES:
             grp["closed"] = True
@@ -468,7 +499,7 @@ def cmd_screen_judge(args) -> int:
 
 
 def cmd_reopen(args) -> int:
-    st = load_json(STATE, {})
+    st = load_state_strict()
     grp = st.get("groups", {}).get(args.group)
     if not grp or not grp.get("closed"):
         print("Nothing closed under that group key.")
@@ -484,9 +515,9 @@ def cmd_reopen(args) -> int:
               "(real critic output, not an arbitrary file).")
         return 1
     text = critic.read_text(errors="ignore")
-    tail_lines = [l.strip() for l in text.strip().splitlines() if l.strip()][-5:]
-    verdict_ok = any(re.fullmatch(r"CRITIC:\s*(continue|narrow)", l)
-                     for l in tail_lines)
+    nonblank = [l.strip() for l in text.strip().splitlines() if l.strip()]
+    verdict_ok = bool(nonblank) and re.fullmatch(
+        r"CRITIC:\s*(continue|narrow)", nonblank[-1]) is not None
     if nonce not in text or not verdict_ok:
         print("REFUSED: the critic log must contain the EXACT closure nonce "
               f"({nonce}) and CONCLUDE (final lines) with CRITIC: continue|"
@@ -504,6 +535,18 @@ def cmd_reopen(args) -> int:
     log({"ts": now(), "step": "reopen", "group": args.group,
          "critic_log": str(critic), "consumed_nonce": nonce})
     print(f"Reopened {args.group} on critic authority (nonce consumed).")
+    return 0
+
+
+def cmd_init(_args) -> int:
+    if STATE.exists():
+        print("REFUSED: state already exists — init is first-time only.")
+        return 1
+    save_state({"research_cycle": 0, "research_open": False, "groups": {},
+                "pending_postmortem": [], "consumed_nonces": [],
+                "pending_screen_judgment": None})
+    log({"ts": now(), "step": "init"})
+    print("Gate state initialized CLOSED (event logged).")
     return 0
 
 
@@ -545,10 +588,12 @@ def main() -> int:
     ro.add_argument("--group", required=True)
     ro.add_argument("--critic-log", required=True)
     sub.add_parser("status")
+    sub.add_parser("init")
     args = ap.parse_args()
     return {"research": cmd_research, "plan": cmd_plan, "delta": cmd_delta,
             "reconcile": cmd_reconcile, "screen-judge": cmd_screen_judge,
-            "reopen": cmd_reopen, "status": cmd_status}[args.cmd](args)
+            "reopen": cmd_reopen, "status": cmd_status,
+            "init": cmd_init}[args.cmd](args)
 
 
 if __name__ == "__main__":

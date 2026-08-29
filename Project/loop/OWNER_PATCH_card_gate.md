@@ -1,4 +1,4 @@
-# OWNER PATCH v3 (supersedes v1/v2): permit-consuming run gate
+# OWNER PATCH v3.2 (supersedes v1/v2/v3): permit-consuming run gate
 
 Rebuilt after the external reviewer REJECTED v2 (stale-journal attribution,
 cross-shape strike nonsense, regex evasions, self-service unlock). v3 is a
@@ -17,12 +17,15 @@ Block A — insert AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line:
 # validated think-step issued (Project/tools/run_gate.py). Anything
 # unparseable, mismatched, duplicated, or stale => DENY (fail closed).
 def permit_gate_reason(command):
-    hits = re.findall(r"runner\.py\s+(?:\S+\s+)*(run|calibrate)\b[^|;&]*", command)
-    if not hits:
+    # Normalize quotes so `"Project/harness/runner.py"` can't dodge matching.
+    norm = command.replace('"', " ").replace("'", " ")
+    segs = [s for s in re.split(r"[|;&]+", norm)
+            if re.search(r"runner\.py\s+(?:\S+\s+)*(run|calibrate)\b", s)]
+    if not segs:
         return None
-    if len(hits) > 1:
+    if len(segs) > 1:
         return "Blocked: multiple referee invocations in one command (one permit = one run)."
-    seg = re.search(r"runner\.py\s+(?:\S+\s+)*(?:run|calibrate)\b[^|;&]*", command).group(0)
+    seg = segs[0]
     import pathlib, time as _t
     root = pathlib.Path(__file__).resolve().parents[2]
     loop = root / "Project/loop"
@@ -41,8 +44,8 @@ def permit_gate_reason(command):
         except Exception: pass
         return "Blocked: the ARMED permit expired. Issue a fresh think-step."
     def _opt(name):
-        m = re.search(name + r"(?:=|\s+)['\"]?([^\s'\"]+)", seg)
-        return m.group(1) if m else None
+        ms = re.findall(name + r"(?:=|\s+)([^\s]+)", seg)
+        return ms[-1] if ms else None  # argparse takes the LAST duplicate
     shape = _opt("--shape")
     impl = _opt("--impl")
     ledger = _opt("--ledger")
@@ -66,18 +69,21 @@ def permit_gate_reason(command):
     if str(lp) != permit.get("ledger"):
         return f"Blocked: permit is bound to ledger {permit.get('ledger')}."
     if permit.get("mode") == "optimization":
-        for flag in ("--dtype", "--warmup", "--repeats", "--rounds"):
-            if flag in seg:
+        # Deny any long option that PREFIX-matches a profile override —
+        # argparse accepts abbreviations (--dtyp, --warm, --rep, --rou).
+        for tok in re.findall(r"--[a-z-]+", seg):
+            if any(f.startswith(tok) for f in
+                   ("--dtype", "--warmup", "--repeats", "--rounds")):
                 return ("Blocked: optimization permits are bound to the "
-                        "primary profile — no timing/dtype overrides "
-                        f"({flag} present).")
+                        f"primary profile — override option {tok} present.")
     # CONSUME: ARMED -> IN_FLIGHT, atomically (O_EXCL prevents double
     # consumption), pre-run ledger offset captured NOW, before execution.
     try:
         import os as _os
         lp2 = pathlib.Path(permit["ledger"])
         permit["ledger_pre_lines"] = (
-            len(lp2.read_text().splitlines()) if lp2.exists() else 0)
+            len([l for l in lp2.read_text().splitlines() if l.strip()])
+            if lp2.exists() else 0)
         permit["consumed"] = _t.strftime("%Y-%m-%dT%H:%M:%S%z")
         permit["consumed_epoch"] = _t.time()
         fd = _os.open(str(loop / "in_flight.json"),
