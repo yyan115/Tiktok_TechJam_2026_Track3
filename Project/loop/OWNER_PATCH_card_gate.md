@@ -164,7 +164,11 @@ def permit_gate_reason(command):
     return None
 ```
 
-Block B — insert into `main()`, after the `recursive_rm_outside_tmp` check:
+Block B — insert into `main()` at the VERY END, AFTER the WRITE_PATTERNS
+loop (i.e., after the last existing deny check, just before the function
+returns). Permit consumption must be the FINAL authorization action: a
+command that any other check would deny must be denied BEFORE its permit is
+consumed, or doomed commands burn permits and record false failures.
 
 ```python
     # FAIL CLOSED: any exception inside the gate is itself a DENY — a hook
