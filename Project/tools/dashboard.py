@@ -125,13 +125,17 @@ def render():
     max_speed = max((b["speed"] for b in best.values()), default=1)
     st.dataframe(
         rows, width="stretch", hide_index=True, height=560,
+        row_height=48,
         column_config={
-            "Test": st.column_config.TextColumn(width="small"),
+            "Test": st.column_config.TextColumn(width=60),
             "Speedup": st.column_config.ProgressColumn(
-                "Speed vs baseline", format="%.1fx",
-                min_value=0, max_value=max_speed, width="medium"),
-            "": st.column_config.TextColumn(width="small"),
-            "When": st.column_config.TextColumn(width="small"),
+                "Speed", format="%.1fx",
+                min_value=0, max_value=max_speed, width=140),
+            "": st.column_config.TextColumn(width=70),
+            "Method": st.column_config.TextColumn(width=210),
+            "When": st.column_config.TextColumn(width=120),
+            "Audit": st.column_config.TextColumn(width=90),
+            "Remark": st.column_config.TextColumn(width="large"),
         })
 
     # ---------- Right now ----------
