@@ -1,5 +1,11 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 night — GATE APPROVED BY SOL (round 13). Owner paste = the only step before the caged grind restarts
+
+- 13 blind rounds (R1 REJECT -> R13 APPROVE), findings shrinking 10->8->9->6->6->4->5->3->2->2->2->1->0. The user's clarified override rule ("only skip what you genuinely judge not-an-issue") was applied once (exactly-once reconcile machinery) and the reviewer itself later endorsed that override.
+- Final architecture (v3.12): one-use permits from validated think-steps (research vs saved base -> cited plan with quoted lines, or structured delta), guard consumes under the shared lock as the FINAL authorization action, watcher reconciles from the referee's own journal row with full schema validation, per-(card x shape) strikes with true-best tracking, 3-strike closure -> forced postmortem -> new direction, nonce-bound critic receipts to reopen, everything fail-closed, auditor verifies citations.
+- NEXT: owner pastes OWNER_PATCH_card_gate.md into .claude/hooks/guard_bash.py (Block A after WRITE_PATTERNS defs; Block B at the END of main) -> agent runs the four proof-tests -> optimization resumes autonomous and caged. Allocation on restart per the converged plan: rental killed; remaining levers are tuning refinements + packaging; CODE FREEZE 31 Aug noon.
+
 ## 29 Aug 2026 evening — RUN GATE CONVERGED (v3.6) after 7 blind review rounds; awaiting the owner's one paste
 
 - The owner's spec (mechanical stop after EVERY try; two explicit steps — research grounded in the saved base, then a cited plan with exact quoted lines; 3 non-improving tries = closed direction; autonomous restart via forced postmortem; auditor verifies citations aren't faked) is implemented as a one-use-permit gate: think-step -> permit bound to card+mode+shape+bytes-sha+ledger+expiry -> guard consumes atomically -> run -> watcher reconciles from the referee's own journal row -> gate closed again.
