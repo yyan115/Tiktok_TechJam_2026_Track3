@@ -435,6 +435,18 @@ def cmd_reconcile(args) -> int:
         fl = load_json(claim, None)
         if fl is None:
             return 0
+        # Crash-leftover quarantine: an ARMED permit sharing this attempt's
+        # id (consume wrote in_flight but died before unlinking the permit)
+        # must be neutralized BEFORE in_flight leaves its blocking location.
+        if PERMIT.exists():
+            leftover = load_json(PERMIT, {})
+            if leftover.get("permit_id") == fl.get("permit_id"):
+                try:
+                    PERMIT.rename(USED / f"{fl['permit_id']}.stale-permit.json")
+                except Exception:
+                    claim.rename(INFLIGHT)  # fail closed: keep blocking
+                    raise SystemExit("REFUSED: could not quarantine the stale "
+                                     "permit — reconciliation aborted.")
         st = load_state_strict()  # fail closed before any effects
         # Orphan protection: referee still running (script or module form) or
         # young rowless attempt -> RESTORE the claim and wait for a later pass.

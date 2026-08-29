@@ -24,22 +24,23 @@ def permit_gate_reason(command):
     # A referee-adjacent command with substitution or loops is denied BEFORE
     # any segment matching — `a=run; runner.py "$a"` must not slip through
     # because the literal word run is missing.
+    ANCHOR = r"(runner\.py|harness\.runner)"
     touches_referee = re.search(r"(runner\.py|harness[./]runner)", norm)
     if touches_referee:
         if re.search(r"\b(for|while|until)\b", norm):
             return ("Blocked: shell loops around a referee invocation violate "
                     "one-permit-one-run. Write the single literal command.")
-        if "$" in norm or "`" in norm:
-            return ("Blocked: variable/command substitution near a referee "
-                    "command makes permit bindings unverifiable. Write "
-                    "literal values.")
-    REF = r"(runner\.py|Project\.harness\.runner)\s+(?:\S+\s+)*(run|calibrate)\b"
+        if "$" in norm or "`" in norm or "<(" in norm or ">(" in norm:
+            return ("Blocked: variable/command/process substitution near a "
+                    "referee command makes permit bindings unverifiable. "
+                    "Write single literal commands.")
+        if len(re.findall(ANCHOR, norm)) > 1:
+            return "Blocked: multiple referee invocations in one command (one permit = one run)."
+    REF = ANCHOR + r"\s+(?:\S+\s+)*(run|calibrate)\b"
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(REF, s)]
     if not segs:
         return None
-    if len(segs) > 1 or len(re.findall(REF, norm)) > 1:
-        # Global match count catches multiple invocations INSIDE one segment
-        # too (e.g. two process substitutions).
+    if len(segs) > 1:
         return "Blocked: multiple referee invocations in one command (one permit = one run)."
     seg = segs[0]
     # No other segment of this command may touch the permitted impl file
@@ -77,6 +78,14 @@ def permit_gate_reason(command):
         try: permit_p.unlink()
         except Exception: pass
         return "Blocked: the ARMED permit expired. Issue a fresh think-step."
+    used_dir = loop / "permits_used"
+    pid = str(permit.get("permit_id", ""))
+    if pid and used_dir.exists() and any(f.name.startswith(pid)
+                                         for f in used_dir.iterdir()):
+        try: permit_p.unlink()
+        except Exception: pass
+        return ("Blocked: this permit id was already consumed (stale leftover "
+                "quarantined). Issue a fresh think-step.")
     def _opt(name):
         ms = re.findall(name + r"(?:=|\s+)([^\s]+)", seg)
         return ms[-1] if ms else None  # argparse takes the LAST duplicate
