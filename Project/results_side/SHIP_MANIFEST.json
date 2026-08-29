@@ -1,7 +1,7 @@
 {
  "device_primary": "NVIDIA GeForce RTX 3060 Ti (8 GB)",
- "generated": "2026-08-29T21:16:20+0800",
- "git_revision": "db3a3f76a93b55294aeb112bf5d992d0e70b8ad2",
+ "generated": "2026-08-29T21:18:23+0800",
+ "git_revision": "888e087f2f6d28323d88a4e922d3298a6ca5f357",
  "official_script_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e",
  "shapes": {
   "1": {

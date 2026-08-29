@@ -456,6 +456,7 @@ class UserOptimizedTransformer(BaselineTransformer):
     def _fp16_forward(self, x):
         cfg = self.config
         B, S, d = x.shape
+        long_seq = S >= 16384  # extreme-sequence memory discipline (shape-14 class)
         for layer in self.layers:
             c = _sub_pack_fp16_layer(layer)
             attn = layer.attention
@@ -465,6 +466,8 @@ class UserOptimizedTransformer(BaselineTransformer):
             q = q.view(B, S, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
             k = k.view(B, S, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
             v = v.view(B, S, attn.num_heads, attn.head_dim).transpose(1, 2).contiguous()
+            if long_seq:
+                del qkv, h16  # ~0.8 GB of dead staging per micro-batch at S=100k
             if attn.head_dim <= 256 and S % 32 == 0:
                 context = _sub_triton_attention(q, k, v, attn.scale, cfg.causal)
             else:
@@ -476,6 +479,22 @@ class UserOptimizedTransformer(BaselineTransformer):
                 context = torch.matmul(
                     torch.softmax(scores.float(), dim=-1).half(), v)
             context = context.transpose(1, 2).contiguous().view(B, S, d)
+            if long_seq:
+                # Sequence-chunked tail: exact row-wise math, O(chunk) transients.
+                del q, k, v
+                x_new = torch.empty_like(x)
+                CH = 16384
+                for s0 in range(0, S, CH):
+                    s1 = min(s0 + CH, S)
+                    a = F.linear(context[:, s0:s1], c["out_proj"][0], c["out_proj"][1])
+                    x2 = x[:, s0:s1] + a.float()
+                    h16c = _sub_ln_to_fp16(layer.norm2, x2)
+                    hid = F.linear(h16c, c["ffn_in"][0], c["ffn_in"][1])
+                    hid = _sub_gelu_fp16_(hid)
+                    fo = F.linear(hid, c["ffn_out"][0], c["ffn_out"][1])
+                    x_new[:, s0:s1] = x2 + fo.float()
+                x = x_new
+                continue
             attn_out = F.linear(context, c["out_proj"][0], c["out_proj"][1])
             x = x + attn_out.float()
             h16 = _sub_ln_to_fp16(layer.norm2, x)
@@ -507,6 +526,22 @@ class UserOptimizedTransformer(BaselineTransformer):
         if valid_token_mask is not None and not bool(valid_token_mask.all()):
             # Exact baseline path, including pre-softmax key masking.
             return BaselineTransformer.forward(self, x, valid_token_mask)
+
+        B, S = x.shape[0], x.shape[1]
+        if S >= 16384:
+            # Extreme sequences (shape-14 class): the naive attention table is
+            # infeasible on any hardware — divide the computation into blocks
+            # (per the track guidance): batch micro-chunks, no CUDA graphs,
+            # streamed into one preallocated output.
+            out = torch.empty_like(x)
+            for bs in range(0, B, 1):
+                out[bs:bs + 1] = self._fast_forward(x[bs:bs + 1])
+            return out
+        if B * S >= 262144:
+            # Huge token counts (shape-6 class): graph capture memory is
+            # unproven at this size and launch savings are negligible when
+            # every kernel runs for milliseconds — run eagerly.
+            return self._fast_forward(x)
 
         state = getattr(self, "_sub_graph_state", None)
         if state is None:
