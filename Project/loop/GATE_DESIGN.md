@@ -117,3 +117,12 @@ The gate's core promises hold under normal operation: every try requires a
 committed, cited thinking step; every try re-locks; strikes are judged by
 the referee's own journal per comparable group; closures force postmortems
 and new directions; reopening requires an external verdict.
+
+
+## FINAL: APPROVED (round 13, 29 Aug night)
+
+Thirteen blind rounds: R1 REJECT -> R2(8) R3(9) R4(6) R5(6) R6(4) R7(5)
+R8(3) R9(2) R10(4) R11(2) R12(1) -> R13 APPROVE. Every load-bearing defect
+fixed; the single documented override (exactly-once reconciliation
+machinery) was explicitly judged defensible by the reviewer in R8 once the
+stale-permit quarantine landed (it did, R9-R10). The gate ships at v3.12.
