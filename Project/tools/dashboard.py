@@ -34,10 +34,25 @@ DIR_FRIENDLY = {
     "F-shape14-attn": "long-text attention (test 14)", "F-shape6-local": "huge-batch proof (test 6)",
     "F-shape8-fp16acc": "fp16 math trick (test 8)", "F-shape11-hd8": "tiny-heads idea (test 11)",
 }
+ABSOLUTE_PATHS = (
+    re.compile(r"file:///(?:[^\s`'\"<>|]+)"),
+    re.compile(r"(?<!\w)(?:[A-Za-z]:[\\/]|\\\\)[^\s`'\"<>|]+"),
+    re.compile(r"(?<![\w/])/(?!/)[^\s`'\"<>|]+"),
+)
 
 
 def friendly(name):
     return FRIENDLY.get(name, DIR_FRIENDLY.get(name, name))
+
+
+def presentation_text(value, enabled):
+    """Hide absolute filesystem paths in presentation-facing dynamic text."""
+    text = str(value)
+    if not enabled:
+        return text
+    for pattern in ABSOLUTE_PATHS:
+        text = pattern.sub("(path hidden)", text)
+    return text
 
 
 def jload(path):
@@ -289,6 +304,10 @@ st.markdown("""
   }
 </style>""", unsafe_allow_html=True)
 st.title("🏁 Track 3 — Live Board")
+presentation_mode = st.sidebar.toggle(
+    "Presentation mode (hide private logs)", value=False, key="presentation_mode"
+)
+st.sidebar.caption("Session only — this setting is not written to a config file.")
 
 
 @st.fragment(run_every=10)
@@ -354,11 +373,13 @@ def render():
         rows.append({
             "Test": f"#{sid}",
             "Speedup": r.get("speed"),
-            "Method": friendly(r["impl"]),
-            "When": r["when"][:16].replace("T", " "),
-            "Audit": audit,
+            "Method": presentation_text(friendly(r["impl"]), presentation_mode),
+            "When": presentation_text(r["when"][:16].replace("T", " "),
+                                      presentation_mode),
+            "Audit": presentation_text(audit, presentation_mode),
             "AuditTone": audit_tone,
-            "Remark": r.get("remark", "") or "—",
+            "Remark": presentation_text(r.get("remark", "") or "—",
+                                        presentation_mode),
         })
     max_speed = max((b["speed"] for b in best.values()), default=1)
     st.html(scoreboard_html(rows, max_speed))
@@ -384,7 +405,8 @@ def render():
         status = card.get("status", "")
         icon = "❌ dead" if ("KILLED" in status or "CLOSED" in status.upper() and "local" not in status) \
             else "✅ done" if "complete" in status.lower() else "🔄 " + status[:40]
-        ideas.append(f"**{friendly(card['direction_family_id'])}** — {icon}")
+        idea = f"**{friendly(card['direction_family_id'])}** — {icon}"
+        ideas.append(presentation_text(idea, presentation_mode))
     if ideas:
         st.markdown("Ideas: " + " · ".join(ideas))
 
@@ -404,9 +426,13 @@ def render():
     if "cage" in show:
         for g in jload(GATE_LOG)[-150:]:
             step = g.get("step", "?")
+            plan_detail = ("" if presentation_mode else
+                           " — prediction: " + str(g.get("prediction", ""))[:60])
+            delta_detail = ("" if presentation_mode else
+                            " — " + str(g.get("changed", ""))[:60])
             msg = {"research": "📚 [CAGE] research step accepted — sources read & logged",
-                   "plan": "🧭 [CAGE] plan approved — prediction: " + str(g.get("prediction", ""))[:60],
-                   "delta": "🔧 [CAGE] follow-up attempt approved — " + str(g.get("changed", ""))[:60],
+                   "plan": "🧭 [CAGE] plan approved" + plan_detail,
+                   "delta": "🔧 [CAGE] follow-up attempt approved" + delta_detail,
                    "reconcile": f"⚖️ [CAGE] attempt judged — {g.get('result', 'result recorded')}"
                                 + (" · idea CLOSED ❌" if g.get("closed") else ""),
                    "screen_judge": f"🎯 [CAGE] screening {g.get('result', '')} recorded",
@@ -428,11 +454,17 @@ def render():
     events.sort(key=lambda x: x[0], reverse=True)
     with st.container(height=460, border=True):
         for ts, msg, detail in events[:100]:
-            line = f"`{ts[:16].replace('T', ' ')}` &nbsp; {msg}"
+            safe_ts = presentation_text(ts[:16].replace("T", " "),
+                                        presentation_mode)
+            safe_msg = presentation_text(msg, presentation_mode)
+            line = f"`{safe_ts}` &nbsp; {safe_msg}"
             if detail and Path(detail).exists():
                 with st.expander(line):
-                    txt = Path(detail).read_text(errors="ignore")
-                    st.code(txt[-4000:], language=None)
+                    if presentation_mode:
+                        st.caption("(hidden in presentation mode)")
+                    else:
+                        txt = Path(detail).read_text(errors="ignore")
+                        st.code(txt[-4000:], language=None)
             else:
                 st.markdown(line)
 
