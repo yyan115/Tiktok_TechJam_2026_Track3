@@ -57,6 +57,7 @@ PERMIT = LOOP / "permit.json"
 USED = LOOP / "permits_used"
 INFLIGHT = LOOP / "in_flight.json"
 LOG = LOOP / "gate_log.jsonl"
+VERDICTS = ROOT / "Project" / "audits" / "verdicts.jsonl"
 INDEX = ROOT / "Project" / "research" / "INDEX.md"
 CARDS = LOOP / "cards.jsonl"
 DEFAULT_JOURNAL = ROOT / "Project" / "results" / "JOURNAL.jsonl"
@@ -191,7 +192,51 @@ def parse_citations(spec: str):
     return out, None
 
 
-def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref):
+def unacked_hard_verdicts(st):
+    """RULE_VIOLATION / RETEST audit verdicts recorded after the gate went
+    live that have no journaled acknowledgment. Any such verdict brakes ALL
+    new permits (Track-2 lesson: an audit that only displays is telemetry,
+    not a governor). Malformed verdict lines fail closed as blockers.
+    Timestamps compare lexically — every writer on this box uses +0800."""
+    cutoff = st.get("created")
+    if not cutoff:
+        try:
+            first = next(l for l in LOG.read_text().splitlines() if l.strip())
+            cutoff = json.loads(first).get("ts") or "0000"
+        except Exception:
+            cutoff = "0000"
+        st["created"] = cutoff  # persisted by the caller's next commit()
+    cleared = set(st.get("cleared_verdicts", []))
+    out = []
+    try:
+        lines = VERDICTS.read_text().splitlines()
+    except FileNotFoundError:
+        return out
+    except Exception:
+        return [{"_clear_key": "UNREADABLE-VERDICT-LEDGER|?",
+                 "verdict": "RULE_VIOLATION"}]
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            v = json.loads(line)
+        except Exception:
+            out.append({"_clear_key": "MALFORMED-VERDICT-LINE|?",
+                        "verdict": "RULE_VIOLATION"})
+            continue
+        if v.get("verdict") not in ("RULE_VIOLATION", "RETEST"):
+            continue
+        if str(v.get("recorded", "")) <= cutoff:
+            continue
+        key = f"{v.get('entry_id')}|{v.get('recorded')}"
+        if key not in cleared:
+            v["_clear_key"] = key
+            out.append(v)
+    return out
+
+
+def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
+                 predict_min=None, predict_max=None):
     if PERMIT.exists():
         return None, "a permit is already ARMED — one attempt at a time"
     if INFLIGHT.exists():
@@ -202,6 +247,37 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
     if st.get("pending_screen_judgment"):
         return None, ("the previous screening attempt has no recorded hit/miss "
                       "judgment — run `screen-judge` first")
+    hard = unacked_hard_verdicts(st)
+    violations = [h for h in hard if h.get("verdict") == "RULE_VIOLATION"]
+    retests = [h for h in hard if h.get("verdict") == "RETEST"]
+    if violations:
+        keys = [h.get("_clear_key", "?") for h in violations[:3]]
+        return None, (f"{len(violations)} uncleared RULE_VIOLATION verdict(s) "
+                      f"freeze ALL new permits (e.g. {keys}). This unlock is "
+                      "OWNER-ONLY: show the owner the cited audit log; when "
+                      "they rule in chat, run verdict-clear --kind violation "
+                      "--entry-id E --recorded R --owner-quote '<their "
+                      "literal words>'. No AI may authorize this.")
+    if retests and mode in ("optimization", "screening"):
+        keys = [h.get("_clear_key", "?") for h in retests[:3]]
+        return None, (f"{len(retests)} unsatisfied RETEST verdict(s) "
+                      f"(e.g. {keys}) — satisfy them FIRST: run a "
+                      "confirmation-mode attempt on the SAME bytes+shape, "
+                      "then verdict-clear --kind retest --confirm-entry "
+                      "<new row id>. Only confirmation/correctness/"
+                      "calibration permits issue until then.")
+    retest_open = bool(retests)
+    if mode == "screening":
+        if predict_min is None or predict_max is None:
+            return None, ("screening permits require --predict-min and "
+                          "--predict-max (the gate computes hit/miss from "
+                          "them — results are never self-declared)")
+        try:
+            predict_min, predict_max = float(predict_min), float(predict_max)
+        except (TypeError, ValueError):
+            return None, "--predict-min/--predict-max must be numbers"
+        if not (0.0 < predict_min < predict_max):
+            return None, "need 0 < predict-min < predict-max"
     if mode not in MODES:
         return None, f"mode must be one of {MODES}"
     try:
@@ -222,7 +298,10 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         if impl:
             return None, "calibration permits must not carry --impl (that's a candidate run)"
     if mode in ("confirmation", "correctness"):
-        if grp.get("nonstrike_budget", 2) <= 0:
+        # A confirmation that exists to satisfy an outstanding RETEST must
+        # never deadlock on the politeness budget.
+        if grp.get("nonstrike_budget", 2) <= 0 and not (
+                retest_open and mode == "confirmation"):
             return None, (f"non-strike budget exhausted for {gkey} — further "
                           "attempts must be optimization or screening (which "
                           "can strike)")
@@ -230,6 +309,10 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
     if mode != "calibration":
         if impl_p is None or not impl_p.exists():
             return None, f"impl file not found: {impl}"
+        try:
+            impl_p.relative_to(ROOT)
+        except ValueError:
+            return None, "impl must live inside the repository (fail closed)"
         if mode == "optimization":
             if sha_file(impl_p) in grp.get("attempted_shas", []):
                 return None, ("optimization permit refused: these exact "
@@ -249,6 +332,8 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref)
         "ledger": str(ledger_p),
         "ledger_pre_lines": pre_lines,
         "prediction": prediction,
+        "predict_min": predict_min,
+        "predict_max": predict_max,
         "plan_ref": plan_ref,
         "issued": now(),
         "expires_epoch": time.time() + PERMIT_TTL_S,
@@ -341,7 +426,8 @@ def cmd_plan(args) -> int:
         return 1
     plan_id = secrets.token_hex(6)
     permit, perr = issue_permit(st, args.direction, args.mode, args.shape,
-                                args.impl, args.ledger, args.prediction, plan_id)
+                                args.impl, args.ledger, args.prediction, plan_id,
+                                args.predict_min, args.predict_max)
     if perr:
         print(f"REFUSED: {perr}")
         return 1
@@ -349,6 +435,7 @@ def cmd_plan(args) -> int:
     commit(st, {"ts": now(), "step": "plan", "plan_id": plan_id,
          "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "hypothesis": args.hypothesis, "prediction": args.prediction,
+         "predict_min": permit["predict_min"], "predict_max": permit["predict_max"],
          "kill": args.kill, "citations": citations,
          "reasoning": args.reasoning, "permit_id": permit["permit_id"]})
     arm_permit(permit)
@@ -395,13 +482,15 @@ def cmd_delta(args) -> int:
         return 1
     plan_id = secrets.token_hex(6)
     permit, perr = issue_permit(st, args.direction, args.mode, args.shape,
-                                args.impl, args.ledger, args.prediction, plan_id)
+                                args.impl, args.ledger, args.prediction, plan_id,
+                                args.predict_min, args.predict_max)
     if perr:
         print(f"REFUSED: {perr}")
         return 1
     commit(st, {"ts": now(), "step": "delta", "plan_id": plan_id,
          "direction": args.direction, "mode": args.mode, "shape": args.shape,
          "changed": args.changed, "prediction": args.prediction,
+         "predict_min": permit["predict_min"], "predict_max": permit["predict_max"],
          "permit_id": permit["permit_id"]})
     arm_permit(permit)
     print(f"DELTA accepted. Permit {permit['permit_id']} ARMED for ONE run.")
@@ -570,7 +659,9 @@ def _reconcile_locked(st, fl, claim, new_rows) -> int:
             outcome["declared_prediction"] = fl.get("prediction")
             st["pending_screen_judgment"] = {
                 "permit_id": fl["permit_id"], "group": gkey,
-                "observed_speedup": speed, "row_correct": correct}
+                "observed_speedup": speed, "row_correct": correct,
+                "predict_min": fl.get("predict_min"),
+                "predict_max": fl.get("predict_max")}
         # confirmation/correctness/calibration: recorded, never strike.
         if grp["strikes"] >= MAX_STRIKES:
             grp["closed"] = True
@@ -589,8 +680,10 @@ def _reconcile_locked(st, fl, claim, new_rows) -> int:
 
 
 def cmd_screen_judge(args) -> int:
-    """Record the screening range hit/miss — bound to the pending screening
-    attempt (one-use); the observed value must match the reconciled row."""
+    """COMPUTE the screening hit/miss from the bounds stored at permit time
+    against the reconciled row. The agent supplies --observed only as an
+    attention check; it never declares the result (Track-2 lesson: the
+    beneficiary of a judgment must not be its author)."""
     st = load_state_strict()  # locked + seq-checked from the first read
     pend = st.get("pending_screen_judgment")
     gkey = f"{args.direction}|{int(args.shape)}"
@@ -607,26 +700,127 @@ def cmd_screen_judge(args) -> int:
         print(f"REFUSED: --observed {stated} does not match the reconciled "
               f"row's speedup {obs}.")
         return 1
-    forced_miss = not pend.get("row_correct", True)
+    pmin, pmax = pend.get("predict_min"), pend.get("predict_max")
+    if pmin is None or pmax is None:
+        print("REFUSED: this pending screening attempt carries no structured "
+              "bounds (predates the computed-judgment gate) — resolve it with "
+              "the owner; results are never self-declared.")
+        return 1
+    basis = obs if obs is not None else stated
+    result = ("hit" if (pend.get("row_correct", False)
+                        and float(pmin) <= basis <= float(pmax)) else "miss")
     st["pending_screen_judgment"] = None
     grp = st.setdefault("groups", {}).setdefault(
         gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
                "closed": False, "closure_nonce": None})
-    if forced_miss and args.result == "hit":
-        print("NOTE: the row failed correctness — recorded as a MISS "
-              "regardless of the stated result.")
-    if args.result == "miss" or forced_miss:
+    if not pend.get("row_correct", False):
+        print("NOTE: the row failed correctness — MISS regardless of range.")
+    if result == "miss":
         grp["strikes"] += 1
         if grp["strikes"] >= MAX_STRIKES:
             grp["closed"] = True
             grp["closure_nonce"] = secrets.token_hex(8)
             st.setdefault("pending_postmortem", []).append(gkey)
     commit(st, {"ts": now(), "step": "screen_judge", "group": gkey,
-         "result": args.result, "observed": args.observed,
+         "result": result, "computed": True, "observed": basis,
+         "predict_min": pmin, "predict_max": pmax,
          "strikes": grp["strikes"], "closed": grp["closed"]})
-    print(f"screening {args.result} recorded for {gkey} "
+    print(f"screening JUDGED {result} for {gkey} — computed from bounds "
+          f"[{pmin}, {pmax}] vs observed {basis} "
           f"(strikes {grp['strikes']}/{MAX_STRIKES}).")
     return 0
+
+
+def _journal_row(entry_id):
+    try:
+        for line in DEFAULT_JOURNAL.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if r.get("entry_id") == entry_id:
+                return r
+    except Exception:
+        return None
+    return None
+
+
+def cmd_verdict_clear(args) -> int:
+    """Lift the brake for ONE hard verdict. NO AI-owned free-text unlock
+    exists (Track-2 lesson; authority-design.md rule 4):
+      --kind retest    -> MECHANICAL: point at a newer journal row that
+                          reruns the SAME bytes + shape and passed. The gate
+                          verifies it; no prose involved.
+      --kind violation -> OWNER-ONLY: requires the owner's literal chat
+                          ruling via --owner-quote; the transcript is the
+                          proof. An invented quote is naked misconduct."""
+    st = load_state_strict()
+    key = f"{args.entry_id}|{args.recorded}"
+    outstanding = {h.get("_clear_key"): h for h in unacked_hard_verdicts(st)}
+    if key not in outstanding:
+        print("REFUSED: that (entry-id, recorded) pair is not an outstanding "
+              "hard verdict (already cleared, pre-gate, or nonexistent).")
+        return 1
+    kind = outstanding[key].get("verdict")
+    if args.kind == "retest":
+        if kind != "RETEST":
+            print(f"REFUSED: verdict {key} is {kind}, not RETEST.")
+            return 1
+        if not args.confirm_entry:
+            print("REFUSED: --confirm-entry <entry_id of the confirmation "
+                  "row> is required for a retest clear.")
+            return 1
+        orig = _journal_row(args.entry_id)
+        conf = _journal_row(args.confirm_entry)
+        if orig is None or conf is None:
+            print("REFUSED: original or confirmation row not found in the "
+                  "primary journal. A retest of an entry outside the journal "
+                  "is an owner decision (--kind violation path).")
+            return 1
+        if conf.get("entry_id") == orig.get("entry_id"):
+            print("REFUSED: the confirmation must be a NEW row, not the "
+                  "retested row itself.")
+            return 1
+        same_bytes = (conf.get("impl", {}).get("sha256")
+                      and conf.get("impl", {}).get("sha256")
+                      == orig.get("impl", {}).get("sha256"))
+        same_shape = conf.get("shape") == orig.get("shape")
+        passed = bool(conf.get("correctness", {}).get("passed"))
+        # The frozen runner's entry ids are timestamp-prefixed; prefer an
+        # explicit timestamp field when both rows carry one.
+        if conf.get("timestamp") and orig.get("timestamp"):
+            newer = str(conf["timestamp"]) > str(orig["timestamp"])
+        else:
+            newer = str(conf.get("entry_id", "")) > str(orig.get("entry_id", ""))
+        if not (same_bytes and same_shape and passed and newer):
+            print(f"REFUSED: confirmation row fails the mechanical check "
+                  f"(same_bytes={bool(same_bytes)} same_shape={same_shape} "
+                  f"passed={passed} newer={newer}).")
+            return 1
+        st.setdefault("cleared_verdicts", []).append(key)
+        commit(st, {"ts": now(), "step": "verdict_clear", "kind": "retest",
+                    "verdict_key": key, "confirm_entry": args.confirm_entry})
+        print(f"RETEST {key} satisfied by {args.confirm_entry} "
+              "(verified mechanically).")
+        return 0
+    if args.kind == "violation":
+        if kind != "RULE_VIOLATION":
+            print(f"REFUSED: verdict {key} is {kind}, not RULE_VIOLATION.")
+            return 1
+        quote = (args.owner_quote or "").strip()
+        if len(quote) < 30:
+            print("REFUSED: --owner-quote must carry the owner's literal "
+                  "ruling from chat (>=30 chars). Only the owner may clear a "
+                  "RULE_VIOLATION; fabricating a quote is naked misconduct "
+                  "provable against the transcript.")
+            return 1
+        st.setdefault("cleared_verdicts", []).append(key)
+        commit(st, {"ts": now(), "step": "verdict_clear", "kind": "violation",
+                    "verdict_key": key, "owner_quote": quote})
+        print(f"RULE_VIOLATION {key} cleared on owner authority (quote "
+              "journaled; transcript is the proof).")
+        return 0
+    print("REFUSED: --kind must be retest or violation.")
+    return 1
 
 
 def cmd_reopen(args) -> int:
@@ -683,7 +877,8 @@ def cmd_init(_args) -> int:
         return 1
     st = {"research_cycle": 0, "research_open": False, "groups": {},
           "pending_postmortem": [], "consumed_nonces": [],
-          "pending_screen_judgment": None, "seq": 0}
+          "pending_screen_judgment": None, "seq": 0,
+          "created": now(), "cleared_verdicts": []}
     commit(st, {"ts": now(), "step": "init"})
     print("Gate state initialized CLOSED (event logged).")
     return 0
@@ -721,8 +916,13 @@ def main() -> int:
     sj = sub.add_parser("screen-judge")
     sj.add_argument("--direction", required=True)
     sj.add_argument("--shape", required=True)
-    sj.add_argument("--result", required=True, choices=("hit", "miss"))
     sj.add_argument("--observed", required=True)
+    va = sub.add_parser("verdict-clear")
+    va.add_argument("--entry-id", required=True)
+    va.add_argument("--recorded", required=True)
+    va.add_argument("--kind", required=True, choices=("retest", "violation"))
+    va.add_argument("--confirm-entry", default=None)
+    va.add_argument("--owner-quote", default=None)
     ro = sub.add_parser("reopen")
     ro.add_argument("--group", required=True)
     ro.add_argument("--critic-log", required=True)
@@ -731,6 +931,7 @@ def main() -> int:
     args = ap.parse_args()
     return {"research": cmd_research, "plan": cmd_plan, "delta": cmd_delta,
             "reconcile": cmd_reconcile, "screen-judge": cmd_screen_judge,
+            "verdict-clear": cmd_verdict_clear,
             "reopen": cmd_reopen, "status": cmd_status,
             "init": cmd_init}[args.cmd](args)
 
