@@ -203,6 +203,24 @@ by exactly the two post-record status lines — systematic, explainable,
 verifiable by stripping those lines; future receipts use the immutable
 response artifact. Suite: 37/37.
 
+## Amendment v4.4 (30 Aug, convergence-loop round 3 folded — 5 items, all
+implementation-layer; reviewer confirmed round-2 fixes on nominal paths)
+(1) Verdict recording is now serialized: the auditor records only while
+holding the shared gate lock with no attempt in flight — no post-verdict
+run can slip between a permit's brake check and execution. (2) The watcher's
+launch-time cache is GONE: audit-handled is derived from durable verdict
+rows plus live process markers with stale-marker cleanup; crashed audits
+refire instead of being suppressed (this also surfaces a 24-entry backlog —
+NARROWINGS 10b). Response artifacts are per-attempt unique and claimed with
+exclusive-create (no double-launch, no overwritten receipts). (3) The
+verdict is parsed from ONE complete JSON document with a token cross-check;
+prose, decoys, and partial objects are JUDGE_ERROR. (4) sed and less are
+removed from the guard's read allowance entirely (native write options);
+other segments may not carry the bound run-record name OR a --ledger token.
+(5) Guard + parser regression tests are COMMITTED, with the guard tested
+from the owner patch's own bytes (tests/guard_and_auditor_test.py, 30/30;
+CLI suite 37/37).
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

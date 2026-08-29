@@ -162,9 +162,10 @@ def permit_gate_reason(command):
     # No other segment may touch the bound ledger — run-then-rewrite in one
     # command would launder the evidence the reconcile step trusts.
     lbase = pathlib.Path(permit.get("ledger", "")).name
-    if lbase and any(lbase in s for s in other):
+    if any((lbase and lbase in s) or "--ledger" in s for s in other):
         return ("Blocked: another segment of this command references the "
-                "bound ledger file — evidence laundering pattern.")
+                "bound ledger (by name or --ledger token) — evidence "
+                "laundering pattern.")
     if permit.get("mode") in ("optimization", "confirmation"):
         # Deny any long option that PREFIX-matches a profile override —
         # argparse accepts abbreviations (--dtyp, --warm, --rep, --rou).
@@ -228,10 +229,12 @@ def state_write_reason(command):
         if (re.match(r"(python3?\s+)?\S*(audit_champion|champion_watch)\.py\b", t)
                 and ">" not in t):
             continue  # launching the auditor/watcher, no redirection
-        if (re.match(r"(cat|head|tail|less|grep|wc|ls|stat|file|sha256sum|"
-                     r"diff|sed\s+-n)\b", t) and ">" not in t
-                and not re.search(r"\s-i\b|--in-place", t)):
-            continue  # plain reads (sed only without any in-place flag)
+        # Read allowance holds ONLY tools with no native write-to-file
+        # options (reviewer round 3: sed's `w`, --in-pla abbreviations, and
+        # less -O are ordinary writers — sed and less are OUT; use cat/grep).
+        if (re.match(r"(cat|head|tail|grep|wc|ls|stat|file|sha256sum|"
+                     r"diff)\b", t) and ">" not in t):
+            continue  # plain reads
         if (re.match(r"git\s+(add|commit|log|show|diff|status)\b", t)
                 and ">" not in t
                 and not re.search(r"\s--?o(ut(put)?)?\b|--output", t)):

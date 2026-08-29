@@ -34,36 +34,97 @@ def wait_for_idle_runner() -> None:
         time.sleep(10)
 
 
+def parse_verdict(stdout: str, returncode: int) -> str:
+    """One complete, parseable JSON document decides — with a
+    token-scan cross-check (reviewer round 3: a bare regex accepted prose,
+    concatenations, and incomplete objects). Anything ambiguous or
+    unfinished is JUDGE_ERROR, never a judgment."""
+    allowed = ("PASS", "RETEST", "NEEDS_CONTEXT", "RULE_VIOLATION")
+    if returncode != 0:
+        return "JUDGE_ERROR"
+    doc_verdict = None
+    for line in reversed(stdout.splitlines()):
+        line = line.strip()
+        if not (line.startswith("{") and line.endswith("}")):
+            continue
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(d, dict) and d.get("verdict") in allowed:
+            doc_verdict = d["verdict"]
+            break
+    tokens = set(re.findall(
+        r'"verdict"\s*:\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
+        stdout))
+    if doc_verdict is None or len(tokens) != 1 or tokens != {doc_verdict}:
+        return "JUDGE_ERROR"
+    return doc_verdict
+
+
 def record(entry_id: str, verdict: str, source_log: Path) -> bool:
-    """Record through the frozen runner; success is VERIFIED, not assumed
-    (reviewer round 2: a failed record must never look like a success)."""
-    r = subprocess.run(
-        [sys.executable, str(RUNNER), "record-verdict", "--id", entry_id,
-         "--verdict", verdict, "--source", str(source_log)],
-        cwd=str(ROOT), capture_output=True, text=True, timeout=120,
-    )
-    if r.returncode != 0:
-        print(f"[auto-audit] RECORD FAILED for {entry_id}: {r.stdout} {r.stderr}")
-        return False
-    return True
-
-
-def unmark_handled(entry_id: str) -> None:
-    """On a failed record, put the champion back in the watcher's queue so
-    the audit refires instead of silently vanishing."""
-    cache = Path(__file__).parent / ".champion_cache.json"
+    """Record through the frozen runner UNDER THE SHARED GATE LOCK with no
+    attempt in flight (reviewer round 3: an unserialized verdict landing
+    between a permit's brake check and its execution allowed one
+    post-verdict run). Success is VERIFIED, not assumed."""
+    import fcntl
+    lockf = open(ROOT / "Project" / "loop" / ".gate.lock", "w")
+    deadline = time.time() + 900
     try:
-        entries = json.loads(cache.read_text())
-        cache.write_text(json.dumps([e for e in entries if e != entry_id]))
-        print(f"[auto-audit] {entry_id} returned to the audit queue.")
-    except Exception as exc:  # noqa: BLE001
-        print(f"[auto-audit] could not re-queue {entry_id}: {exc} — "
-              "AUDIT REMAINS UNRECORDED; re-run this champion to refire.")
+        while True:
+            got = False
+            try:
+                fcntl.flock(lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                got = True
+                if not (ROOT / "Project" / "loop" / "in_flight.json").exists():
+                    break
+                fcntl.flock(lockf, fcntl.LOCK_UN)
+            except OSError:
+                if got:
+                    try:
+                        fcntl.flock(lockf, fcntl.LOCK_UN)
+                    except OSError:
+                        pass
+            if time.time() > deadline:
+                print(f"[auto-audit] RECORD TIMED OUT waiting for the gate "
+                      f"lock/in-flight for {entry_id} — audit stays pending.")
+                return False
+            time.sleep(5)
+        r = subprocess.run(
+            [sys.executable, str(RUNNER), "record-verdict", "--id", entry_id,
+             "--verdict", verdict, "--source", str(source_log)],
+            cwd=str(ROOT), capture_output=True, text=True, timeout=120,
+        )
+        if r.returncode != 0:
+            print(f"[auto-audit] RECORD FAILED for {entry_id}: "
+                  f"{r.stdout} {r.stderr}")
+            return False
+        return True
+    finally:
+        lockf.close()  # closing releases the flock
 
 
 def main() -> int:
     entry_id = sys.argv[1]
     log = AUDIT_LOG_DIR / f"audit_{entry_id}.log"
+    marker = AUDIT_LOG_DIR / f"audit_{entry_id}.running"
+    try:
+        marker.write_text(str(__import__("os").getpid()))
+    except Exception:
+        pass
+    try:
+        return _audit(entry_id, log)
+    finally:
+        try:
+            marker.unlink()
+        except Exception:
+            pass
+
+
+def _audit(entry_id: str, log: Path) -> int:
+    # One exclusive response artifact per ATTEMPT (unique name): parallel
+    # or repeated attempts can never overwrite a recorded receipt's bytes.
+    response = AUDIT_LOG_DIR / f"audit_{entry_id}.{int(time.time())}.response.txt"
     print(f"[auto-audit] {time.strftime('%F %T')} starting for {entry_id}")
 
     packet = subprocess.run(
@@ -73,8 +134,10 @@ def main() -> int:
     packet_path = packet.stdout.strip().splitlines()[-1] if packet.returncode == 0 else ""
     if not packet_path:
         print(f"[auto-audit] packet generation failed:\n{packet.stdout}\n{packet.stderr}")
-        if not record(entry_id, "JUDGE_ERROR", log):
-            unmark_handled(entry_id)
+        response.write_text("")
+        if not record(entry_id, "JUDGE_ERROR", response):
+            print(f"[auto-audit] {entry_id} stays PENDING (no verdict row) — "
+                  "the watcher will refire it.")
         return 1
 
     try:
@@ -91,35 +154,24 @@ def main() -> int:
         )
         output = result.stdout + result.stderr
         print(output[-4000:])
-        # Reviewer rounds 1+2: a verdict is accepted ONLY from a review that
-        # finished cleanly — stdout only, successful exit, and exactly one
-        # DISTINCT verdict value found by a formatting-agnostic pattern (a
-        # brace-anchored regex missed pretty-printed JSON, letting a decoy
-        # minified value win). Anything else is JUDGE_ERROR. The full stdout
-        # is retained as a separate immutable response artifact whose bytes
-        # are final BEFORE recording, so its recorded hash stays valid.
-        response = AUDIT_LOG_DIR / f"audit_{entry_id}.response.txt"
+        # Full stdout is retained as the immutable response artifact whose
+        # bytes are final BEFORE recording, so its recorded hash stays
+        # valid; the verdict comes from one complete JSON document.
         response.write_text(result.stdout)
-        matches = re.findall(
-            r'"verdict"\s*:\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
-            result.stdout)
-        if result.returncode != 0 or not matches or len(set(matches)) != 1:
-            verdict = "JUDGE_ERROR"
-        else:
-            verdict = matches[0]
+        verdict = parse_verdict(result.stdout, result.returncode)
     except subprocess.TimeoutExpired:
         verdict = "TIMEOUT"
     except Exception as exc:  # noqa: BLE001
         print(f"[auto-audit] launcher error: {exc}")
         verdict = "JUDGE_ERROR"
 
-    response = AUDIT_LOG_DIR / f"audit_{entry_id}.response.txt"
     if not response.exists():
         response.write_text("")  # timeout/error path: empty immutable artifact
     sys.stdout.flush()
     wait_for_idle_runner()
     if not record(entry_id, verdict, response):
-        unmark_handled(entry_id)
+        print(f"[auto-audit] {entry_id} stays PENDING (no verdict row) — "
+              "the watcher will refire it.")
         return 1
     print(f"[auto-audit] {time.strftime('%F %T')} recorded {verdict} for {entry_id}")
     return 0

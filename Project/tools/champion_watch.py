@@ -53,22 +53,69 @@ def run_gate_post() -> None:
         pass
 
 
+def verdict_ids() -> set:
+    """Entry ids with a DURABLE verdict row — the only real 'handled'."""
+    ids = set()
+    try:
+        for line in (ROOT / "Project" / "audits" /
+                     "verdicts.jsonl").read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                ids.add(json.loads(line).get("entry_id"))
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return ids
+
+
+def running_ids() -> set:
+    """Entry ids with a LIVE audit process marker. Stale markers (dead pid,
+    or unparseable and old) are cleaned so crashed audits refire instead of
+    being suppressed forever (reviewer round 3)."""
+    import os
+    import time as _t
+    out = set()
+    for m in AUDIT_LOG_DIR.glob("audit_*.running"):
+        eid = m.name[len("audit_"):-len(".running")]
+        try:
+            pid = int(m.read_text().strip())
+            os.kill(pid, 0)  # raises if the process is gone
+            out.add(eid)
+        except (ValueError, ProcessLookupError, PermissionError):
+            if _t.time() - m.stat().st_mtime > 300:
+                try:
+                    m.unlink()
+                except Exception:
+                    pass
+            else:
+                out.add(eid)  # too fresh to declare dead
+    return out
+
+
 def main() -> int:
     run_gate_post()
+    # Reviewer round 3: the launch-time cache marked audits handled before
+    # any verdict existed (24 entries, 6 current champions, were silently
+    # suppressed). 'Handled' is now DERIVED: a durable verdict row, or a
+    # provably live audit process. Everything else refires. The legacy
+    # cache file is ignored (kept only as history).
     champions = current_champions()
-    try:
-        cache = set(json.loads(CACHE.read_text()))
-    except Exception:
-        cache = set()
-    new = [c for c in champions if c not in cache]
+    done = verdict_ids() | running_ids()
+    new = [c for c in champions if c not in done]
     if not new:
         return 0
-    # Mark handled BEFORE launching (no double-fire on rapid hook calls).
-    CACHE.write_text(json.dumps(sorted(cache | set(champions))))
     AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    import os
     for entry_id in new:
+        marker = AUDIT_LOG_DIR / f"audit_{entry_id}.running"
+        try:  # exclusive claim: rapid hook passes cannot double-launch
+            fd = os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            continue
         log = AUDIT_LOG_DIR / f"audit_{entry_id}.log"
-        subprocess.Popen(
+        proc = subprocess.Popen(
             [sys.executable, str(Path(__file__).parent / "audit_champion.py"), entry_id],
             stdin=subprocess.DEVNULL,
             stdout=open(log, "a"),
@@ -76,6 +123,8 @@ def main() -> int:
             start_new_session=True,  # detached: survives the hook and the session
             cwd=str(ROOT),
         )
+        with os.fdopen(fd, "w") as fh:
+            fh.write(str(proc.pid))
         print(f"[champion-watch] new champion {entry_id} — background audit launched "
               f"(log: {log.relative_to(ROOT)})")
     return 0

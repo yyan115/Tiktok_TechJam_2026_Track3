@@ -60,6 +60,13 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     raw Sol log expanders unredacted); public release = fresh/squashed only
     (the untracked transcript survives in git history at 49bfd47).
 
+10b. AUDIT BACKLOG (reviewer round 3 discovery): 24 champions were marked
+    audit-handled with NO verdict row (watcher cached before launch) — six
+    are CURRENT champions. The rebuilt watcher now derives handled-ness
+    from verdict rows + live process markers, so these REFIRE automatically
+    on its next pass; run them on an idle box (contention rule) and check
+    the tally reaches parity before freeze.
+
 11a. Ship manifest verdict filter = codex task 06 (after task 03): hard
     verdicts exclude entries from selection unless verdict-clear'd; no
     silent shape drops; --report transparency flag.
