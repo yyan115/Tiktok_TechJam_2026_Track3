@@ -1,5 +1,11 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 29 Aug 2026 evening — RUN GATE CONVERGED (v3.6) after 7 blind review rounds; awaiting the owner's one paste
+
+- The owner's spec (mechanical stop after EVERY try; two explicit steps — research grounded in the saved base, then a cited plan with exact quoted lines; 3 non-improving tries = closed direction; autonomous restart via forced postmortem; auditor verifies citations aren't faked) is implemented as a one-use-permit gate: think-step -> permit bound to card+mode+shape+bytes-sha+ledger+expiry -> guard consumes atomically -> run -> watcher reconciles from the referee's own journal row -> gate closed again.
+- Review trail R1 REJECT -> R7 REVISE(5): every load-bearing defect through R6 fixed; R7's three real items fixed; transactional-perfection residuals DECLINED per the user's convergence rule + the trust model + deadline economics — reasons in Project/loop/GATE_DESIGN.md. This declaration is the recorded judgment call.
+- OWNER GATE: paste OWNER_PATCH_card_gate.md (v3.6) into .claude/hooks/guard_bash.py, then the agent runs the four proof-tests and optimization resumes fully caged and autonomous. Until the paste, the machinery side is live but the physical block is not.
+
 ## 29 Aug 2026 ~07:05 — REVIEW LOOP CONVERGED (4 rounds); implementation resumes on the new process
 
 - Round trail: R1 REVISE(8) -> R2 REVISE(6) -> R3 "narrow REVISE, strategy converged"(2) -> R4 "narrow REVISE"(3, all wording/document fixes, own text confirms Card-1 contract + allocation converged). ALL items across all rounds applied; nothing skipped — convergence per the user's criterion. Raw logs local-only (gitignored); prompts + verdicts committed.
