@@ -7,6 +7,16 @@ permit bound to the exact attempt; this guard CONSUMES it atomically before
 the run executes; the watcher reconciles the outcome from the bound ledger.
 Fail-closed everywhere.
 
+HONEST SCOPE (30 Aug reviewer calibration): both blocks are COOPERATIVE
+PATTERN-BASED guards over literal command text — accident prevention plus
+bar-raising, per the repo's stated trust model. They match spellings before
+shell expansion and do not observe canonical executable paths, and the
+frozen runner performs no internal permit verification. So the true claim
+is "every straightforward invocation is gated and every listed record
+resists direct writes"; it is NOT absolute isolation. Deliberate evasion
+remains possible and remains naked, logged misconduct (GATE_DESIGN HONESTY
+LEDGER items 3).
+
 ## Paste into .claude/hooks/guard_bash.py
 
 Block A — insert AFTER the `WRITE_PATTERNS = [pat.replace(...)]` line:
@@ -133,14 +143,15 @@ def permit_gate_reason(command):
     lp = pathlib.Path(ledger).resolve() if ledger else (root / "Project/results/JOURNAL.jsonl")
     if str(lp) != permit.get("ledger"):
         return f"Blocked: permit is bound to ledger {permit.get('ledger')}."
-    if permit.get("mode") == "optimization":
+    if permit.get("mode") in ("optimization", "confirmation"):
         # Deny any long option that PREFIX-matches a profile override —
         # argparse accepts abbreviations (--dtyp, --warm, --rep, --rou).
+        # Confirmation runs satisfy RETESTs, so they get the same binding.
         for tok in re.findall(r"--[a-z-]+", seg):
             if any(f.startswith(tok) for f in
                    ("--dtype", "--warmup", "--repeats", "--rounds")):
-                return ("Blocked: optimization permits are bound to the "
-                        f"primary profile — override option {tok} present.")
+                return ("Blocked: optimization/confirmation permits are bound "
+                        f"to the primary profile — override option {tok} present.")
     # CONSUME: ARMED -> IN_FLIGHT (still under the lock acquired above),
     # O_EXCL for the destination, pre-run ledger offset captured NOW,
     # before execution.
@@ -182,20 +193,24 @@ def state_write_reason(command):
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
     for s in segs:
         t = s.strip()
-        if re.search(r"\bcodex\s+exec\b", t):
-            continue  # real critic/audit consultations write their own logs
-        if re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
-                    r"reconcile|screen-judge|verdict-clear|reopen|status|"
-                    r"init)\b", t):
-            continue  # the gate's own validated commands
+        if (re.search(r"\bcodex\s+exec\b", t)
+                and not re.search(r"Project/(loop/|audits/verdicts|"
+                                  r"tools/(run_gate|audit_champion|"
+                                  r"champion_watch))", t)):
+            continue  # critic consultations may write ONLY strategy receipts
+        if (re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
+                     r"reconcile|screen-judge|verdict-clear|reopen|status|"
+                     r"init)\b", t) and ">" not in t):
+            continue  # the gate's own validated commands, no redirection
         if (re.match(r"(python3?\s+)?\S*(audit_champion|champion_watch)\.py\b", t)
                 and ">" not in t):
             continue  # launching the auditor/watcher, no redirection
         if (re.match(r"(cat|head|tail|less|grep|wc|ls|stat|file|sha256sum|"
                      r"diff|sed\s+-n)\b", t) and ">" not in t):
             continue  # plain reads
-        if re.match(r"git\s+(add|commit|log|show|diff|status)\b", t):
-            continue  # version control on state is legit and auditable
+        if (re.match(r"git\s+(add|commit|log|show|diff|status)\b", t)
+                and ">" not in t):
+            continue  # version control on state, no redirection
         return ("Blocked: gate state, the verdict ledger, critic receipts, "
                 "and the enforcer tools change only through run_gate.py, "
                 "the audit pipeline, or a real codex call — direct writes "

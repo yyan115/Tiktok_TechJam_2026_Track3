@@ -258,15 +258,26 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                       "they rule in chat, run verdict-clear --kind violation "
                       "--entry-id E --recorded R --owner-quote '<their "
                       "literal words>'. No AI may authorize this.")
-    if retests and mode in ("optimization", "screening"):
+    if retests and mode != "confirmation":
         keys = [h.get("_clear_key", "?") for h in retests[:3]]
         return None, (f"{len(retests)} unsatisfied RETEST verdict(s) "
                       f"(e.g. {keys}) — satisfy them FIRST: run a "
-                      "confirmation-mode attempt on the SAME bytes+shape, "
-                      "then verdict-clear --kind retest --confirm-entry "
-                      "<new row id>. Only confirmation/correctness/"
-                      "calibration permits issue until then.")
+                      "confirmation-mode attempt on the SAME bytes+shape in "
+                      "the PRIMARY journal, then verdict-clear --kind retest "
+                      "--confirm-entry <new row id>. Until then ONLY "
+                      "confirmations bound to the retested bytes issue.")
     retest_open = bool(retests)
+    retest_shas = set()
+    if retest_open:
+        for h in retests:
+            row = _journal_row(str(h.get("entry_id")))
+            sha = (row or {}).get("impl", {}).get("sha256")
+            if sha:
+                retest_shas.add(sha)
+        if mode == "confirmation" and not retest_shas:
+            return None, ("outstanding RETEST on entries absent from the "
+                          "primary journal — no mechanical path exists; "
+                          "surface it to the owner (owner-quote clear).")
     if mode == "screening":
         if predict_min is None or predict_max is None:
             return None, ("screening permits require --predict-min and "
@@ -319,7 +330,16 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                               "candidate bytes were already attempted in this "
                               "group — an identical re-run is 'confirmation', "
                               "label it honestly")
+        if retest_open and mode == "confirmation" and \
+                sha_file(impl_p) not in retest_shas:
+            return None, ("outstanding RETEST: confirmation permits are "
+                          "bound to the retested candidate bytes only")
     ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
+    if (mode in ("optimization", "confirmation")
+            and ledger_p.resolve() != DEFAULT_JOURNAL.resolve()):
+        return None, ("optimization/confirmation permits must use the PRIMARY "
+                      "journal — champion-grade and retest evidence never "
+                      "comes from scratch ledgers")
     pre_lines = (len([l for l in ledger_p.read_text().splitlines() if l.strip()])
                  if ledger_p.exists() else 0)
     permit = {
@@ -691,12 +711,26 @@ def cmd_screen_judge(args) -> int:
         print("REFUSED: no pending screening judgment for this group.")
         return 1
     obs = pend.get("observed_speedup")
+    if obs is None:
+        # No recorded measurement -> NEVER judged from a caller-typed number
+        # (that would be self-declared). It is an execution failure.
+        st["pending_screen_judgment"] = None
+        grp = st.setdefault("groups", {}).setdefault(
+            gkey, {"best_speedup": None, "strikes": 0, "exec_failures": 0,
+                   "closed": False, "closure_nonce": None})
+        grp["exec_failures"] = grp.get("exec_failures", 0) + 1
+        commit(st, {"ts": now(), "step": "screen_judge", "group": gkey,
+                    "result": "exec_failure", "computed": True})
+        print(f"screening attempt has NO recorded speedup — logged as an "
+              f"execution failure for {gkey} (no strike, no hit; "
+              f"{grp['exec_failures']}/{MAX_EXEC_FAILURES}).")
+        return 0
     try:
         stated = float(args.observed)
     except ValueError:
         print("REFUSED: --observed must be the numeric speedup from the row.")
         return 1
-    if obs is not None and abs(stated - obs) > max(0.01 * abs(obs), 1e-6):
+    if abs(stated - obs) > max(0.01 * abs(obs), 1e-6):
         print(f"REFUSED: --observed {stated} does not match the reconciled "
               f"row's speedup {obs}.")
         return 1
@@ -706,7 +740,7 @@ def cmd_screen_judge(args) -> int:
               "bounds (predates the computed-judgment gate) — resolve it with "
               "the owner; results are never self-declared.")
         return 1
-    basis = obs if obs is not None else stated
+    basis = obs
     result = ("hit" if (pend.get("row_correct", False)
                         and float(pmin) <= basis <= float(pmax)) else "miss")
     st["pending_screen_judgment"] = None
@@ -729,6 +763,19 @@ def cmd_screen_judge(args) -> int:
           f"[{pmin}, {pmax}] vs observed {basis} "
           f"(strikes {grp['strikes']}/{MAX_STRIKES}).")
     return 0
+
+
+def _ts_compact(ts):
+    """Normalize any of our timestamp spellings (ISO with offset, entry-id
+    prefix YYYYMMDD-HHMMSS) to a comparable 14-digit YYYYMMDDHHMMSS string."""
+    return re.sub(r"[^0-9]", "", str(ts))[:14]
+
+
+def _row_ts(row):
+    t = (row or {}).get("timestamp")
+    if t:
+        return _ts_compact(t)
+    return _ts_compact(str((row or {}).get("entry_id", ""))[:15])
 
 
 def _journal_row(entry_id):
@@ -785,16 +832,15 @@ def cmd_verdict_clear(args) -> int:
                       == orig.get("impl", {}).get("sha256"))
         same_shape = conf.get("shape") == orig.get("shape")
         passed = bool(conf.get("correctness", {}).get("passed"))
-        # The frozen runner's entry ids are timestamp-prefixed; prefer an
-        # explicit timestamp field when both rows carry one.
-        if conf.get("timestamp") and orig.get("timestamp"):
-            newer = str(conf["timestamp"]) > str(orig["timestamp"])
-        else:
-            newer = str(conf.get("entry_id", "")) > str(orig.get("entry_id", ""))
-        if not (same_bytes and same_shape and passed and newer):
+        newer = _row_ts(conf) > _row_ts(orig)
+        # The confirmation must postdate the VERDICT, not just the original
+        # row — a pre-existing rerun cannot satisfy a reviewer's request.
+        after_verdict = _row_ts(conf) > _ts_compact(args.recorded)
+        if not (same_bytes and same_shape and passed and newer and after_verdict):
             print(f"REFUSED: confirmation row fails the mechanical check "
                   f"(same_bytes={bool(same_bytes)} same_shape={same_shape} "
-                  f"passed={passed} newer={newer}).")
+                  f"passed={passed} newer={newer} "
+                  f"after_verdict={after_verdict}).")
             return 1
         st.setdefault("cleared_verdicts", []).append(key)
         commit(st, {"ts": now(), "step": "verdict_clear", "kind": "retest",
@@ -803,8 +849,14 @@ def cmd_verdict_clear(args) -> int:
               "(verified mechanically).")
         return 0
     if args.kind == "violation":
-        if kind != "RULE_VIOLATION":
-            print(f"REFUSED: verdict {key} is {kind}, not RULE_VIOLATION.")
+        if kind == "RETEST" and _journal_row(args.entry_id) is not None:
+            print("REFUSED: this RETEST has a mechanical path (--kind "
+                  "retest). Owner-quote clearing applies to RULE_VIOLATIONs, "
+                  "and to RETESTs only when the original row is outside the "
+                  "primary journal.")
+            return 1
+        if kind not in ("RULE_VIOLATION", "RETEST"):
+            print(f"REFUSED: verdict {key} is {kind}.")
             return 1
         quote = (args.owner_quote or "").strip()
         if len(quote) < 30:
@@ -813,6 +865,13 @@ def cmd_verdict_clear(args) -> int:
                   "RULE_VIOLATION; fabricating a quote is naked misconduct "
                   "provable against the transcript.")
             return 1
+        qh = hashlib.sha256(quote.encode()).hexdigest()
+        if qh in st.get("used_owner_quotes", []):
+            print("REFUSED: this exact owner quote already cleared a "
+                  "previous verdict — each ruling is one-use; get a fresh "
+                  "ruling for a fresh verdict.")
+            return 1
+        st.setdefault("used_owner_quotes", []).append(qh)
         st.setdefault("cleared_verdicts", []).append(key)
         commit(st, {"ts": now(), "step": "verdict_clear", "kind": "violation",
                     "verdict_key": key, "owner_quote": quote})
@@ -840,6 +899,10 @@ def cmd_reopen(args) -> int:
               "(real critic output, not an arbitrary file).")
         return 1
     text = critic.read_text(errors="ignore")
+    if len(text) < 2000:
+        print("REFUSED: the critic log is too short to be a real critique "
+              "(>=2000 chars) — receipts are full critic outputs, not stubs.")
+        return 1
     nonblank = [l.strip() for l in text.strip().splitlines() if l.strip()]
     verdict_ok = bool(nonblank) and re.fullmatch(
         r"CRITIC:\s*(continue|narrow)", nonblank[-1]) is not None
@@ -857,7 +920,9 @@ def cmd_reopen(args) -> int:
     grp["exec_failures"] = 0
     grp["closure_nonce"] = None
     commit(st, {"ts": now(), "step": "reopen", "group": args.group,
-         "critic_log": str(critic), "consumed_nonce": nonce})
+         "critic_log": str(critic), "consumed_nonce": nonce,
+         "critic_sha256": hashlib.sha256(text.encode()).hexdigest(),
+         "critic_len": len(text)})
     print(f"Reopened {args.group} on critic authority (nonce consumed).")
     return 0
 
@@ -907,11 +972,15 @@ def main() -> int:
                    ("--hypothesis", True), ("--prediction", True),
                    ("--kill", True), ("--sources", True), ("--reasoning", True)):
         p.add_argument(a, required=req, default=None)
+    p.add_argument("--predict-min", default=None)
+    p.add_argument("--predict-max", default=None)
     d = sub.add_parser("delta")
     for a, req in (("--direction", True), ("--mode", True), ("--shape", True),
                    ("--impl", False), ("--ledger", False),
                    ("--changed", True), ("--prediction", True)):
         d.add_argument(a, required=req, default=None)
+    d.add_argument("--predict-min", default=None)
+    d.add_argument("--predict-max", default=None)
     sub.add_parser("reconcile")
     sj = sub.add_parser("screen-judge")
     sj.add_argument("--direction", required=True)

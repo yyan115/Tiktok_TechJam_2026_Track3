@@ -146,6 +146,28 @@ run_gate.py (22/22 sandbox tests):
   verdict ledger, critic receipts, and the three enforcer tools become
   unwritable by the agent outside validated commands / real codex calls.
 
+## Amendment v4.1 (30 Aug, folding the blind reviewer's REVISE — distilled by the owner)
+All six findings addressed: (1) plan/delta parsers actually carry
+--predict-min/--predict-max now (the reviewer caught a real CLI-breaking
+regression my internals-only tests missed); (2) owner quotes are one-use
+(hash-tracked) and receipts must be full-length critiques with sha256
+journaled — plus the honest admission that text provenance on one machine
+is forge-obvious, not forge-proof; (3) RETEST now blocks everything except
+confirmations bound to the retested bytes on the primary journal, and the
+mechanical clear requires the confirmation to postdate the VERDICT, not
+just the original row; (4) optimization/confirmation permits refuse scratch
+ledgers; screening with no recorded measurement is an execution failure,
+never judged from a typed number; the champion auditor accepts verdicts
+only from cleanly-exited, unambiguous, stdout-only reviews (else
+JUDGE_ERROR); (5) the owner patch now states its honest scope (cooperative
+pattern guard) and its allow-branches all reject redirection, with codex
+receipts writable only into strategy/; (6) a committed CLI-level suite
+(Project/tools/tests/gate_v4_cli_test.py, 26/26) drives the DEPLOYED
+command line via subprocess — no monkeypatching. Residual (accepted, in
+HONESTY LEDGER): frozen runner has no internal permit check; the reviewer's
+retest_request field is not preserved by the frozen recorder, so mechanical
+clears enforce bytes/shape/recency/correctness, not bespoke procedures.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

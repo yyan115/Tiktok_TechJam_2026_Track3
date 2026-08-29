@@ -71,8 +71,17 @@ def main() -> int:
         )
         output = result.stdout + result.stderr
         print(output[-4000:])
-        matches = re.findall(r'\{"verdict":\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"', output)
-        verdict = matches[-1] if matches else "JUDGE_ERROR"
+        # Sol finding (30 Aug): a verdict is accepted ONLY from a review that
+        # finished cleanly — stdout only (never stderr fragments), successful
+        # exit, and exactly one distinct verdict value. Anything else is
+        # JUDGE_ERROR: an incomplete review is never treated as a judgment.
+        matches = re.findall(
+            r'\{"verdict":\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
+            result.stdout)
+        if result.returncode != 0 or not matches or len(set(matches)) != 1:
+            verdict = "JUDGE_ERROR"
+        else:
+            verdict = matches[0]
     except subprocess.TimeoutExpired:
         verdict = "TIMEOUT"
     except Exception as exc:  # noqa: BLE001
