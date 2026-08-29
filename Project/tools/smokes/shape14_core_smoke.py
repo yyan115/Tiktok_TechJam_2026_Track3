@@ -60,6 +60,26 @@ def chunked_oracle(q, k, v, scale, q_chunk=2048, k_chunk=8192):
     return out
 
 
+def official_error_stats(reference, candidate):
+    """Mirror the official finite AND (absolute OR relative) predicate."""
+    if reference.shape != candidate.shape:
+        raise AssertionError(
+            f"shape mismatch: reference={tuple(reference.shape)}, "
+            f"candidate={tuple(candidate.shape)}"
+        )
+    ref = reference.detach().float()
+    opt = candidate.detach().float()
+    finite_mask = torch.isfinite(ref) & torch.isfinite(opt)
+    abs_error = (opt - ref).abs()
+    abs_ok = abs_error <= ATOL
+    rel_ok = abs_error <= RTOL * ref.abs()
+    passed_mask = finite_mask & (abs_ok | rel_ok)
+    failed_elements = int((~passed_mask).sum().item())
+    max_abs_error = (float("inf") if not bool(finite_mask.all())
+                     else abs_error.max().item())
+    return failed_elements, max_abs_error
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seq", type=int, default=100_000)
@@ -86,8 +106,7 @@ def main():
     peak_mib = torch.cuda.max_memory_allocated() / 2**20
 
     ref = chunked_oracle(q, k, v, scale)
-    bad = (~torch.isclose(out.float(), ref, atol=ATOL, rtol=RTOL)).sum().item()
-    maxerr = (out.float() - ref).abs().max().item()
+    bad, maxerr = official_error_stats(ref, out)
     print(f"kernel={args.kernel} seq={S} D={D} causal "
           f"violations={bad} max_abs_err={maxerr:.3e} peak_mem={peak_mib:.0f} MiB")
     print("RESULT:", "PASS" if bad == 0 else "FAIL")

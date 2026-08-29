@@ -22,6 +22,26 @@ ATOL, RTOL = 2e-3, 2e-2
 CHUNK = 500
 
 
+def official_error_stats(reference, candidate):
+    """Mirror the official finite AND (absolute OR relative) predicate."""
+    if reference.shape != candidate.shape:
+        raise AssertionError(
+            f"shape mismatch: reference={tuple(reference.shape)}, "
+            f"candidate={tuple(candidate.shape)}"
+        )
+    ref = reference.detach().float()
+    opt = candidate.detach().float()
+    finite_mask = torch.isfinite(ref) & torch.isfinite(opt)
+    abs_error = (opt - ref).abs()
+    abs_ok = abs_error <= ATOL
+    rel_ok = abs_error <= RTOL * ref.abs()
+    passed_mask = finite_mask & (abs_ok | rel_ok)
+    failed_elements = int((~passed_mask).sum().item())
+    max_abs_error = (float("inf") if not bool(finite_mask.all())
+                     else abs_error.max().item())
+    return failed_elements, max_abs_error
+
+
 def main():
     torch.manual_seed(0)
     dev = torch.device("cuda")
@@ -48,11 +68,12 @@ def main():
     bad, maxerr = 0, 0.0
     with torch.no_grad():
         for s in range(0, 10000, CHUNK):
-            ref = base(x[s:s + CHUNK], None).float()
-            o = out[s:s + CHUNK].float()
-            bad += (~torch.isclose(o, ref, atol=ATOL, rtol=RTOL)).sum().item()
-            maxerr = max(maxerr, (o - ref).abs().max().item())
-            del ref
+            ref = base(x[s:s + CHUNK], None)
+            candidate_slice = out[s:s + CHUNK]
+            chunk_bad, chunk_maxerr = official_error_stats(ref, candidate_slice)
+            bad += chunk_bad
+            maxerr = max(maxerr, chunk_maxerr)
+            del candidate_slice, ref
 
     print(f"shape6 B=10000 k007-vs-chunked-baseline: violations={bad} "
           f"max_abs_err={maxerr:.3e} candidate_peak_mem={peak_mib:.0f} MiB")

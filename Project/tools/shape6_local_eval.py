@@ -10,6 +10,7 @@ the frozen runner and its journal are untouched.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import json
@@ -34,7 +35,60 @@ def sha256_file(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
+def parse_seeds(value: str) -> list[int]:
+    parts = [part.strip() for part in value.split(",")]
+    if not parts or any(not part for part in parts):
+        raise argparse.ArgumentTypeError("--seeds must be comma-separated integers")
+    try:
+        return [int(part) for part in parts]
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "--seeds must be comma-separated integers"
+        ) from exc
+
+
+def official_error_stats(torch, reference, candidate) -> dict:
+    """Mirror the official finite AND (absolute OR relative) predicate."""
+    if reference.shape != candidate.shape:
+        raise AssertionError(
+            f"shape mismatch: reference={tuple(reference.shape)}, "
+            f"candidate={tuple(candidate.shape)}"
+        )
+    ref = reference.detach().float()
+    opt = candidate.detach().float()
+
+    finite_mask = torch.isfinite(ref) & torch.isfinite(opt)
+    abs_error = (opt - ref).abs()
+    abs_ok = abs_error <= ATOL
+    rel_ok = abs_error <= RTOL * ref.abs()
+    passed_mask = finite_mask & (abs_ok | rel_ok)
+
+    failed_elements = int((~passed_mask).sum().item())
+    nonfinite_elements = int((~finite_mask).sum().item())
+    if nonfinite_elements:
+        abs_error.masked_fill_(~finite_mask, float("-inf"))
+    max_finite_abs_error = abs_error.max().item()
+    if max_finite_abs_error == float("-inf"):
+        max_finite_abs_error = None
+    return {
+        "violations": failed_elements,
+        "nonfinite_elements": nonfinite_elements,
+        "max_finite_abs_error": max_finite_abs_error,
+    }
+
+
+def make_input(torch, device, seed):
+    gen = torch.Generator(device="cpu")
+    gen.manual_seed(seed)
+    return torch.randn(10000, 128, 128, generator=gen).to(device)
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Shape-6 local side evaluator")
+    parser.add_argument("--seeds", type=parse_seeds, default=[SEED0],
+                        help="comma-separated correctness seeds (default: 1234)")
+    args = parser.parse_args()
+
     manifest = json.loads(MANIFEST_PATH.read_text())
     for name, expected in manifest["files"].items():
         if sha256_file(ROOT / name) != expected:
@@ -67,35 +121,63 @@ def main() -> int:
     cand.load_state_dict(state, strict=True)
     cand = cand.to(dev).eval()
 
-    gen = torch.Generator(device="cpu")
-    gen.manual_seed(SEED0)
-    x = torch.randn(10000, 128, 128, generator=gen).to(dev)
-
     # 1) Repeated no-graph route: memory must be flat across repeats.
-    peaks = []
+    x = make_input(torch, dev, SEED0)
+    allocated_peaks = []
+    reserved_peaks = []
     with torch.inference_mode():
-        for i in range(10):
+        for _ in range(10):
             torch.cuda.reset_peak_memory_stats()
             out = cand(x, None)
             torch.cuda.synchronize()
-            peaks.append(torch.cuda.max_memory_allocated() / 2**30)
-            if i < 9:
-                del out
-    flat = max(peaks) - min(peaks) < 0.25
-
-    # 2) Correctness vs batch-chunked official baseline (exact computation).
-    bad, maxerr = 0, 0.0
-    with torch.inference_mode():
-        for s in range(0, 10000, CHUNK):
-            ref = base(x[s:s + CHUNK], None).float()
-            o = out[s:s + CHUNK].float()
-            bad += (~torch.isclose(o, ref, atol=ATOL, rtol=RTOL)).sum().item()
-            maxerr = max(maxerr, (o - ref).abs().max().item())
-            del ref
-    del out
+            allocated_peaks.append(torch.cuda.max_memory_allocated() / 2**30)
+            reserved_peaks.append(torch.cuda.max_memory_reserved() / 2**30)
+            del out
+    flat = max(allocated_peaks) - min(allocated_peaks) < 0.25
+    del x
     torch.cuda.empty_cache()
 
+    # 2) Correctness vs batch-chunked official baseline (exact computation).
+    bad = 0
+    nonfinite = 0
+    maxerr = -1.0
+    correctness_trials = []
+    with torch.inference_mode():
+        for seed in args.seeds:
+            x = make_input(torch, dev, seed)
+            out = cand(x, None)
+            trial_bad = 0
+            trial_nonfinite = 0
+            trial_maxerr = -1.0
+            for start in range(0, 10000, CHUNK):
+                ref = base(x[start:start + CHUNK], None)
+                candidate_slice = out[start:start + CHUNK]
+                stats = official_error_stats(torch, ref, candidate_slice)
+                trial_bad += stats["violations"]
+                trial_nonfinite += stats["nonfinite_elements"]
+                if stats["max_finite_abs_error"] is not None:
+                    trial_maxerr = max(trial_maxerr,
+                                       stats["max_finite_abs_error"])
+                del stats, candidate_slice, ref
+            correctness_trials.append({
+                "seed": seed,
+                "violations": trial_bad,
+                "nonfinite_elements": trial_nonfinite,
+                "max_abs_err": None if trial_nonfinite else trial_maxerr,
+                "max_abs_err_status": ("nonfinite values present"
+                                       if trial_nonfinite else "finite"),
+                "max_finite_abs_err": (None if trial_maxerr < 0
+                                       else trial_maxerr),
+            })
+            bad += trial_bad
+            nonfinite += trial_nonfinite
+            if trial_maxerr >= 0:
+                maxerr = max(maxerr, trial_maxerr)
+            del out, x
+            torch.cuda.empty_cache()
+
     # 3) Candidate-only timing (no runnable full-batch baseline locally).
+    x = make_input(torch, dev, SEED0)
     samples = []
     with torch.inference_mode():
         for _ in range(3):
@@ -133,10 +215,27 @@ def main() -> int:
                 "torch": torch.__version__, "cuda": torch.version.cuda,
                 "python": platform.python_version(), "hostname": platform.node()},
         "seed": SEED0,
-        "memory": {"peaks_gib_per_repeat": [round(p, 3) for p in peaks],
-                   "flat": flat},
+        "seeds": args.seeds,
+        "timing_seed": SEED0,
+        "predicate": "official-abs-OR-rel",
+        "memory": {
+            "peaks_gib_per_repeat": [round(p, 3) for p in allocated_peaks],
+            "peak_allocated_gib_per_repeat": [round(p, 3)
+                                               for p in allocated_peaks],
+            "peak_reserved_gib_per_repeat": [round(p, 3)
+                                              for p in reserved_peaks],
+            "flat": flat,
+        },
         "correctness": {"reference": "batch-chunked official baseline (exact)",
-                        "violations": bad, "max_abs_err": maxerr,
+                        "seeds": args.seeds,
+                        "trials": correctness_trials,
+                        "predicate": "official-abs-OR-rel",
+                        "violations": bad,
+                        "nonfinite_elements": nonfinite,
+                        "max_abs_err": None if nonfinite else maxerr,
+                        "max_abs_err_status": ("nonfinite values present"
+                                               if nonfinite else "finite"),
+                        "max_finite_abs_err": None if maxerr < 0 else maxerr,
                         "tolerance": {"atol": ATOL, "rtol": RTOL}},
         "timing": {"median_ms": median_ms, "raw_samples_ms": [round(s, 4) for s in samples],
                    "useful_gflop": round(gflop, 2), "achieved_tf_s": round(tfs, 2),

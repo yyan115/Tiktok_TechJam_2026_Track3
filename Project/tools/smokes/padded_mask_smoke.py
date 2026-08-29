@@ -29,8 +29,20 @@ def load_kernel(path):
 
 
 def check(name, out, ref):
-    bad = (~torch.isclose(out.float(), ref, atol=ATOL, rtol=RTOL)).sum().item()
-    maxerr = (out.float() - ref).abs().max().item()
+    if ref.shape != out.shape:
+        raise AssertionError(
+            f"shape mismatch: reference={tuple(ref.shape)}, candidate={tuple(out.shape)}"
+        )
+    reference = ref.detach().float()
+    candidate = out.detach().float()
+    finite_mask = torch.isfinite(reference) & torch.isfinite(candidate)
+    abs_error = (candidate - reference).abs()
+    abs_ok = abs_error <= ATOL
+    rel_ok = abs_error <= RTOL * reference.abs()
+    passed_mask = finite_mask & (abs_ok | rel_ok)
+    bad = int((~passed_mask).sum().item())
+    maxerr = (float("inf") if not bool(finite_mask.all())
+              else abs_error.max().item())
     print(f"  {name}: violations={bad} max_abs_err={maxerr:.3e}")
     return bad == 0
 
