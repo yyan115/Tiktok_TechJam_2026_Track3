@@ -13,6 +13,6 @@ what we act on). One topic per file.
 | [reviewer-bias.md](reviewer-bias.md) | LLM reviewers over-weight technical validity, under-weight strategy; same-family panels are self-critique; blind + cross-family + explicit strategy prompts required |
 | [gemm-epilogue-fusion.md](gemm-epilogue-fusion.md) | Epilogue/elementwise fusion ~1.45x on bandwidth-bound GEMM paths (source of k010's +14%) |
 | [quantization-tolerance.md](quantization-tolerance.md) | W8A8 int8 error (~1%+) is designed for tolerant workloads; predictably fails abs-2e-3 criteria (k008 confirmed empirically) |
-| [competition-scoring.md](competition-scoring.md) | Webinar: weighted per-shape MFU, "bandwidth considered", fail=zero; public rubric NOT online — confirm weights via official info doc (user gate) |
+| [competition-scoring.md](competition-scoring.md) | FULL transcript decoded: judges NEVER rerun (tech report+code+skills+history ARE the deliverable); SINGLE GPU type; own-machine preferred => rental contra-indicated; shape-14 block-decomposition expected; weights undecided (hedge) |
 | [roofline-table.md](roofline-table.md) | Per-shape FLOPs/bytes/AI + achieved TF: d=128 shapes LATENCY-bound; 8 = chunked-fp16-acc GEMM lever; 14 = FA2-style attention lever; 6 = local candidate-only |
 | [kernelagent.md](kernelagent.md) | Meta/PyTorch KernelAgent (organizer-shown): Profile-Diagnose-Prescribe-Orchestrate, top-K beam, reflexion records — the loop template |
