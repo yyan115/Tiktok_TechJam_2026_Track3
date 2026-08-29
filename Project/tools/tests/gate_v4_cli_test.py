@@ -97,6 +97,12 @@ def main() -> int:
                   "--predict-max", "inf", *PLAN_STD)
     check("infinite prediction bound refused", rc == 1 and "FINITE" in out, out)
 
+    rc, out = run("plan", "--mode", "screening", "--shape", "3",
+                  "--impl", "cand.py", "--predict-min", "1.0",
+                  "--predict-max", "3.0", *PLAN_STD)
+    check("vacuously wide prediction range refused",
+          rc == 1 and "falsifiable" in out, out)
+
     rc, out = run("plan", "--mode", "optimization", "--shape", "3",
                   "--impl", "cand.py", *PLAN_STD)
     check("optimization plan issues a permit via the CLI (Finding-1 catcher)",
@@ -204,6 +210,18 @@ def main() -> int:
     check("confirmation on a scratch ledger refused",
           rc == 1 and "PRIMARY" in out, out)
 
+    # bounded confirmation sampling: 3 permits per retest, then owner-only
+    for cycle in (2, 3):
+        rc, out = run("plan", "--mode", "confirmation", "--shape", "3",
+                      "--impl", "cand.py", *PLAN_STD)
+        check(f"retest confirmation attempt {cycle} issues", rc == 0, out)
+        (loop / "permit.json").unlink()
+        rc, out = research()
+    rc, out = run("plan", "--mode", "confirmation", "--shape", "3",
+                  "--impl", "cand.py", *PLAN_STD)
+    check("4th confirmation attempt refused (retry budget)",
+          rc == 1 and "retry budget exhausted" in out, out)
+
     # mechanical retest clear: too-early confirmation row refused
     early = jrow("20970101-000000-conf", cand_sha, True)
     journal.write_text(json.dumps(jrow(RT_ENTRY, cand_sha, True)) + "\n"
@@ -229,6 +247,12 @@ def main() -> int:
                              "mode": "confirmation",
                              "entry_id": "20990104-000000-conf",
                              "state_seq": seq_now}) + "\n")
+    rc, out = research()
+    rc, out = run("plan", "--mode", "confirmation", "--shape", "3",
+                  "--impl", "cand.py", *PLAN_STD)
+    check("further confirmations refused once satisfying evidence exists",
+          rc == 1 and "already" in out and "20990104-000000-conf" in out, out)
+
     rc, out = run("verdict-clear", "--kind", "retest", "--entry-id", RT_ENTRY,
                   "--recorded", RT_REC, "--confirm-entry", "20990104-000000-conf")
     check("mechanical retest clear succeeds via CLI", rc == 0, out)

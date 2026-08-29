@@ -34,12 +34,31 @@ def wait_for_idle_runner() -> None:
         time.sleep(10)
 
 
-def record(entry_id: str, verdict: str, source_log: Path) -> None:
-    subprocess.run(
+def record(entry_id: str, verdict: str, source_log: Path) -> bool:
+    """Record through the frozen runner; success is VERIFIED, not assumed
+    (reviewer round 2: a failed record must never look like a success)."""
+    r = subprocess.run(
         [sys.executable, str(RUNNER), "record-verdict", "--id", entry_id,
          "--verdict", verdict, "--source", str(source_log)],
-        cwd=str(ROOT), timeout=120,
+        cwd=str(ROOT), capture_output=True, text=True, timeout=120,
     )
+    if r.returncode != 0:
+        print(f"[auto-audit] RECORD FAILED for {entry_id}: {r.stdout} {r.stderr}")
+        return False
+    return True
+
+
+def unmark_handled(entry_id: str) -> None:
+    """On a failed record, put the champion back in the watcher's queue so
+    the audit refires instead of silently vanishing."""
+    cache = Path(__file__).parent / ".champion_cache.json"
+    try:
+        entries = json.loads(cache.read_text())
+        cache.write_text(json.dumps([e for e in entries if e != entry_id]))
+        print(f"[auto-audit] {entry_id} returned to the audit queue.")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[auto-audit] could not re-queue {entry_id}: {exc} — "
+              "AUDIT REMAINS UNRECORDED; re-run this champion to refire.")
 
 
 def main() -> int:
@@ -54,7 +73,8 @@ def main() -> int:
     packet_path = packet.stdout.strip().splitlines()[-1] if packet.returncode == 0 else ""
     if not packet_path:
         print(f"[auto-audit] packet generation failed:\n{packet.stdout}\n{packet.stderr}")
-        record(entry_id, "JUDGE_ERROR", log)
+        if not record(entry_id, "JUDGE_ERROR", log):
+            unmark_handled(entry_id)
         return 1
 
     try:
@@ -71,12 +91,17 @@ def main() -> int:
         )
         output = result.stdout + result.stderr
         print(output[-4000:])
-        # Sol finding (30 Aug): a verdict is accepted ONLY from a review that
-        # finished cleanly — stdout only (never stderr fragments), successful
-        # exit, and exactly one distinct verdict value. Anything else is
-        # JUDGE_ERROR: an incomplete review is never treated as a judgment.
+        # Reviewer rounds 1+2: a verdict is accepted ONLY from a review that
+        # finished cleanly — stdout only, successful exit, and exactly one
+        # DISTINCT verdict value found by a formatting-agnostic pattern (a
+        # brace-anchored regex missed pretty-printed JSON, letting a decoy
+        # minified value win). Anything else is JUDGE_ERROR. The full stdout
+        # is retained as a separate immutable response artifact whose bytes
+        # are final BEFORE recording, so its recorded hash stays valid.
+        response = AUDIT_LOG_DIR / f"audit_{entry_id}.response.txt"
+        response.write_text(result.stdout)
         matches = re.findall(
-            r'\{"verdict":\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
+            r'"verdict"\s*:\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
             result.stdout)
         if result.returncode != 0 or not matches or len(set(matches)) != 1:
             verdict = "JUDGE_ERROR"
@@ -88,9 +113,14 @@ def main() -> int:
         print(f"[auto-audit] launcher error: {exc}")
         verdict = "JUDGE_ERROR"
 
-    sys.stdout.flush()  # the log must be on disk before its hash is recorded
+    response = AUDIT_LOG_DIR / f"audit_{entry_id}.response.txt"
+    if not response.exists():
+        response.write_text("")  # timeout/error path: empty immutable artifact
+    sys.stdout.flush()
     wait_for_idle_runner()
-    record(entry_id, verdict, log)
+    if not record(entry_id, verdict, response):
+        unmark_handled(entry_id)
+        return 1
     print(f"[auto-audit] {time.strftime('%F %T')} recorded {verdict} for {entry_id}")
     return 0
 

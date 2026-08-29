@@ -109,9 +109,11 @@ def permit_gate_reason(command):
     # landed after this permit was issued, the verdict brake must be
     # re-evaluated — the stale permit is void.
     _vf = root / "Project/audits/verdicts.jsonl"
+    if not _vf.exists():
+        return ("Blocked: the audit verdict record is MISSING — that is "
+                "never a green light (fail closed).")
     try:
-        _vc = (len([l for l in _vf.read_text().splitlines() if l.strip()])
-               if _vf.exists() else 0)
+        _vc = len([l for l in _vf.read_text().splitlines() if l.strip()])
     except Exception:
         return "Blocked: cannot read the verdict record (fail closed)."
     if _vc != int(permit.get("verdict_lines", -1)):
@@ -157,6 +159,12 @@ def permit_gate_reason(command):
     lp = pathlib.Path(ledger).resolve() if ledger else (root / "Project/results/JOURNAL.jsonl")
     if str(lp) != permit.get("ledger"):
         return f"Blocked: permit is bound to ledger {permit.get('ledger')}."
+    # No other segment may touch the bound ledger — run-then-rewrite in one
+    # command would launder the evidence the reconcile step trusts.
+    lbase = pathlib.Path(permit.get("ledger", "")).name
+    if lbase and any(lbase in s for s in other):
+        return ("Blocked: another segment of this command references the "
+                "bound ledger file — evidence laundering pattern.")
     if permit.get("mode") in ("optimization", "confirmation"):
         # Deny any long option that PREFIX-matches a profile override —
         # argparse accepts abbreviations (--dtyp, --warm, --rep, --rou).
@@ -204,14 +212,14 @@ def state_write_reason(command):
     GS = (r"Project/(loop/(gate_state\.json|gate_log\.jsonl|permit\.json|"
           r"in_flight\.json|permits_used|\.gate\.lock)|"
           r"audits/(strategy/|verdicts\.jsonl|auto/|verdict_schema\.json)|"
-          r"tools/(run_gate|audit_champion|champion_watch)\.py)")
+          r"tools/(run_gate\.py|audit_champion\.py|champion_watch\.py|"
+          r"\.champion_cache\.json))")
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
     for s in segs:
         t = s.strip()
         if (re.search(r"\bcodex\s+exec\b", t)
-                and not re.search(r"Project/(loop/|audits/verdicts|"
-                                  r"tools/(run_gate|audit_champion|"
-                                  r"champion_watch))", t)):
+                and not re.search(r"Project/(loop/|audits/(verdicts|auto/|"
+                                  r"verdict_schema)|tools/)", t)):
             continue  # critic consultations may write ONLY strategy receipts
         if (re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
                      r"reconcile|screen-judge|verdict-clear|reopen|status|"
@@ -221,11 +229,13 @@ def state_write_reason(command):
                 and ">" not in t):
             continue  # launching the auditor/watcher, no redirection
         if (re.match(r"(cat|head|tail|less|grep|wc|ls|stat|file|sha256sum|"
-                     r"diff|sed\s+-n)\b", t) and ">" not in t):
-            continue  # plain reads
+                     r"diff|sed\s+-n)\b", t) and ">" not in t
+                and not re.search(r"\s-i\b|--in-place", t)):
+            continue  # plain reads (sed only without any in-place flag)
         if (re.match(r"git\s+(add|commit|log|show|diff|status)\b", t)
-                and ">" not in t):
-            continue  # version control on state, no redirection
+                and ">" not in t
+                and not re.search(r"\s--?o(ut(put)?)?\b|--output", t)):
+            continue  # version control on state; no redirection/output opts
         return ("Blocked: gate state, the verdict ledger, critic receipts, "
                 "and the enforcer tools change only through run_gate.py, "
                 "the audit pipeline, or a real codex call — direct writes "
@@ -272,6 +282,8 @@ bash). Paste inside the existing `"deny": [ ... ]` list:
       "Edit(Project/tools/champion_watch.py)", "Write(Project/tools/champion_watch.py)",
       "Edit(Project/audits/verdict_schema.json)", "Write(Project/audits/verdict_schema.json)",
       "Edit(Project/audits/auto/**)", "Write(Project/audits/auto/**)",
+      "Edit(Project/loop/.gate.lock)", "Write(Project/loop/.gate.lock)",
+      "Edit(Project/tools/.champion_cache.json)", "Write(Project/tools/.champion_cache.json)",
 ```
 
 Note the tradeoff you are accepting: after this paste, Fable cannot edit

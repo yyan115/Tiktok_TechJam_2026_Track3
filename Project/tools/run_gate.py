@@ -134,6 +134,7 @@ def commit(st: dict, entry: dict) -> None:
     appended BEFORE state is saved. A crash in between leaves state BEHIND
     the log, which the strict loader refuses — fail closed, never laundered."""
     seq = st.get("seq", 0) + 1
+    st.pop("_verdict_lines_snapshot", None)  # transient, never persisted
     entry["state_seq"] = seq
     log(entry)
     st["seq"] = seq
@@ -210,10 +211,15 @@ def unacked_hard_verdicts(st):
     cleared = set(st.get("cleared_verdicts", []))
     out = []
     try:
-        lines = VERDICTS.read_text().splitlines()
+        # ONE read: the same snapshot feeds evaluation AND the line count
+        # bound into permits (no evaluate-then-recount race window).
+        raw = VERDICTS.read_text()
+        lines = raw.splitlines()
+        st["_verdict_lines_snapshot"] = len([l for l in lines if l.strip()])
     except Exception:
         # Missing OR unreadable verdict record = someone/something removed
         # the audit trail. That is never a green light. Fail closed.
+        st["_verdict_lines_snapshot"] = -1
         return [{"_clear_key": "VERDICT-LEDGER-MISSING-OR-UNREADABLE|?",
                  "verdict": "RULE_VIOLATION"}]
     seen = {}
@@ -224,6 +230,11 @@ def unacked_hard_verdicts(st):
             v = json.loads(line)
         except Exception:
             out.append({"_clear_key": "MALFORMED-VERDICT-LINE|?",
+                        "verdict": "RULE_VIOLATION"})
+            continue
+        if not (v.get("entry_id") and v.get("recorded") and v.get("verdict")):
+            # Structurally hollow rows (e.g. {}) are tampering, not noise.
+            out.append({"_clear_key": "STRUCTURALLY-INVALID-VERDICT-ROW|?",
                         "verdict": "RULE_VIOLATION"})
             continue
         key = f"{v.get('entry_id')}|{v.get('recorded')}"
@@ -300,6 +311,13 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         if not (math.isfinite(predict_min) and math.isfinite(predict_max)
                 and 0.0 < predict_min < predict_max):
             return None, "need FINITE 0 < predict-min < predict-max"
+        # A range must be FALSIFIABLE: covering every plausible speedup is
+        # not a prediction. Gate-owned caps: lower bound is a real claim
+        # (>=0.5x) and the band is at most 2x wide multiplicatively.
+        if predict_min < 0.5 or predict_max / predict_min > 2.0:
+            return None, ("prediction range too vague to be falsifiable: "
+                          "need predict-min >= 0.5 and "
+                          "predict-max <= 2 * predict-min")
     if mode not in MODES:
         return None, f"mode must be one of {MODES}"
     try:
@@ -343,12 +361,38 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                               "candidate bytes were already attempted in this "
                               "group — an identical re-run is 'confirmation', "
                               "label it honestly")
-        if retest_open and mode == "confirmation" and \
-                (sha_file(impl_p), shape) not in retest_targets:
-            return None, ("outstanding RETEST: confirmation permits are "
-                          "bound to the retested (candidate bytes, shape) "
-                          "pairs only — no cross-shape or cross-candidate "
-                          "confirmations")
+        if retest_open and mode == "confirmation":
+            if (sha_file(impl_p), shape) not in retest_targets:
+                return None, ("outstanding RETEST: confirmation permits are "
+                              "bound to the retested (candidate bytes, shape) "
+                              "pairs only — no cross-shape or cross-candidate "
+                              "confirmations")
+            # Bounded sampling (reviewer round 2): re-rolling a flaky
+            # candidate until it passes is not confirmation. Existing
+            # satisfying evidence MUST be cleared, not re-rolled; and at
+            # most 3 confirmation permits issue per retest before the
+            # question escalates to the owner.
+            att = st.setdefault("retest_confirm_attempts", {})
+            for h in retests:
+                row = _journal_row(str(h.get("entry_id")))
+                if not row:
+                    continue
+                if (row.get("impl", {}).get("sha256"),
+                        int(row.get("shape_id", -1))) != (sha_file(impl_p), shape):
+                    continue
+                sat = _retest_satisfying_row(row, h.get("recorded"))
+                if sat:
+                    return None, ("satisfying confirmation evidence already "
+                                  f"exists (row {sat}) — run verdict-clear "
+                                  f"--kind retest --confirm-entry {sat} "
+                                  "instead of re-rolling the dice")
+                k = h.get("_clear_key")
+                if att.get(k, 0) >= 3:
+                    return None, (f"confirmation retry budget exhausted for "
+                                  f"retest {k} (3 attempts, none satisfied) "
+                                  "— this is now an OWNER decision "
+                                  "(owner-quote clear).")
+                att[k] = att.get(k, 0) + 1
     ledger_p = Path(ledger).resolve() if ledger else DEFAULT_JOURNAL
     if (mode in ("optimization", "confirmation")
             and ledger_p.resolve() != DEFAULT_JOURNAL.resolve()):
@@ -369,11 +413,10 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         "prediction": prediction,
         "predict_min": predict_min,
         "predict_max": predict_max,
-        # Snapshot of the verdict record's non-blank line count: the guard
-        # refuses to consume this permit if the count changed (an audit
-        # verdict landed between issuance and execution — re-plan).
-        "verdict_lines": len([l for l in VERDICTS.read_text().splitlines()
-                              if l.strip()]) if VERDICTS.exists() else 0,
+        # The SAME snapshot the brake evaluated above (set by
+        # unacked_hard_verdicts): the guard refuses to consume this permit
+        # if the count changed (a verdict landed after issuance — re-plan).
+        "verdict_lines": st.get("_verdict_lines_snapshot", -1),
         "plan_ref": plan_ref,
         "issued": now(),
         "expires_epoch": time.time() + PERMIT_TTL_S,
@@ -811,6 +854,42 @@ def _row_ts(row):
     return _ts_compact(str((row or {}).get("entry_id", ""))[:15])
 
 
+def _retest_satisfying_row(orig, recorded):
+    """entry_id of a journal row that would mechanically clear a RETEST on
+    orig (same bytes+shape, passed, newer than both the original row and
+    the verdict, with a reconciled confirmation-mode witness in the gate
+    log) — else None."""
+    if not orig:
+        return None
+    witnesses = set()
+    try:
+        for line in LOG.read_text().splitlines():
+            if not line.strip():
+                continue
+            e = json.loads(line)
+            if e.get("step") == "reconcile" and e.get("mode") == "confirmation":
+                witnesses.add(e.get("entry_id"))
+    except Exception:
+        return None
+    try:
+        for line in DEFAULT_JOURNAL.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if (r.get("entry_id") != orig.get("entry_id")
+                    and r.get("entry_id") in witnesses
+                    and r.get("impl", {}).get("sha256")
+                    == orig.get("impl", {}).get("sha256")
+                    and r.get("shape") == orig.get("shape")
+                    and bool(r.get("correctness", {}).get("passed"))
+                    and _row_ts(r) > _row_ts(orig)
+                    and _row_ts(r) > _ts_compact(recorded)):
+                return r.get("entry_id")
+    except Exception:
+        return None
+    return None
+
+
 def _journal_row(entry_id):
     try:
         for line in DEFAULT_JOURNAL.read_text().splitlines():
@@ -904,12 +983,15 @@ def cmd_verdict_clear(args) -> int:
               "(verified mechanically).")
         return 0
     if args.kind == "violation":
-        if kind == "RETEST" and _journal_row(args.entry_id) is not None:
-            print("REFUSED: this RETEST has a mechanical path (--kind "
-                  "retest). Owner-quote clearing applies to RULE_VIOLATIONs, "
-                  "and to RETESTs only when the original row is outside the "
-                  "primary journal.")
-            return 1
+        if kind == "RETEST":
+            attempts = st.get("retest_confirm_attempts", {}).get(key, 0)
+            if _journal_row(args.entry_id) is not None and attempts < 3:
+                print("REFUSED: this RETEST has a mechanical path (--kind "
+                      "retest). Owner-quote clearing applies to "
+                      "RULE_VIOLATIONs, and to RETESTs only when the "
+                      "original row is outside the primary journal or the "
+                      "3-attempt confirmation budget is exhausted.")
+                return 1
         if kind not in ("RULE_VIOLATION", "RETEST"):
             print(f"REFUSED: verdict {key} is {kind}.")
             return 1

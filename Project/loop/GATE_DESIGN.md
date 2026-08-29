@@ -184,6 +184,25 @@ cards stay agent-writable (closure authority lives in gate state), +0800
 timestamp ordering stays (single-writer box, with tamper brakes). CLI suite
 now 32/32.
 
+## Amendment v4.3 (30 Aug, convergence-loop round 2 folded — reviewer confirmed round-1 fixes present, 32/32 suite run by the reviewer itself; "implementation failures, not design objections")
+(1) One verdict-record snapshot feeds both brake evaluation and the count
+bound into permits; hollow rows ({}) brake; guard denies consume when the
+record is MISSING, not just changed; the auditor serializes recording
+behind the runner-idle wait. (2) Guard: no other command segment may touch
+the bound run record file (evidence-laundering pattern). (3) Prediction
+ranges must be falsifiable: min >= 0.5, max <= 2x min. (4) Bounded retest
+sampling: max 3 confirmation permits per retest then owner-only; once
+satisfying evidence exists further re-rolls are refused — clear it or lose
+it. (5) A2: sed in-place and git output flags excluded from read allowances,
+codex writes only into strategy/, champion cache + lock file protected.
+(6) Auditor: formatting-agnostic verdict parse (decoy-resistant), full
+stdout retained as an immutable response artifact hashed as recorded,
+record success verified, failed records re-queue the champion. NOTE (also
+reviewer-found): the 57 historical audit receipts hash-mismatch their logs
+by exactly the two post-record status lines — systematic, explainable,
+verifiable by stripping those lines; future receipts use the immutable
+response artifact. Suite: 37/37.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is
