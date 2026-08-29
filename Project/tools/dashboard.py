@@ -3,9 +3,11 @@
 Renders existing files only — journal, verdicts, gate log, cards, side
 packets. Zero instrumentation, zero writes."""
 import json
+import math
 import re
 import subprocess
 import time
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -15,7 +17,6 @@ P = ROOT / "Project"
 JOURNAL = P / "results/JOURNAL.jsonl"
 VERDICTS = P / "audits/verdicts.jsonl"
 GATE_LOG = P / "loop/gate_log.jsonl"
-GATE_STATE = P / "loop/gate_state.json"
 CARDS = P / "loop/cards.jsonl"
 SIDE = P / "results_side"
 AUTO_DIR = P / "audits/auto"
@@ -51,6 +52,104 @@ def jload(path):
     return out
 
 
+def metric_grid_html(cards):
+    """Render score metrics without Streamlit's fixed, clipping columns."""
+    items = []
+    for label, value, detail in cards:
+        items.append(
+            '<div class="score-metric" role="listitem">'
+            f'<span class="score-metric__label">{escape(str(label))}</span>'
+            f'<span class="score-metric__value">{escape(str(value))}</span>'
+            f'<span class="score-metric__detail">{escape(str(detail))}</span>'
+            '</div>'
+        )
+    return '<div class="score-metrics" role="list">' + "".join(items) + '</div>'
+
+
+def status_grid_html(cards):
+    """Render live statuses as wrapping cards at every viewport width."""
+    items = []
+    for label, value in cards:
+        items.append(
+            '<div class="status-card" role="listitem">'
+            f'<span class="status-card__label">{escape(str(label))}</span>'
+            f'<span class="status-card__value">{escape(str(value))}</span>'
+            '</div>'
+        )
+    return '<div class="status-grid" role="list">' + "".join(items) + '</div>'
+
+
+def scoreboard_html(rows, max_speed):
+    """Render every leaderboard field as wrapping, responsive HTML."""
+    try:
+        safe_max = float(max_speed)
+    except (TypeError, ValueError):
+        safe_max = 1.0
+    if not math.isfinite(safe_max) or safe_max <= 0:
+        safe_max = 1.0
+
+    headers = ("Test", "Speed vs baseline", "Method", "When", "Audit", "Remark")
+    header = "".join(
+        f'<div class="scoreboard__heading" role="columnheader">{escape(label)}</div>'
+        for label in headers
+    )
+    body = []
+    for row in rows:
+        try:
+            speed = float(row["Speedup"]) if row.get("Speedup") is not None else None
+        except (TypeError, ValueError):
+            speed = None
+        if speed is not None and not math.isfinite(speed):
+            speed = None
+
+        if speed is None:
+            speed_markup = '<span class="score-proof">✓ Proven</span>'
+        else:
+            width = max(0.0, min(100.0, speed / safe_max * 100))
+            speed_label = f"{speed:.1f}x"
+            speed_markup = (
+                f'<span class="score-speed__value">{speed_label}</span>'
+                '<span class="score-speed__track" aria-hidden="true">'
+                f'<span style="width:{width:.1f}%"></span></span>'
+            )
+
+        audit_tone = row.get("AuditTone")
+        if audit_tone not in {"pass", "pending", "special", "issue"}:
+            audit_tone = "pending"
+        audit_markup = (
+            f'<span class="score-audit score-audit--{audit_tone}">'
+            f'{escape(str(row["Audit"]))}</span>'
+        )
+        values = (
+            ("Test", escape(str(row["Test"])), "scoreboard__cell--test"),
+            ("Speed vs baseline", speed_markup, "scoreboard__cell--speed"),
+            ("Method", escape(str(row["Method"])), "scoreboard__cell--method"),
+            ("When", escape(str(row["When"])), "scoreboard__cell--when"),
+            ("Audit", audit_markup, "scoreboard__cell--audit"),
+            ("Remark", escape(str(row["Remark"])), "scoreboard__cell--remark"),
+        )
+        cells = []
+        for label, value, class_name in values:
+            cells.append(
+                f'<div class="scoreboard__cell {class_name}" role="cell">'
+                f'<span class="scoreboard__label">{escape(label)}</span>{value}</div>'
+            )
+        body.append('<div class="scoreboard__row" role="row">' + "".join(cells) + '</div>')
+
+    if not body:
+        return (
+            '<div class="scoreboard scoreboard--empty" role="status">'
+            '<div class="scoreboard__empty">No passing tests yet.</div></div>'
+        )
+    return (
+        '<div class="scoreboard" role="table" aria-label="Speed leaderboard">'
+        f'<div class="scoreboard__header" role="row">{header}</div>'
+        '<div class="scoreboard__body" role="rowgroup">'
+        + "".join(body)
+        + '</div></div>'
+    )
+
+
 st.set_page_config(page_title="Track 3 Live", page_icon="🏁", layout="wide")
 st.markdown("""
 <style>
@@ -60,13 +159,134 @@ st.markdown("""
   [data-testid="stHeader"] {background: #0b1020 !important;}
   h1, h2, h3, p, span, label, li {color: #e7ecf5 !important;}
   .block-container {padding-top: 1.2rem; max-width: 1250px;}
-  [data-testid="stMetric"] {background: #151b2e; border: 1px solid #26314f;
-      border-radius: 12px; padding: 12px 16px;}
-  [data-testid="stMetricValue"] {font-size: 1.35rem;}
   h1 {font-size: 1.9rem; margin-bottom: 0;}
   h3 {margin-top: 1.4rem; border-bottom: 1px solid #26314f; padding-bottom: 4px;}
-  .stDataFrame {border-radius: 10px; overflow: hidden;}
   code {color: #7dd3fc;}
+
+  /* Score summary: real responsive cards, so labels never get ellipsized. */
+  .score-metrics {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.8rem; margin: 0.15rem 0 1rem;
+  }
+  .score-metric {
+      min-width: 0; display: flex; flex-direction: column; gap: 0.2rem;
+      background: #151b2e; border: 1px solid #26314f; border-radius: 12px;
+      padding: 0.9rem 1rem;
+  }
+  .score-metric__label {color: #aab6cc !important; font-size: 0.78rem; font-weight: 600;}
+  .score-metric__value {
+      color: #f8fafc !important; font-size: clamp(1.25rem, 2.1vw, 1.65rem);
+      font-weight: 700; line-height: 1.2; overflow-wrap: anywhere;
+  }
+  .score-metric__detail {
+      color: #8291ad !important; font-size: 0.75rem; line-height: 1.35;
+      white-space: normal; overflow-wrap: anywhere;
+  }
+
+  .status-grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8rem; margin: 0.15rem 0 0.85rem;
+  }
+  .status-card {
+      min-width: 0; display: flex; flex-direction: column; gap: 0.3rem;
+      background: #151b2e; border: 1px solid #26314f; border-radius: 12px;
+      padding: 0.9rem 1rem;
+  }
+  .status-card__label {color: #aab6cc !important; font-size: 0.78rem; font-weight: 600;}
+  .status-card__value {
+      color: #f8fafc !important; font-size: 1.12rem; font-weight: 650;
+      line-height: 1.35; white-space: normal; overflow-wrap: anywhere;
+  }
+
+  /* Native HTML instead of the canvas dataframe: cells can grow and wrap. */
+  .scoreboard {
+      --score-columns: minmax(3.25rem, 0.55fr) minmax(8.25rem, 1.25fr)
+          minmax(9.375rem, 1.65fr) minmax(7.875rem, 1.1fr)
+          minmax(7.375rem, 1.05fr) minmax(11.875rem, 2fr);
+      width: 100%; border: 1px solid #26314f; border-radius: 12px;
+      overflow: hidden; background: #101628;
+  }
+  .scoreboard__header, .scoreboard__row {
+      display: grid; grid-template-columns: var(--score-columns); min-width: 0;
+  }
+  .scoreboard__header {background: #1a2134; border-bottom: 1px solid #33415f;}
+  .scoreboard__heading {
+      min-width: 0; padding: 0.68rem 0.65rem; color: #9eacc4;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.045em;
+      line-height: 1.3; text-transform: uppercase; white-space: normal;
+  }
+  .scoreboard__body {min-width: 0;}
+  .scoreboard__row {background: #101628; transition: background 120ms ease;}
+  .scoreboard__row:nth-child(even) {background: #12192b;}
+  .scoreboard__row:hover {background: #182238;}
+  .scoreboard__row + .scoreboard__row {border-top: 1px solid #26314f;}
+  .scoreboard__cell {
+      min-width: 0; padding: 0.78rem 0.65rem; color: #e7ecf5;
+      font-size: 0.79rem; line-height: 1.42; white-space: normal;
+      overflow: visible; overflow-wrap: anywhere; word-break: normal;
+      align-self: stretch; display: flex; flex-direction: column;
+      justify-content: center;
+  }
+  .scoreboard__cell + .scoreboard__cell {border-left: 1px solid #202b44;}
+  .scoreboard__label {display: none; color: #8291ad !important;}
+  .scoreboard__cell--test {color: #f8fafc; font-weight: 750;}
+  .scoreboard__cell--when {font-variant-numeric: tabular-nums;}
+  .score-speed__value {
+      color: #f8fafc !important; font-weight: 750;
+      font-variant-numeric: tabular-nums;
+  }
+  .score-speed__track {
+      display: block; width: 100%; height: 0.36rem; margin-top: 0.38rem;
+      overflow: hidden; background: #22304a; border-radius: 999px;
+  }
+  .score-speed__track > span {
+      display: block; height: 100%; min-width: 0.22rem; border-radius: inherit;
+      background: linear-gradient(90deg, #21d4e8, #48b9ff);
+  }
+  .score-proof {color: #73e2c3 !important; font-weight: 750;}
+  .score-audit {
+      display: inline-flex; width: fit-content; max-width: 100%;
+      align-items: center; border-radius: 999px; padding: 0.18rem 0.48rem;
+      font-size: 0.73rem; font-weight: 700; line-height: 1.35;
+      white-space: normal; overflow-wrap: anywhere;
+  }
+  .score-audit--pass {color: #8ef0b3 !important; background: #123b2d;}
+  .score-audit--pending {color: #ffd479 !important; background: #46381a;}
+  .score-audit--special {color: #81e6f0 !important; background: #153b46;}
+  .score-audit--issue {color: #ff9ca8 !important; background: #4a1f2b;}
+  .scoreboard__empty {padding: 1.2rem; color: #aab6cc; text-align: center;}
+
+  @media (max-width: 960px) {
+      .score-metrics {grid-template-columns: repeat(2, minmax(0, 1fr));}
+      .scoreboard {border: 0; border-radius: 0; overflow: visible; background: transparent;}
+      .scoreboard__header {display: none;}
+      .scoreboard__body {
+          display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75rem;
+      }
+      .scoreboard__row, .scoreboard__row:nth-child(even) {
+          display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+          align-content: start; overflow: hidden; background: #12192b;
+          border: 1px solid #2a3654; border-radius: 12px;
+      }
+      .scoreboard__row + .scoreboard__row {border-top: 1px solid #2a3654;}
+      .scoreboard__cell {padding: 0.65rem 0.75rem; justify-content: flex-start;}
+      .scoreboard__cell + .scoreboard__cell {border-left: 0;}
+      .scoreboard__label {
+          display: block; margin-bottom: 0.2rem; font-size: 0.64rem;
+          font-weight: 700; letter-spacing: 0.045em; text-transform: uppercase;
+      }
+      .scoreboard__cell--method, .scoreboard__cell--remark {grid-column: 1 / -1;}
+      .scoreboard__cell--method, .scoreboard__cell--when,
+      .scoreboard__cell--audit, .scoreboard__cell--remark {border-top: 1px solid #26314f;}
+  }
+  @media (max-width: 680px) {
+      .scoreboard__body {grid-template-columns: minmax(0, 1fr);}
+      .status-grid {grid-template-columns: minmax(0, 1fr);}
+  }
+  @media (max-width: 480px) {
+      .score-metrics {grid-template-columns: minmax(0, 1fr);}
+  }
 </style>""", unsafe_allow_html=True)
 st.title("🏁 Track 3 — Live Board")
 
@@ -105,60 +325,60 @@ def render():
     geo = geo ** (1 / len(speeds)) if speeds else 0
 
     st.subheader("Speed scoreboard")
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Average speedup", f"{geo:.1f}x", "12 comparable tests")
     if best:
         top_sid = max(best, key=lambda s: best[s]["speed"])
-        m2.metric("Best test", f"#{top_sid}: {best[top_sid]['speed']:.1f}x")
-    m3.metric("Tests passing", f"{len(best) + len(side_rows)} / 14")
-    m4.metric("Audits passed",
-              f"{sum(1 for b in best.values() if b['verdict'] == 'PASS')} / {len(best)}")
+        best_value = f"{best[top_sid]['speed']:.1f}x"
+        best_detail = f"Test #{top_sid}"
+    else:
+        best_value, best_detail = "—", "No comparable runs yet"
+    audit_passes = sum(1 for b in best.values() if b["verdict"] == "PASS")
+    st.html(metric_grid_html([
+        ("Average speedup", f"{geo:.1f}x", f"{len(speeds)} comparable tests"),
+        ("Best test", best_value, best_detail),
+        ("Tests passing", f"{len(best) + len(side_rows)} / 14", "Correctness validated"),
+        ("Audits passed", f"{audit_passes} / {len(best)}", "Comparable tests"),
+    ]))
+
     rows = []
     for sid in sorted(set(best) | set(side_rows)):
         r = best.get(sid) or side_rows.get(sid)
+        verdict = r.get("verdict")
+        if verdict == "PASS":
+            audit, audit_tone = "✓ Pass", "pass"
+        elif verdict == "RULE_VIOLATION":
+            audit, audit_tone = "! Rule violation", "issue"
+        elif verdict:
+            audit, audit_tone = "◷ " + verdict.replace("_", " ").title(), "pending"
+        else:
+            audit, audit_tone = "◇ Special test", "special"
         rows.append({
             "Test": f"#{sid}",
             "Speedup": r.get("speed"),
-            "": f"{r['speed']:.1f}x" if r.get("speed") else "proven ✔",
             "Method": friendly(r["impl"]),
             "When": r["when"][:16].replace("T", " "),
-            "Audit": ("✅ pass" if r.get("verdict") == "PASS"
-                      else "🔎 " + r["verdict"].lower() if r.get("verdict")
-                      else "🧪 special test"),
+            "Audit": audit,
+            "AuditTone": audit_tone,
             "Remark": r.get("remark", "") or "—",
         })
     max_speed = max((b["speed"] for b in best.values()), default=1)
-    st.dataframe(
-        rows, width="stretch", hide_index=True, height=560,
-        row_height=48,
-        column_config={
-            "Test": st.column_config.TextColumn(width=60),
-            "Speedup": st.column_config.ProgressColumn(
-                "Speed", format="%.1fx",
-                min_value=0, max_value=max_speed, width=140),
-            "": st.column_config.TextColumn(width=70),
-            "Method": st.column_config.TextColumn(width=210),
-            "When": st.column_config.TextColumn(width=120),
-            "Audit": st.column_config.TextColumn(width=90),
-            "Remark": st.column_config.TextColumn(width="large"),
-        })
+    st.html(scoreboard_html(rows, max_speed))
 
     # ---------- Right now ----------
     st.subheader("Right now")
-    gs = json.loads(GATE_STATE.read_text()) if GATE_STATE.exists() else {}
     permit = (P / "loop/permit.json").exists()
     inflight = (P / "loop/in_flight.json").exists()
     cage = ("🟢 OPEN — one attempt armed" if permit else
             "🟡 attempt IN FLIGHT" if inflight else
             "🔒 CLOSED — needs research + plan before the next attempt")
     run_live = subprocess.run(["pgrep", "-f", r"harness[./]runner"],
-                              capture_output=True, text=True).stdout.strip()
+                              capture_output=True, text=True, check=False).stdout.strip()
     sol_live = subprocess.run(["pgrep", "-f", "codex exec"],
-                              capture_output=True, text=True).stdout.strip()
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Thinking cage", cage)
-    c2.metric("Benchmark", "🏃 running" if run_live else "idle")
-    c3.metric("Sol auditor", "🧠 reviewing" if sol_live else "idle")
+                              capture_output=True, text=True, check=False).stdout.strip()
+    st.html(status_grid_html([
+        ("Thinking cage", cage),
+        ("Benchmark", "🏃 running" if run_live else "idle"),
+        ("Sol auditor", "🧠 reviewing" if sol_live else "idle"),
+    ]))
     ideas = []
     for card in jload(CARDS):
         status = card.get("status", "")
