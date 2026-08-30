@@ -54,6 +54,23 @@ to rebuild the authority model from scratch.
 
 ## Results
 
+> ### ⛔ WITHDRAWN — the table below is invalid. Do not ship.
+>
+> Added 31 Aug ~00:30 SGT. The **10.32×** and **10.95×** figures are withdrawn.
+> They were measured pre-gate against baselines that `HANDOVER.md` §3.1 records as
+> **6–63% slower than their own calibration**, so the ratios are inflated.
+>
+> **Controlled post-LOCK replacement, verified-quiet box, paired within one
+> invocation, correct on every seed:**
+>
+> | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
+> |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+> | **speedup** | **2.14×** | **8.11×** | **7.18×** | **2.72×** | **2.15×** | **3.48×** | **1.11×** | **1.17×** | **1.58×** | **4.24×** | **3.23×** | **5.81×** | **2.94×** |
+>
+> **2.94×, not 10.32×.** Excludes shape 6, so it is not the official
+> `geomean-shapes-1-13` figure, and it is screening-lane so not yet promotable
+> (audit recording is broken — see `Project/memory/STATE.md` §1).
+
 ### On the organizers' untouched script
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | geomean |

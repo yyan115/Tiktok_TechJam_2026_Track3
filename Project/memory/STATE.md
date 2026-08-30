@@ -16,6 +16,29 @@ Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 
 ---
 
+## 0. ⛔ READ FIRST — three judge-facing drafts carried a 3.5x overstatement
+
+Found 31 Aug ~00:30 SGT, **19 hours before freeze**. `Project/drafts/` was written
+30 Aug ~11:25, *before* the LOCK and before any of tonight's re-measurement, and three
+deliverables quoted the dead pre-gate board as fact:
+
+| file | claimed | measured tonight |
+| --- | --- | --- |
+| `tech_report_draft.md` §2.1, §2.2 | 10.32× and 10.95× geomean | **2.94×** |
+| `track3_readme_draft.md` | 10.32× geomean | **2.94×** |
+| `track3_video_script.md` | 10.3× geomean, 28.8× best shape | **2.94×**, best **8.11×** |
+
+`devpost_description.md` is clean — it carries no numeric claims.
+
+**All three now carry an unmissable WITHDRAWN block with the corrected table**, placed
+above the stale text rather than replacing it, so the correction is auditable. The
+original prose is retained unedited.
+
+This is LESSONS 24 recurring — *"an unsourced number in an informal note becomes a claim
+in the report"* — this time in the report itself. **Owner: the drafts still need a full
+read-through before freeze; I corrected the headline figures I could verify, but I have
+not audited every sentence of 23 KB of report prose for other pre-gate claims.**
+
 ## 1. THE ONE THING BLOCKING EVERYTHING — owner only
 
 **Audit results cannot be recorded. Nothing can promote until this is fixed.**

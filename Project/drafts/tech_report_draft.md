@@ -64,6 +64,44 @@ limitations are considered):
 
 ## 2. Results
 
+> # ⛔ WITHDRAWN — EVERY NUMBER IN §2.1 AND §2.2 IS INVALID. DO NOT SHIP.
+>
+> Added 31 Aug ~00:30 SGT, after the post-LOCK re-measurement campaign.
+>
+> **Both headline figures below — 10.32× and 10.95× — are withdrawn, along with
+> every per-shape row.** They were taken pre-gate, and `HANDOVER.md` §3.1 records
+> that all twelve published rows carry baselines **6–63% slower than their own
+> calibration**. The *baseline* was mismeasured, which inflates every ratio built
+> on it. None of these rows was taken under a permit and none carries a bound
+> audit verdict, so none is promotion-eligible.
+>
+> **The controlled replacement, measured 30–31 Aug on a verified-quiet box**
+> (idle confirmed via `champion_watch --dry-run` immediately before each run,
+> campaign timing protocol warmup 20 / repeats 100 / rounds 3, baseline and
+> candidate paired inside one invocation, `correct: true` on every seed):
+>
+> | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
+> |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+> | WITHDRAWN | 10.73× | 15.26× | 11.96× | 7.30× | 11.40× | 25.57× | 2.04× | 5.38× | 7.45× | 12.98× | 11.44× | 28.82× | **10.32×** |
+> | **MEASURED** | **2.14×** | **8.11×** | **7.18×** | **2.72×** | **2.15×** | **3.48×** | **1.11×** | **1.17×** | **1.58×** | **4.24×** | **3.23×** | **5.81×** | **2.94×** |
+>
+> **The honest headline is 2.94×, not 10.32×. The old board overstated it by
+> roughly 3.5×.**
+>
+> Two caveats that must travel with 2.94× wherever it is quoted:
+> 1. It **excludes shape 6** (dedicated side lane), so it is **not** the official
+>    `geomean-shapes-1-13` scenario figure.
+> 2. It is **screening-lane and not yet promotable** — the audit-recording path is
+>    broken (`STATE.md` §1), so no row carries a bound verdict yet.
+>
+> Provenance: `Project/loop/gate_log.jsonl`; per-shape calibrated noise floors and
+> immutable promotion thresholds in `Project/loop/gate_state.json`; baseline
+> counter evidence in `Project/loop/profile_evidence/`.
+>
+> This block exists because LESSONS 24 — *"an unsourced number in an informal note
+> becomes a claim in the report"* — happened again, in the report itself. The
+> prose below is retained unedited so the correction is auditable, not silent.
+
 ### 2.1 The organizers' own script, all 12 runnable shapes
 
 Run through the **untouched official benchmark** (`torch_transformer_
