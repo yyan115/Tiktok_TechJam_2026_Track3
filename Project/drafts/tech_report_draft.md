@@ -707,8 +707,12 @@ The submission ships the actual process artifacts, not a reconstruction.
    Sakana's evaluator-editing incident: synchronized wall-clock cross-check
    against CUDA-event timing; perturbed fresh-memory re-runs (defeats
    output caching keyed on input address); shape assertions (defeats
-   quietly shrinking the problem); hash-pinned evaluator and candidate
-   bytes; committed-before-measured provenance.
+   quietly shrinking the problem); hash-pinned evaluator; and
+   content-addressed candidate provenance — the bytes are snapshotted at
+   permit issue and that hash is bound into permit, request and packet (§6).
+   The earlier "committed to git before measured" rule is superseded: our own
+   auditor found it insufficient, because a packet could still cite the
+   current source hash rather than the measured one.
 4. **Blind cross-family audits, fired mechanically.** A new champion triggers
    a detached audit automatically — not when the agent feels ready — and 81
    verdicts are in the ledger (§4). **Stated in the present tense honestly:

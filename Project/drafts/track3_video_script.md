@@ -89,13 +89,24 @@ python3 Project/harness/trusted_controller.py run --permit permit-… --shape 13
 > a fresh permit needs the signing key and the ceremony again. Mint a
 > short-lived capability *before* you start filming.
 
-**Beats while it runs:** candidate bytes are committed to git *before* the
-first measurement, so the audited bytes and the measured bytes are provably
-the same · correctness on five seeds using the official predicate ·
-tripwires: perturbed fresh-memory re-run, shape assertions, wall-clock
-cross-check against the CUDA events · promotion is mechanical — beat the
-calibrated per-shape noise floor or you are not a champion · every new
+**Beats while it runs:** the candidate is snapshotted into a
+content-addressed blob at permit issue and that hash is bound into the
+permit, the request and the result packet, so the audited bytes and the
+measured bytes are the same object · correctness on **seven trials** — five
+fixed seeds plus two drawn at random, so a kernel can't be tuned to the seed
+list · tripwires: perturbed fresh-memory re-run, shape assertions,
+wall-clock cross-check against the CUDA events · promotion is mechanical —
+beat the calibrated per-shape noise floor or you are not a champion · a new
 champion auto-fires a blind audit.
+
+> **Corrected 31 Aug — these three had drifted from the other two documents.**
+> The earlier version said "committed to git before the first measurement"
+> (that was the *pre-LOCK* rule, and the auditor found it insufficient — a
+> packet could still cite the current source hash rather than the measured
+> one), "five seeds" (it is seven), and "every new champion auto-fires a
+> blind audit" in the present tense (the audit recorder is currently broken;
+> no post-LOCK row carries a verdict). Say the corrected version or say
+> nothing — the tech report §4 and §6 carry the full story.
 
 Then: `tail -3 Project/audits/verdicts.jsonl | python3 -m json.tool`
 

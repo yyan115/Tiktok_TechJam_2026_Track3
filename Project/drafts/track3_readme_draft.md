@@ -45,8 +45,13 @@ agent no authority over it:
 - **A tripwire per documented cheat.** Wall-clock cross-check against CUDA
   events (side-stream timing), perturbed fresh-memory re-runs (output
   caching keyed on input address), shape assertions (silently shrinking the
-  problem), hash-pinned candidate bytes committed to git *before* first
-  measurement (provenance).
+  problem), and for provenance the candidate is snapshotted into a
+  **content-addressed blob at permit issue**, with that hash bound into the
+  permit, the request and the result packet — so the audited bytes and the
+  measured bytes are the same object, not two objects asserted to match.
+  (The earlier rule was "commit to git before measuring"; our own auditor
+  found that insufficient, because a packet could still cite the current
+  source hash rather than the measured one.)
 - **A rival AI as auditor.** A new champion fires a blind audit by a
   different model family (GPT-5.6 via Codex CLI) that sees only a neutral
   evidence packet — no commentary from the optimizer — and returns a typed
