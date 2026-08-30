@@ -100,6 +100,14 @@ python3 Project/tools/smokes/shape14_core_smoke.py
 python3 Project/tools/smokes/shape6_core_smoke.py
 ```
 
+> ⚠ **Dry-run these two before you record.** The *full* evidence evaluators
+> (`shape14_eval.py`, `shape6_local_eval.py`) are currently broken by a
+> one-line device-comparison bug and abort instantly — see the tech report
+> §2.4. These smokes are different files and were **not** testable from the
+> agent's command allowlist, so their status tonight is unknown. Find out
+> off-camera, not on it. If they fail the same way, the fix is the same
+> one-liner and the scene still works with the packets on screen instead.
+
 **Say:** "Sequence length one hundred thousand, verified against a chunked
 fp32 oracle with zero tolerance violations — in 305 MiB, on the same eight
 gigabyte card that can't even hold the baseline. Batch ten thousand, where

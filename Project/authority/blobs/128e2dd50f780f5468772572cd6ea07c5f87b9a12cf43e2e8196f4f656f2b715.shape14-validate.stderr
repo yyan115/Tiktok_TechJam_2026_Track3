@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/sandbox/Project/tools/shape14_eval.py", line 781, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/sandbox/Project/tools/shape14_eval.py", line 774, in main
+    return cmd_validate(args)
+  File "/sandbox/Project/tools/shape14_eval.py", line 301, in cmd_validate
+    x, valid_mask = official_case(
+                    ~~~~~~~~~~~~~^
+        otb, torch, cfg, device, SEED0 + trial
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/sandbox/Project/tools/shape14_eval.py", line 275, in official_case
+    raise AssertionError("official no-padding case must return an all-true CUDA mask")
+AssertionError: official no-padding case must return an all-true CUDA mask

@@ -1381,3 +1381,79 @@ Audit recording remains broken: three attempts, three distinct failures, retry c
 exhausted, entry `run-be8e56a55edd1926a84bf5d1efc0b154` permanently in `owner_attention`.
 The fix is in `audit_champion.py`, inside the LOCK, Write-denied to me. That is the
 correct arrangement and I am not going to route around it.
+
+---
+
+## 31 Aug ~02:20 SGT — BOTH extreme-shape evaluators are broken by one line. Owner-only.
+
+With the board finished I went after the next-weakest evidence in the report: the shape 6
+and shape 14 packets, which are labelled PROVISIONAL (one seed each, citing a
+pre-integration submission sha). The report says they are "being re-captured". **They
+cannot be.** Both side-evaluation lanes fail immediately, for the same reason, and the
+reason is a bug in our own tooling — not in the official script, not in our kernels.
+
+Shipped submission sha: `4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6`.
+Lock verified valid (29 protected files) immediately after, so the official script is
+untampered.
+
+**shape 14** — `run-f5d6b57a5bc53c7bc75ae267df24deb4`, stderr blob
+`128e2dd5...shape14-validate.stderr`:
+
+```
+File "/sandbox/Project/tools/shape14_eval.py", line 275, in official_case
+AssertionError: official no-padding case must return an all-true CUDA mask
+```
+
+**shape 6** — stderr blob `2a7817de...shape6-eval.stderr`:
+
+```
+File "/sandbox/Project/tools/shape6_local_eval.py", line 147, in official_case
+AssertionError: official generator returned an invalid mask
+```
+
+### The diagnosis, and why it is certain rather than plausible
+
+Both evaluators set `device = torch.device("cuda")` — no index
+(`shape14_eval.py:289`, `shape6_local_eval.py:296`) — then assert
+`mask.device != device` on the mask the official generator returns.
+
+`torch_transformer_benchmark.py:255-259` builds that mask as
+`torch.ones(..., device=device, dtype=torch.bool)`. Materialising on `torch.device("cuda")`
+produces a tensor whose `.device` is **`cuda:0`**, with an explicit index. In PyTorch
+`torch.device("cuda:0") != torch.device("cuda")` is **True** — device equality compares
+type *and* index, and `None != 0`. So the assertion fires on every invocation.
+
+The shape-6 file is what makes this certain rather than a guess: it splits the checks
+across two statements. Line 146 tests `dtype != torch.bool or mask.device != device`;
+line 148 separately tests `not mask.all()`. **Line 146 is the one that fired.** The
+official generator hardcodes `dtype=torch.bool`, so dtype cannot be the failing term, and
+the all-true content check is a different assertion that was never reached. Only the
+device comparison is left.
+
+So: the mask is correct. The tensor is correct. The kernels are not involved. Two
+evidence tools reject a valid input on a device-index technicality.
+
+### What I did not do
+
+`Project/tools/` is Write-denied to me, and correctly so — these are the files that decide
+whether our extreme-shape claims are true. **Owner-only fix**, one line in each:
+
+- `Project/tools/shape14_eval.py:274`
+- `Project/tools/shape6_local_eval.py:146`
+
+Compare `mask.device.type != device.type`, or normalise the target first with
+`device = torch.zeros(0, device=device).device` so both sides carry an index.
+
+### What this changes in the report, tonight
+
+The drafts currently say the provisional packets "are being re-captured against the
+shipped submission with ≥5 seeds". That is now false, and I have corrected it in all three
+to say the re-capture was **attempted and is blocked on an owner-only tooling fix**. The
+existing packets stay, with their real provenance: one seed, pre-integration sha.
+
+Worth noting how these packets ever existed. Since the check fires unconditionally on this
+torch, they must have been produced before these device assertions were added, or under a
+build where the comparison held. I cannot date that from the record, so I claim only what
+is provable: **the packets in the tree cannot be reproduced by the tools now in the tree.**
+An evidence artifact that its own generator can no longer regenerate is a weaker artifact
+than it looks, and the report should not imply otherwise.

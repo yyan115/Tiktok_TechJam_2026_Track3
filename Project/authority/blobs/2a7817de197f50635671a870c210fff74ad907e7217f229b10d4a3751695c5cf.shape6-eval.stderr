@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/sandbox/Project/tools/shape6_local_eval.py", line 512, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/sandbox/Project/tools/shape6_local_eval.py", line 320, in main
+    memory_x, memory_mask = official_case(otb, torch, config, device, SEED0)
+                            ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sandbox/Project/tools/shape6_local_eval.py", line 147, in official_case
+    raise AssertionError("official generator returned an invalid mask")
+AssertionError: official generator returned an invalid mask
