@@ -44,11 +44,25 @@ agent no authority over it:
   caching keyed on input address), shape assertions (silently shrinking the
   problem), hash-pinned candidate bytes committed to git *before* first
   measurement (provenance).
-- **A rival AI as auditor.** Every new champion automatically fires a blind
-  audit by a different model family (GPT-5.6 via Codex CLI) that sees only
-  a neutral evidence packet — no commentary from the optimizer — and
-  returns a typed verdict. Hard verdicts pause the machine; only the human
-  owner can clear them.
+- **A rival AI as auditor.** A new champion fires a blind audit by a
+  different model family (GPT-5.6 via Codex CLI) that sees only a neutral
+  evidence packet — no commentary from the optimizer — and returns a typed
+  verdict. Hard verdicts pause the machine; only the human owner can clear
+  them. **81 verdicts are in the ledger and 28 of them are rule violations
+  against us** (see the tech report §4, which quotes two that changed the
+  code).
+
+  Two honest qualifications on that, both stated rather than buried. The
+  auditor backend is a *choice*: when the Codex quota ran out we wired
+  Claude as a fallback, and same-family review is a weaker independence
+  claim than cross-family review — every artifact records which backend ran
+  and whether it was an independent vendor. And **the audit recorder is
+  currently broken**: it failed three times in three different ways, exhausted
+  its retry budget, and the entry sits in `owner_attention`. The fix lives in
+  a file the optimizing agent is denied write access to — correctly, since an
+  agent that can repair its own auditor does not have one — so it waits for
+  the human owner. Consequently **no audit verdict is bound to any row of the
+  results below**, and none of them is promotion-eligible.
 
 The kernels are the deliverable; the governance is the idea. Details of
 both are in **[`Project/drafts/tech_report_draft.md`](tech_report_draft.md)**
@@ -61,9 +75,11 @@ to rebuild the authority model from scratch.
 
 Every figure below was measured under a one-use permit bound to the
 candidate's file hash, on an otherwise-idle machine, with correctness
-checked on five seeds by the official predicate. All twelve pass with zero
-failing elements. The top row is the **submission file itself**; the second
-is the kernel modules it routes to.
+checked on **seven trials** — five fixed seeds plus two drawn at random per
+run, so a candidate cannot be tuned to the seed list — using the official
+predicate. All twelve pass with **zero failing elements on every trial**.
+The top row is the **submission file itself**; the second is the kernel
+modules it routes to.
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|

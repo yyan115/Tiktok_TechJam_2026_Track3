@@ -99,10 +99,18 @@ champion auto-fires a blind audit.
 
 Then: `tail -3 Project/audits/verdicts.jsonl | python3 -m json.tool`
 
-**Say:** "Sixty-plus verdicts, and they aren't decoration — the auditors
-caught a provenance gap and a latent masking bug in code the benchmark
-never exercised. We fixed both and re-measured everything. The trail is in
-the repo."
+**Say:** "Eighty-one verdicts, and a third of them are rule violations
+against us. Most are procedural — runs that predate the gate and can't prove
+what plan they came from. But two changed the code: a provenance gap where a
+packet cited the wrong source hash, and a masking bug in a path the
+benchmark never exercises, so no measurement was ever affected and it was
+still wrong. A rival model found both. We fixed them and re-measured."
+
+> **Verified 31 Aug** by counting the ledger and reading the responses:
+> 81 verdicts — 42 PASS, 28 RULE_VIOLATION, 8 NEEDS_CONTEXT, 3 RETEST. Both
+> named findings are quoted verbatim in the tech report §4. Say the 28 out
+> loud; a judge who opens `verdicts.jsonl` will see it, and owning it is far
+> stronger than "sixty-plus verdicts".
 
 ## Scene 4 — the kernels (1:45–2:25)
 

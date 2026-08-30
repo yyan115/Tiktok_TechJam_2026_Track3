@@ -521,8 +521,49 @@ auditor sees a neutral machine-generated evidence packet — code bytes,
 hashes, timings, tripwire results — with no commentary from the optimizer,
 and returns one of a fixed set of typed verdicts (PASS · RETEST ·
 NEEDS_CONTEXT · RULE_VIOLATION, plus JUDGE_ERROR / TIMEOUT for
-infrastructure failure). 60+ verdicts are in the ledger, including the
-RULE_VIOLATIONs that made us change the code.
+infrastructure failure).
+
+**The ledger holds 81 verdicts. We counted them rather than rounding:**
+
+| verdict | count |
+|---|--:|
+| PASS | 42 |
+| RULE_VIOLATION | 28 |
+| NEEDS_CONTEXT | 8 |
+| RETEST | 3 |
+
+**35% RULE_VIOLATION is a high number and we would rather explain it than
+round it away.** They are almost entirely *procedural*, not integrity
+findings, and they cluster on pre-gate runs that lack a contemporaneous
+cited plan — the very defect that motivated building the gate. The verdicts
+we sampled say so explicitly in the auditor's own words: *"No timer
+monkeypatching, harness access, baseline tampering, or input mutation was
+found… the fresh-value and fresh-address checks corroborate that it is not a
+stale-output cache"*, and *"The speedup itself is credible and the promotion
+mechanics are consistent, with no evidence of timing or cache gaming. The
+entry fails audit because it lacks the required contemporaneous citation
+plan."*
+
+Two of those findings changed the code rather than the paperwork, and both
+are the kind a benchmark alone would never surface:
+
+- **A latent masking bug the benchmark never exercised.** `k005` selected
+  the Triton attention path without consulting `valid_token_mask` and never
+  masked invalid keys, so padded inputs would diverge from the baseline. The
+  official runs use `padding_ratio=0.0`, so *no measurement was affected* —
+  the auditor said as much — and it was still a real contract violation
+  against the official forward signature. Fixed.
+- **A provenance gap.** An evidence packet embedded the *current* source
+  hash rather than the measured one (`candidate_source_matches_journal:
+  false`); the true bytes were recoverable only from git history, which the
+  auditor correctly refused to accept: *"a blind auditor should not need
+  repository-history reconstruction."* Packets are now generated from
+  immutable content-addressed artifacts.
+
+The auditor also independently reached one of our own findings before we
+measured it, noting that *"Shape 11's eager baseline is especially
+inefficient at 16 heads with head dimension 8"* — see §2.3.1, where we
+quantify that as a 4.3× baseline degradation across the head-count axis.
 
 Development environment: VS Code, git, Linux terminal. No external APIs or
 datasets: the benchmark generates its own tensors.
@@ -595,8 +636,12 @@ The submission ships the actual process artifacts, not a reconstruction.
 - **CUDA-event timing with a wall-clock cross-check.** If the two disagree
   beyond a threshold the entry is flagged suspicious. No shipped entry is
   flagged.
-- **Correctness on 5 seeds per entry**, using the official predicate
-  exactly: `abs_err <= 0.002 OR rel_err <= 0.02`, computed in fp32.
+- **Correctness on 7 trials per entry** — five fixed seeds (1234–1238) plus
+  two drawn at random per run, so a candidate cannot be tuned to the seed
+  list — using the official predicate exactly:
+  `abs_err <= 0.002 OR rel_err <= 0.02`, computed in fp32. Every trial in
+  every row of §2.1.1 passed with **0 failed elements**; the per-trial
+  output hashes and error statistics are in each measurement packet.
 - **Per-shape calibrated noise floors.** Promotion requires beating the
   measured baseline-vs-itself noise, not an eyeballed margin.
 - **Quiet box.** Contention was measured to cut *both* ways — a loaded box
