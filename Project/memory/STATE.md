@@ -63,32 +63,48 @@ so **no hard verdict is latched and no brake is set** — the absence is a bug, 
 agent, so this is owner-only. **Until it is fixed nothing can promote**, and each further
 attempt burns budget plus ~$2.49 to produce an unpromotable row.
 
-**2. The shape-1 result is real but was credited to the wrong mechanism — my error.**
-Attempt 1 measured **2.0748x, correct**, on shape 1. The auditor showed, and I re-derived,
-that the bound baseline profile has the forward **96.6% GPU-busy** (0.199 ms of launch
-idle per 5.93 ms forward), so graph replay can buy at most **~1.035x** — barely the 1.03
-threshold. The other ~93% of the 2.67 ms saving comes from the second change bundled into
-k004: an inlined flash-style Triton attention plus fused packed QKV, which removes
-repeated passes over a 16.8 MB per-layer score tensor. So `F-shape1-graph`
-(`cuda-graph-replay` / `launch-overhead`) is the wrong family for this win, and the five
-further graph-replay families registered for shapes 5, 9, 10, 11, 13 carry the same
-misframing. They are inert; nothing was spent on them. See LESSONS 32 and 33.
+**2. Shape 1 is now DECOMPOSED, on a verified deep-idle box, in the scratch lane.**
+Both arms measured, both correct, neither promotable (screening cannot promote, by design):
 
-Also independent of the audit: the run tripped the harness's **own** timing tripwire
-(`event_wall_speedup_agreement_ratio` 1.2552 against the 1.25 threshold at
-`candidate_worker.py:476`), so the controller had already set
-`performance_eligible: false`. This run was never promotable. The auditor found **no
-manipulation** and traced a benign cause (unpaired sequential wall blocks plus a
-disturbance confined to round 3); it asks for a re-measure on a quiet box.
+| arm | quiet-box speedup vs baseline | marginal |
+| --- | --- | --- |
+| k003 — authored Triton attention, no graph | **1.6010x** | fusion carries 1.601x |
+| k004 — same kernel **plus** whole-forward graph | **2.1428x** | **graph adds x1.338** |
 
-**Ledger at stop:** 1 of 60 attempts spent, 0 promoted, 0 strikes, 12 shapes calibrated
-with immutable thresholds, 4 profiles, 6 families registered, no permit armed, lock valid,
-campaign not stalled, tree clean on `grind-lastday`.
+**Both mechanisms are real and material.** k004 is a genuine two-mechanism bundle and the
+campaign now holds the isolating measurement that splits it — which is exactly what the
+independent audit demanded and did not have.
+
+Getting there took two of my own errors, both caught and both recorded:
+
+- I first credited the whole 2.07x to graph replay. The auditor's WEAK_DIAGNOSIS was
+  right that the attribution was unproven (LESSONS 32).
+- I then over-corrected: I accepted the auditor's **1.035x ceiling** as settled fact and
+  committed it. A preregistered falsifier — "if k004 on a quiet box lands at or above 2.0,
+  that ceiling must be wrong" — fired at 2.1428x twenty minutes later. The ceiling was
+  computed under the profiler and, decisively, an idle-fraction bound cannot see work the
+  mechanism deletes from the *busy* side (the baseline issues 17 memcpy and 24 memset per
+  forward that the graph removes outright). See LESSONS 34.
+
+**Superseded:** the earlier claim in this file that the five graph-replay families for
+shapes 5, 9, 10, 11, 13 are "misframed". They are not — graph capture is worth 1.338x on
+shape 1. They are legitimate and simply need per-shape counter evidence before use.
+
+**Also dead: the contention explanation for attempt 1.** The quiet box gave 2.1428x,
+*higher* than the contended 2.0748x. What the tripwire actually caught was the **wall**
+arm (unpaired sequential blocks, 2.6043) disagreeing with the **event** arm; the paired
+interleaved event timing was sound all along, which is what the harness intends it to be.
+
+**Ledger:** 3 of 60 attempts spent (1 optimization, 2 screening), 0 promoted, **0 strikes**
+(characterization misses cost nothing), 12 shapes calibrated with immutable thresholds,
+6 profiles, 7 families registered, no permit armed, lock valid, campaign not stalled, tree
+clean on `grind-lastday`.
 
 **What is genuinely banked and defensible:** the 12 calibrated noise floors; the
 115-launches-to-2 counter measured on both routes; the nsys graph-blindness finding with
-its clean control; and the fact that the control system caught a real attribution error
-that its own operator had missed and written up as a success.
+its clean control; the shape-1 two-arm decomposition above; and a loop that caught two
+attribution errors by its own operator inside one hour, one of them via a falsifier
+written to point at itself.
 
 **The 49 "pending" audits are inert — do not panic at them.**
 `champion_watch.py --dry-run` lists 49 pre-gate entries. Running the watcher skips
