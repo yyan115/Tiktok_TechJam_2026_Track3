@@ -12,16 +12,17 @@ Then read all of `Project/memory/LESSONS.md`, every session, and
 
 **If a command and a document disagree, the command is right** — including this one.
 
-Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
+Updated: 2026-08-31 ~02:10 SGT. Branch `grind-lastday`.
 
 ---
 
-## 000. ⚠ LATEST: the ORIGINAL board is being vindicated. Read this before anything below.
+## 000. ✅ COMPLETE: the shipped route, all twelve shapes, measured under permit.
 
-31 Aug ~01:25 SGT. Re-measuring the **actually-shipped** megakernel (k009) now agrees
-closely with the pre-gate figures I withdrew three hours ago:
+31 Aug ~02:10 SGT. **The correction campaign is finished.** Every locally-runnable shape
+has been re-measured on the kernel the dispatcher actually selects, under a one-use permit,
+on a verified-quiet box, in the screening lane, `correct: true` on all twelve.
 
-| shape | pre-gate (withdrawn) | **shipped route, measured tonight** | delta | k004 (wrong kernel) |
+| shape | pre-gate (withdrawn) | **shipped route, measured** | delta | k004 (wrong kernel) |
 | --- | --- | --- | --- | --- |
 | 13 | 28.82x | **28.4098x** | −1.4% | 5.8096x |
 | 7 | 25.57x | **21.9645x** | −14.1% | 3.4781x |
@@ -29,33 +30,65 @@ closely with the pre-gate figures I withdrew three hours ago:
 | 11 | 12.98x | **12.6797x** | −2.3% | 4.2433x |
 | 3 | 11.96x | **12.6314x** | +5.6% | 7.1845x |
 | 12 | 11.44x | **10.8141x** | −5.5% | 3.2334x |
+| 5 | 11.40x | **9.1536x** | −19.7% | 2.1475x |
 | 4 | 7.30x | **8.8774x** | **+21.6%** | 2.7175x |
 | 1 | 10.73x | **8.3303x** | **−22.4%** | 2.1428x |
+| 10 | 7.45x | **6.5651x** | −11.9% | 1.5833x |
+| 9 | 5.38x | **4.8355x** | −10.1% | 1.1723x |
+| 8 † | 2.04x | **2.0162x** | −1.2% | 1.1060x |
+| **geomean** | **10.32x** | **9.68x** | **−6.2%** | 2.94x |
 
-**Eight of twelve done. Mean delta −3.0%, scatter −22.4% to +21.6%, six below and two
-above.** So the old board was neither systematically inflated nor systematically deflated —
-it was **approximately right on average with per-shape scatter of roughly ±22%**. That is
-the honest characterisation, and it is a more useful claim than either of my earlier
-readings because it is both bounded and two-sided.
+† Shape 8 is the only shape on the **other** shipped branch: `d_model` 1024 goes to
+`k010_fused_ln.py`, an fp16 tensor-core stack with fp32 accumulation, not the megakernel.
+Its file sha (`bda8f703…`) differs from the eleven megakernel runs (`2b96a7c3…`).
+
+**Mean delta −5.6%, scatter −22.4% to +21.6%, ten below and two above, uncorrelated with
+baseline device idle** — so the spread is harness measurement variation, not bias. The
+pre-gate board was **procedurally invalid but numerically close**: that is the honest
+two-sided characterisation, and it is the one the report must carry.
+
+### The two mechanism findings this campaign actually earned
+
+1. **The megakernel wins by doing less work, not by recovering launch gaps.** Shape 5 has
+   only **1.0% baseline device idle** — there are almost no launch gaps there to recover —
+   and it still returned **9.1536x**. Keeping the whole block resident in registers deletes
+   memory traffic; it does not merely close bubbles. This is why an idle-fraction argument
+   can never bound this mechanism (LESSONS 34).
+2. **The megakernel is much flatter across head count than k004.** Over 1 → 16 heads the
+   megakernel spans 4.8355x → 12.6797x (a **2.62x** range, and only **1.93x** over the
+   2 → 16 heads k004 was compared on), while k004 spans 1.1723x → 4.2433x. The single-head
+   case is where k004 nearly vanishes (1.1723x, barely over its 1.03 threshold) and where
+   the megakernel still returns **4.8355x**.
 
 The k009-over-k004 ratio ranges **1.76x to 6.31x** — strongly shape-dependent, which is why
 the "constant 1.77x" claim was wrong.
 
-**Two of my own claims are refuted:**
+### Caveats that must travel with every one of these numbers
 
-1. *"The pre-gate board was systematically inflated."* **Wrong.** It is procedurally
-   invalid — no permit, no bound verdict, baselines 6–63% off calibration — and
-   numerically close. I conflated those.
+- **Screening lane. Nothing here is promotable.** These are characterisation runs; none is
+  a champion and none went through the promotion gate.
+- **Excludes shape 6 and shape 14** (not locally runnable). The geomean is over the twelve
+  that are.
+- **Different instrument from the pre-gate column.** These are paired event speedups from
+  the trusted controller; the withdrawn 10.32x was the organizers' script against a
+  baseline 6–63% off its own calibration. They agree to 6.2%, which is *evidence* the old
+  board was roughly right — it is not the same measurement repeated.
+- **Audit recording is still broken and owner-only.** No verdict is bound to any of these
+  rows. See §1.
+
+**Three of my own claims were refuted during this campaign:**
+
+1. *"The pre-gate board was systematically inflated."* **Wrong.** Procedurally invalid and
+   numerically close; I conflated those.
 2. *"The shipped route beats k004 by a consistent ~1.77x."* **Wrong** — generalised from
-   two points. Shape 13's ratio is **4.89x**. Shape-dependent, like everything else here.
+   two points. The ratio spans 1.76x–6.31x.
+3. *"2.94x is the corrected headline."* **Wrong**, and it briefly went into three
+   judge-facing drafts — understating the shipped route by ~3.5x, the same error I accused
+   the drafts of, inverted.
 
-**The 2.94x figure is the misleading one** and my own WITHDRAWN blocks briefly made it the
-headline, understating by ~3.5x — the same error I accused the drafts of, inverted. The
-tech report block is corrected; README and video script still need the same second
-amendment.
-
-**No geomean is claimed.** 3 of 12 shipped-route shapes measured. The original 10.32x is
-not re-earned, but it is no longer contradicted.
+**Numeric prediction bands finished 0 for 26.** Shape 8 missed a 2% band centred on a
+figure copied directly off the prior record, by 0.2%. Bands stay retired (LESSONS 35); the
+field is filled only because the gate requires it and no conclusion is ever drawn from it.
 
 ## 00. ⛔⛔ I MEASURED THE WRONG KERNEL. The 2.94x board is NOT the submission.
 
