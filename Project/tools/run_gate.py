@@ -1844,6 +1844,10 @@ def cmd_diagnostic(args) -> int:
         print(f"REFUSED: {exc}")
         return 1
     record_id = "profile-" + secrets.token_hex(12)
+    # The trusted profile namespace must exist before the controller's
+    # profiler worker is told to write into it; reconcile later refuses any
+    # artifact whose path escapes this directory.
+    PROFILE_EVIDENCE.mkdir(parents=True, exist_ok=True)
     output = PROFILE_EVIDENCE / f"{record_id}.json"
     request = {
         "schema_version": 1, "request_id": secrets.token_hex(16),
