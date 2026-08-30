@@ -1,0 +1,17 @@
+Generating SQLite file /output/raw/nsys-timeline.sqlite from /output/raw/nsys-timeline.nsys-rep
+Processing [/output/raw/nsys-timeline.sqlite] with [/usr/local/cuda-13.0/nsight-systems-2025.3.2/host-linux-x64/reports/cuda_gpu_kern_sum.py](nvtx=profile-measured)... 
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+37.2,916269561,340,2694910.5,167151.5,166400,6151161,2691876.3,"void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::native::<unnamed>::masked_fill_kernel(at::TensorIterator &, const c10::Scalar &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float, bool) (instance 1)]>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)"
+17.0,419627061,80,5245338.3,5209115.0,5200442,5706170,91595.8,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::AUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float>>, std::array<char *, (unsigned long)2>>(int, T2, T3)"
+17.0,417830332,80,5222879.2,5182890.0,5179450,5754714,113777.6,"void <unnamed>::softmax_warp_forward<float, float, float, (int)10, (bool)0, (bool)0, (int)32>(T2 *, const T1 *, int, int, int, const bool *, int, bool)"
+9.2,227874632,80,2848432.9,2813373.0,2807197,3326749,71397.8,void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_256x64_16x4_tn_align4>(T1::Params)
+9.1,223079754,80,2788496.9,2775021.0,2754653,3258492,75148.8,void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_64x64_16x6_nn_align4>(T1::Params)
+3.8,94269380,480,196394.5,195040.0,191040,472831,16940.8,void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x256_16x3_tn_align4>(T1::Params)
+2.4,58203908,180,323355.0,321696.0,321472,616608,21980.2,"void at::native::<unnamed>::vectorized_layer_norm_kernel<float, float, (bool)0>(int, T2, const T1 *, const T1 *, const T1 *, T2 *, T2 *, T1 *)"
+2.1,52817127,320,165053.5,165216.0,163647,202815,2197.6,"void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)"
+1.6,39078510,160,244240.7,242447.5,242080,522240,22117.3,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)"
+0.6,13622706,80,170283.8,163808.0,163200,423391,40107.8,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)"
+0.0,847231,80,10590.4,10592.0,10432,10752,70.0,"void at::native::triu_tril_kernel<bool, int, (bool)1, (int)8, (bool)0>(at::cuda::detail::TensorInfo<T1, T2>, at::cuda::detail::TensorInfo<const T1, T2>, long, long, T2)"
+0.0,523742,260,2014.4,2016.0,1824,2176,56.0,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::bitwise_not_kernel_cuda(at::TensorIteratorBase &)::[lambda(bool) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)"
+0.0,259648,80,3245.6,3200.0,2976,3584,160.5,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<bool>, std::array<char *, (unsigned long)1>>(int, T2, T3)"
+

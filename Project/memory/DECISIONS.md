@@ -613,6 +613,68 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:41–23:44 SGT — shape 13 measures 5.8096x, the best on the board, and I am
+retiring my own prediction bands as promised.**
+
+Shape 13 (S=1024) baseline kernel breakdown from `profile-b35c340c80f4558332feb0da`,
+which is the first time tonight I predicted from a measured per-kernel table **of the shape
+being predicted**:
+
+| kernel | ns over 20 iters | share |
+| --- | --- | --- |
+| `masked_fill` over the score tensor | 916,269,561 | **37.2%** |
+| scale multiply | 419,627,061 | 17.0% |
+| `softmax_warp_forward` | 417,830,332 | 17.0% |
+| attention GEMM `256x64_16x4_tn` | 227,874,632 | 9.2% |
+| attention GEMM `64x64_16x6_nn` | 223,079,754 | 9.1% |
+| linear projection GEMMs `128x256` | 94,269,380 | 3.8% |
+| layer norm / copy / add | ~152M | ~6.1% |
+
+At S=1024 the materialized score tensor is about **1.07 GB per layer** — 64x shape 1 — and
+**71.2% of the baseline is pure elementwise and softmax traffic over it**. Note the linear
+projections are only 3.8%: attention is quadratic in sequence length, the projections
+linear, so at this shape the model is almost entirely attention.
+
+I predicted 3.47–3.53 by assuming the fused kernel deletes the 71.2% traffic and keeps the
+18.3% GEMM share. **Measured 5.8096x**, and my falsifier at 4.5 fired. What that falsifier
+was built to detect is exactly what happened: the fused kernel does not merely remove the
+traffic, it **also beats the baseline's attention GEMMs**. That makes sense in hindsight —
+cutlass GEMMs reading and writing a 1.07 GB operand are bandwidth-bound, not compute-bound,
+so a tiled flash kernel that never lands the tensor in DRAM wins the math as well.
+
+### Board after six shapes, all quiet-box, all correct, all zero-strike
+
+| shape | B | heads | seq | k004 vs baseline |
+| --- | --- | --- | --- | --- |
+| 9 | 64 | 1 | 128 | 1.1723x |
+| 10 | 64 | 2 | 128 | 1.5833x |
+| 1 | 64 | 4 | 128 | 2.1428x |
+| 5 | 128 | 4 | 128 | 2.1475x |
+| 11 | 64 | 16 | 128 | 4.2433x |
+| 13 | 64 | 4 | **1024** | **5.8096x** |
+
+**Geomean of these six: 2.44x.** Two axes now explain the spread: head count (the baseline
+degrades as heads multiply and per-head matmuls shrink) and sequence length (the baseline
+degrades quadratically as the score tensor grows). Both are baseline weaknesses the fused
+route simply does not have.
+
+### Retiring my prediction bands, as preregistered
+
+Eight bands tonight, **eight misses**. On card C11 I wrote, before running it, that if a
+band derived from a measured per-kernel breakdown of the target shape *also* missed, the
+honest conclusion is that I cannot forecast this system and should stop attaching numeric
+bands as claims. It missed by 66%. So, honouring that: the gate requires `predict-min` and
+`predict-max` on every screening plan and the field cannot be omitted, but from here it is
+filled as **a required field with stated low confidence, not as a claim**, and **no
+conclusion is drawn from any band hit or miss**. Conclusions come from measurements only.
+Recorded as LESSONS 35.
+
+Worth being precise about what this does and does not indict. My *forecasting* is 0 for 8.
+My *instrumentation* held perfectly: every run was characterization-kind in the scratch
+lane, so eight consecutive misses cost **zero strikes and zero promotable damage**, and six
+fired falsifiers I had aimed at my own position — which is what produced every genuine
+finding of the night rather than any of my predictions.
+
 **30 Aug 23:34–23:37 SGT — head-count axis completed. Shape 11 is our best shape at
 4.2433x, and it is the shape a previous card had written off.**
 
