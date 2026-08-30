@@ -387,8 +387,26 @@ entirely would take it to roughly 20.8× and the twelve-shape geometric mean to
 about 10.1×, a **+4.2%** improvement. That assumes the gap closes completely, which
 nothing yet supports, so it is recorded as a bounded target rather than a plan.
 
-Full board: `Project/results_side/SENSITIVITY.md` (regenerate with
-`python3 Project/tools/sensitivity_board.py`).
+Score-scenario board: `Project/results_side/SENSITIVITY.md` (regenerate with
+`python3 Project/tools/sensitivity_board.py` — verified working 31 Aug).
+
+> ⚠ **That board is pre-gate and does not match this section.** Its own
+> footer says so: *"Every number above is pre-gate (measured before the
+> authority-v4 guard paste)."* It is built from the 29 Aug quiet-box sweep
+> in `Project/results/JOURNAL.jsonl`, and it **structurally cannot** show
+> the post-LOCK board, because those rows live in the authority log and its
+> packets rather than the legacy journal (§10). So its MFU column differs
+> from the table above — e.g. shape 1 reads 11.63 TF/s there against 13.18
+> here — and its `S3 geomean 10.95×` is one of the **withdrawn** pre-gate
+> figures (§2.2), not our result.
+>
+> What it is still good for, and why we keep it: it is the only place the
+> *scoring conventions* are worked out — five weightings of the same
+> evidence that disagree about where the remaining points are (equal-weight
+> MFU 0.327, FLOP-weighted 0.475, geomean speedup, roofline-relative, and
+> the worst-shape floor of 0.025 on shape 2), plus the marginal value of a
+> 20% win on each shape. Read it for the ranking logic, not for the numbers.
+> Regenerating it against post-LOCK medians is owed work we did not do.
 
 ### 2.4 The two shapes that do not fit
 
@@ -513,7 +531,7 @@ stops helping — long sequences, and the launch-bound small shapes.
 | Role | Tool | Model | What it did |
 |---|---|---|---|
 | Optimizer | Claude Code (terminal agent) | Claude Fable 5, later Claude Opus 5 | Authored every kernel, the measurement harness, the process machinery, and this report |
-| Adversary | OpenAI Codex CLI | GPT-5.6 ("Sol"), reasoning effort high / ultra | Blind audits of every champion; blind strategy reviews |
+| Adversary | OpenAI Codex CLI *(primary)* / Claude *(fallback)* | GPT-5.6 ("Sol"), reasoning effort high / ultra | Blind audits of champions; blind strategy reviews |
 | Human | — | — | Owner: sole authority over rules, freezes, and everything that ships |
 
 Cross-family by design: **the optimizer is never its own judge.** The
@@ -522,6 +540,27 @@ hashes, timings, tripwire results — with no commentary from the optimizer,
 and returns one of a fixed set of typed verdicts (PASS · RETEST ·
 NEEDS_CONTEXT · RULE_VIOLATION, plus JUDGE_ERROR / TIMEOUT for
 infrastructure failure).
+
+**Which model actually judged, stated precisely.** The 81 verdicts in the
+ledger were produced by Codex/GPT-5.6 — genuinely cross-family. When the
+Codex quota ran out we wired a Claude fallback, and **the last three audit
+attempts on record used it**: `audit_events.jsonl` seq 18–23 name the
+binary `/usr/local/bin/claude-auditor` (sha `fd5f10ff…`). Two consequences
+we state rather than bury:
+
+1. **Same-family review is a weaker independence claim than cross-family
+   review.** Claude auditing Claude's work is not the same evidence as a
+   rival vendor doing it, and no amount of packet isolation fixes that.
+   Every audit artifact records which backend ran, so the distinction is
+   auditable rather than asserted.
+2. **The auditor binary lives at a root-owned path on purpose.** A pinned
+   hash is only a control when the thing being hashed is out of the agent's
+   reach — the stock install directory sits under `$HOME`, which the agent
+   could overwrite and then re-hash. Hence `/usr/local/bin/`, installed by
+   the owner.
+
+Those three fallback attempts are also the ones that failed, which is why
+no post-LOCK row carries a verdict (§6).
 
 **The ledger holds 81 verdicts. We counted them rather than rounding:**
 
@@ -824,7 +863,14 @@ repository with their evidence:
   the memory floor" was latency, not parallelism starvation. The lesson —
   count memory traffic before occupancy — is now a standing rule.
 - **A head-splitting variant came out a statistical tie** and was closed
-  rather than ground on.
+  rather than ground on. ⚠ **Unsourced — do not ship this bullet without
+  checking it.** Of the four negative results here it is the only one we
+  could not trace to a file: it is absent from `LESSONS.md`, from
+  `Project/research/`, from the kernel roster in `LEADERBOARD.md` and
+  `SENSITIVITY.md` (k000, k001, k003–k011, k014, k015), and no
+  head-splitting kernel exists on disk. It may be a mis-remembering of the
+  `k011` QKV-chunk result immediately above, which *is* documented. Either
+  find the evidence or delete the bullet.
 - **A single-CTA megakernel for shape 2 was killed before it was written**,
   by arithmetic: 117.44 MFLOP at one SM's share of fp16 peak (32.5 TF ÷ 38
   SMs) floors at **~137 µs** against a then-champion of **144.4 µs** — at
