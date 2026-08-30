@@ -1,6 +1,183 @@
 {
+ "active_campaign": "CAMP-POSTLOCK",
+ "campaigns": {
+  "CAMP-POSTLOCK": {
+   "authority_event_id": "evt-20260830T125459.321704Z-8ae9746b2ae0",
+   "authority_event_sha256": "822b33c848ae3e2fcce58abc3fd5d9291c2fc25348e3c213bfc605a8c628c308",
+   "calibration_requests": 1,
+   "calibration_requests_by_shape": {
+    "1": 1
+   },
+   "calibrations": {
+    "1": {
+     "entry_id": "run-aa8def96f24fc77f96be122f04351c47",
+     "machine_state_sha256": "3cc7dc1b5dae907ac7d928e019cf4b2b9c73b864bb8f9519c5b18ee53609d814",
+     "measurement_event_sha256": "ae5ed38c73a2fac227898d2073084d907601918f3617839584d58176f77a6dee",
+     "noise": 0.003466853696522776,
+     "promotion_threshold": 1.03,
+     "request_id": "29e768abdb9e08447801c5d2ace8af7a",
+     "request_sha256": "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
+     "timing_config": {
+      "repeats": 100,
+      "rounds": 3,
+      "warmup": 20
+     },
+     "worker_environment_sha256": "7772f7d4a9f789f50dc025542540c5daa6d3a150d93143557db160977c9dc4be"
+    }
+   },
+   "campaign_id": "CAMP-POSTLOCK",
+   "families_tried": [],
+   "max_calibrations_per_shape": 3,
+   "max_total_attempts": 60,
+   "max_total_calibrations": 30,
+   "opened": "2026-08-30T20:55:04+0800",
+   "opened_epoch": 1788094504.8318138,
+   "production_outcomes": [],
+   "schema_version": 1,
+   "scientific_attempts": 0,
+   "score_scenarios": [
+    "geomean-shapes-1-13"
+   ],
+   "side_evaluation_requests": 0,
+   "side_evaluations": [],
+   "stall_nonce": null,
+   "stall_research_cycle": 0,
+   "stall_window": 6,
+   "stalled": false,
+   "stalled_epoch": null,
+   "status": "active",
+   "timing_config": {
+    "repeats": 100,
+    "rounds": 3,
+    "warmup": 20
+   },
+   "timing_protocol_binding": {
+    "controller_sha256": "f599efa917eebaaf40d6d0aa39800f22d8d01ec508f11844d3efe9e9c62b3613",
+    "source": "trusted_controller.py::TIMING",
+    "verified_against_controller": true
+   }
+  }
+ },
+ "cleared_verdicts": [],
+ "consumed_capability_nonces": [
+  "fad7ed5d110de3e06fdbe76037a6ae20753ff4ef5ab00bcf321a069196bd2040"
+ ],
+ "created": "2026-08-29T15:11:47+0800",
+ "family_admissions": {},
+ "family_registry": {},
  "groups": {},
+ "pending_audit_decisions": {},
  "pending_postmortem": [],
+ "pending_screen_judgment": null,
+ "profiles": {
+  "profile-3d9f7dabfba6348163f24495": {
+   "artifact_path": "Project/loop/profile_evidence/profile-3d9f7dabfba6348163f24495.json",
+   "artifact_sha256": "2ccd7ed60bf1f9fb3f0e9f98972ca627a44063ed4ad0c49a255bcf6037da3efe",
+   "created_epoch": 1788095769.8650384,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 2.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20,
+     "cudaLaunchKernel": 20
+    },
+    "device_activity_records": 1220.0,
+    "gpu_busy_us": 52194.3408203125,
+    "gpu_idle_fraction": 0.12447108414785979,
+    "gpu_span_us": 59614.6396484375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 58.0,
+    "kernel_instances_total": 1160.0,
+    "kernel_launch_api_calls": 20.0,
+    "kernel_launches": 2.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 40.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "71b461ecdb8852ca1772002aad93ad28c9be4826478c4e05a833d284dfa6941c",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-3d9f7dabfba6348163f24495",
+   "reconciled_state_seq": 7,
+   "shape": 1,
+   "supported_bottlenecks": [
+    "host-synchronization"
+   ],
+   "target_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+   "tool": "torch-profiler"
+  },
+  "profile-cb6cd3c903aacee64a468d63": {
+   "artifact_path": "Project/loop/profile_evidence/profile-cb6cd3c903aacee64a468d63.json",
+   "artifact_sha256": "c17de8cad64e73528625419265030ae4c4cf29f14b6ffc3412144fbb04f2af68",
+   "created_epoch": 1788095602.4303849,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 2.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetName": 20,
+     "cudaDeviceSynchronize": 1,
+     "cudaGraphLaunch": 20,
+     "cudaLaunchKernel": 20,
+     "cudaMemcpyAsync": 60,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1,
+     "cudaStreamSynchronize": 20
+    },
+    "device_activity_records": 80.0,
+    "distinct_kernels": 1.0,
+    "gpu_busy_ns": 1008989.0,
+    "gpu_idle_fraction": 0.981269672047688,
+    "gpu_span_ns": 53869265.0,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 1.0,
+    "kernel_instances_total": 20.0,
+    "kernel_launch_api_calls": 20.0,
+    "kernel_launches": 2.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 40.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "8587008b674347306787bb2237d33444052a01b4518d38632aee42d7bf9aae0a",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-cb6cd3c903aacee64a468d63",
+   "reconciled_state_seq": 5,
+   "shape": 1,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+   "tool": "nsys"
+  }
+ },
+ "quarantined_requests": [],
+ "reconciled_authority_event_shas": [
+  "ae5ed38c73a2fac227898d2073084d907601918f3617839584d58176f77a6dee",
+  "2cacf21dd7065e6c82533155460238fe888115c83a71ca0fc13c601a88106365",
+  "96e27f2d7c1f890e1d5f6c1d0691f2031134640afd5d5d764cbdd106391fee41"
+ ],
+ "request_shas": [
+  "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
+  "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
+  "cbdc6997c01e25e846f55e51928a8259fb1d363331d0e7e8c62bda6592e13b2f"
+ ],
  "research_cycle": 0,
- "research_open": false
+ "research_open": false,
+ "seq": 7,
+ "settled_request_shas": [
+  "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
+  "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
+  "cbdc6997c01e25e846f55e51928a8259fb1d363331d0e7e8c62bda6592e13b2f"
+ ]
 }

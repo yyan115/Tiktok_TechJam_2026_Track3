@@ -33,7 +33,33 @@ against the code and the ledgers on that date, not carried over from a note.
 - 0 permits issued, 0 consumed, 0 measurements, no permit armed.
 - Auditor is Claude (`/usr/local/bin/claude-auditor`, root-owned, pinned hash matches).
 
-**The next action is runbook step 10: calibrate a shape.** Nothing else is pending.
+**Shape 1 groundwork is done (30 Aug 21:11–21:17 SGT): runbook steps 10 and 11.**
+Calibration for shape 1 is immutable at **noise 0.003467, promotion threshold 1.03**
+(entry `run-aa8def96f24fc77f96be122f04351c47`, `event_speedup 1.00347`, correct).
+Two diagnostics ran against `k004_graphed_triton.py` on shape 1, and together they
+**killed the runbook's own example direction before it cost an attempt**:
+
+- nsys (`profile-cb6cd3c903aacee64a468d63`): 2 launch API calls per forward.
+  **Launch overhead is no longer the shape-1 bottleneck.**
+- torch-profiler (`profile-3d9f7dabfba6348163f24495`, same bytes): 58 kernels per
+  forward, GPU busy 87.6%. Time splits **GEMM 31% / elementwise+norm 49% /
+  our Triton attention 18%**. Almost half the forward is pointwise traffic.
+
+**Do not cite nsys `gpu_idle_fraction` on a graphed route.** It read 0.981 here and
+is an artifact — `collect_nsys` passes no `--cuda-graph-trace=node`, so it saw 1 of
+58 kernels. torch-profiler read 0.124 on identical bytes. LESSONS 31. The "98% GPU
+idle" line in the 30 Aug rehearsal note is withdrawn.
+
+**The next action is runbook step 12, and it needs the owner.** Registering
+`F-shape1-graph` on `launch-overhead` as the runbook drafts it would build on a
+premise now falsified. The evidence points at `kernel-fusion` against
+`global-memory-traffic`, whose required metric `dram_bytes` neither profile carries.
+`static-analysis` or `microbenchmark` produce it and need no root (unlike `ncu`), so
+one more diagnostic unblocks the family — then `mint-capability register_family` →
+`authorize` → `family-register`, which is owner-signed either way.
+
+Ledger: 3 permits issued and consumed, 1 calibration, 2 diagnostics, **0 of the 60
+attempts spent**, 0 strikes, no permit armed.
 
 **The 49 "pending" audits are inert — do not panic at them.**
 `champion_watch.py --dry-run` lists 49 pre-gate entries. Running the watcher skips

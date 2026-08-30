@@ -1,0 +1,84 @@
+Generating SQLite file /output/raw/nsys-timeline.sqlite from /output/raw/nsys-timeline.nsys-rep
+Processing [/output/raw/nsys-timeline.sqlite] with [/usr/local/cuda-13.0/nsight-systems-2025.3.2/host-linux-x64/reports/cuda_gpu_trace.py](nvtx=profile-measured)... 
+Start (ns),Duration (ns),CorrId,GrdX,GrdY,GrdZ,BlkX,BlkY,BlkZ,Reg/Trd,StcSMem (MB),DymSMem (MB),Bytes (MB),Throughput (MB/s),SrcMemKd,DstMemKd,Device,Ctx,GreenCtx,Strm,Name
+6138689325,3776,37429,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6138696013,1248,37435,,,,,,,,,,0.000,0.801,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6138725741,20768,37441,,,,,,,,,,4.194,201959.932,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6140922472,21440,37460,,,,,,,,,,4.194,195626.533,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6140944584,4576,37474,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6140949832,1216,37480,,,,,,,,,,0.000,0.822,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6140978952,21056,37486,,,,,,,,,,4.194,199195.886,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6143982498,21888,37505,,,,,,,,,,4.194,191625.167,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6144004962,4512,37519,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6144013346,1184,37525,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6144047362,21088,37531,,,,,,,,,,4.194,198893.896,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6146262173,22208,37550,,,,,,,,,,4.194,188861.121,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6146285053,4608,37564,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6146291005,1248,37570,,,,,,,,,,0.000,0.801,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6146315133,20864,37576,,,,,,,,,,4.194,201028.796,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6149338231,21760,37595,,,,,,,,,,4.194,192749.240,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6149360599,4448,37609,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6149366071,1184,37615,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6149402583,21152,37621,,,,,,,,,,4.194,198289.916,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6151606866,21568,37640,,,,,,,,,,4.194,194464.711,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6151629106,4672,37654,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6151635250,1312,37660,,,,,,,,,,0.000,0.762,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6151660626,21184,37666,,,,,,,,,,4.194,197992.120,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6154674764,21536,37685,,,,,,,,,,4.194,194754.118,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6154696908,4448,37699,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6154702124,1184,37705,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6154730220,20928,37711,,,,,,,,,,4.194,200412.234,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6156937255,21696,37730,,,,,,,,,,4.194,193319.666,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6156959591,4576,37744,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6156965159,1184,37750,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6157004039,20832,37756,,,,,,,,,,4.194,201339.175,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6159964897,21760,37775,,,,,,,,,,4.194,192749.240,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6159987329,4352,37789,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6159999265,1248,37795,,,,,,,,,,0.000,0.801,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6160032353,20992,37801,,,,,,,,,,4.194,199804.060,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6162209597,41056,37820,,,,,,,,,,4.194,102156.468,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6162251325,4480,37834,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6162261277,1215,37840,,,,,,,,,,0.000,0.823,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6162290940,21024,37846,,,,,,,,,,4.194,199497.875,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6165312630,21696,37865,,,,,,,,,,4.194,193319.666,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6165334934,4448,37879,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6165347286,1248,37885,,,,,,,,,,0.000,0.801,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6165631030,20992,37891,,,,,,,,,,4.194,199804.060,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6167813969,38272,37910,,,,,,,,,,4.194,109588.775,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6167852913,6080,37924,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6167860497,6112,37930,,,,,,,,,,0.000,0.164,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6167912113,20960,37936,,,,,,,,,,4.194,200106.050,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6170887179,21408,37955,,,,,,,,,,4.194,195920.134,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6170909195,4480,37969,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6170919179,1216,37975,,,,,,,,,,0.000,0.822,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6170966987,21056,37981,,,,,,,,,,4.194,199195.886,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6173127974,21664,38000,,,,,,,,,,4.194,193604.878,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6173150342,4672,38014,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6173160710,1216,38020,,,,,,,,,,0.000,0.822,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6173190246,21120,38026,,,,,,,,,,4.194,198591.906,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6176152384,21312,38045,,,,,,,,,,4.194,196800.938,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6176174304,4416,38059,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6176185312,1280,38065,,,,,,,,,,0.000,0.781,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6176350207,20512,38071,,,,,,,,,,4.194,204476.514,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6178511387,22272,38090,,,,,,,,,,4.194,188320.055,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6178534331,4576,38104,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6178545947,1184,38110,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6178751195,21311,38116,,,,,,,,,,4.194,196813.521,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6181710932,21600,38135,,,,,,,,,,4.194,194179.498,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6181733204,4416,38149,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6181741204,1184,38155,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6181936372,20864,38161,,,,,,,,,,4.194,201028.796,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6184092112,21311,38180,,,,,,,,,,4.194,196813.521,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6184114031,4608,38194,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6184126703,1216,38200,,,,,,,,,,0.000,0.822,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6184166831,20832,38206,,,,,,,,,,4.194,201339.175,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6187130153,21568,38225,,,,,,,,,,4.194,194464.711,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6187152297,4480,38239,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6187164617,1280,38245,,,,,,,,,,0.000,0.781,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6187327945,20960,38251,,,,,,,,,,4.194,200106.050,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6189484484,21280,38270,,,,,,,,,,4.194,197098.734,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6189506468,4576,38284,1,1,1,512,1,1,26,0.000,0.001,,,,,NVIDIA GeForce RTX 3060 Ti (0),1,,7,"void at::native::reduce_kernel<(int)512, (int)1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 12)]::operator ()() const::[lambda(bool, bool) (instance 1)]>, unsigned int, bool, (int)4, (int)4>>(T3)"
+6189516036,1184,38290,,,,,,,,,,0.000,0.845,Device,Pinned,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Host]
+6189555172,20992,38296,,,,,,,,,,4.194,199804.060,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+6192536926,21664,38315,,,,,,,,,,4.194,193604.878,Device,Device,NVIDIA GeForce RTX 3060 Ti (0),1,,7,[CUDA memcpy Device-to-Device]
+

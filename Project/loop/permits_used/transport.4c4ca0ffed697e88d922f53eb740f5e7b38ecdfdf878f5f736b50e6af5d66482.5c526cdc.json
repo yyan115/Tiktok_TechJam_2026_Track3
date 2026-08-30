@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788098273.2338762,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-30T21:12:53+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-cb6cd3c903aacee64a468d63.json",
+ "profile_record_id": "profile-cb6cd3c903aacee64a468d63",
+ "promotion_allowed": false,
+ "question": "k004 already replays the whole forward as one CUDA graph. Measure whether host-side kernel launches still dominate wall time on shape 1, or whether the remaining cost has moved inside the replayed kernels.",
+ "request_id": "cff81f9dd3d5de45588506fcf648c875",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482.json",
+ "request_sha256": "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
+ "route": "k004-graphed-triton whole-forward replay on shape 1",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+ "tool": "nsys",
+ "verdict_lines": 81
+}
