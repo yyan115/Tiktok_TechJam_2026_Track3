@@ -89,6 +89,12 @@ the design working, not a defect. None of them blocks reading the results.
    as designed. The only honest limit left: it has **never fired on a post-LOCK row**,
    because the recorder (item 2) broke before any campaign row could be adjudicated.
 
+6b. **Verify or drop one clause in §7.** The report says the design review's "final round
+   returned APPROVE". Our own memory records a Codex round dying on a provider content
+   filter having produced **no verdict line**, with the standing rule that a missing verdict
+   is never an APPROVE. I could not confirm round 13 carries a real one. Flagged inline in
+   the draft. The thirteen-round count and the ~50 fixes stand either way.
+
 6. **One draft bullet needs your call.** §8's "a head-splitting variant came out a
    statistical tie" is the only claim in the three drafts I could not trace to any file —
    it is absent from LESSONS, from `Project/research/`, and from the kernel roster

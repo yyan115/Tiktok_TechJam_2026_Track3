@@ -2111,3 +2111,76 @@ to look for defects, because nobody audits the meta-claims. This is LESSONS 40's
 ("every command a document tells someone to type is a claim") extended one level: **every
 promise a document makes about its own completeness is also a claim, and decays the same
 way.**
+
+---
+
+## 31 Aug ~07:45 SGT — Meta-claim pass 2. Five results, including a regression I caused.
+
+Applying LESSONS 46 to the remaining set-claims. This pass was the most productive since the
+early ones, which retroactively justifies not stopping at pass 7.
+
+### 1. I had deleted the byte-identity paragraph — my own regression
+
+My first big §2.1 rewrite (the one that introduced the two-board structure) replaced the old
+section intro wholesale, and that intro contained the **byte-identity claim**: everything
+outside the sanctioned region is identical to the official script, proven by
+`build_submission.py --verify`. That is a *core competition requirement* and it silently
+vanished from §2 for several hours. Restored, with a framing I could not have written
+before: the verify command is **not on the agent's allowlist**, deliberately, because an
+agent must not certify its own submission boundary — so it is owner-run. What the agent can
+attest is that the reference has not moved (`verify-lock` valid across 29 protected files,
+official script among them). **Wholesale paragraph replacement is how you lose a claim you
+never intended to touch; diff what you delete, not just what you add.**
+
+### 2. "All 14 shapes pass precision" spans two very different evidence grades
+
+True, but doing heavy lifting. The 12 with a runnable official baseline are verified under
+the official predicate on **7 trials each, post-LOCK, on the shipped file**. Shapes 6 and 14
+have **no official baseline at all**, so they are verified against validated oracles on
+**one seed each, against a pre-integration file**, and those packets currently cannot be
+regenerated. All three drafts now state both grades. The video script's bare bullet was the
+worst offender and now carries the split explicitly, because it is the version most likely
+to be said aloud unqualified.
+
+### 3. "No external kernel library is wrapped" — VERIFIED in the shipped artifact
+
+Read the sanctioned region's imports directly: `triton` and `triton.language`, nothing else,
+inside a `try/except` setting `_TRITON_OK = False`. No FlashAttention, no xFormers. Better,
+this surfaced a genuine strength nobody had written down: **the submission degrades to the
+unchanged baseline path when Triton is absent**, including pre-softmax key masking, so a
+judge on a Triton-less machine still gets numerically exact results. The fast paths are an
+optimisation, not a dependency. Added to §3.
+
+### 4. The test-suite claim — both endpoints now verified by running them
+
+`HANDOVER.md` says "twelve test suites exist and pass"; `OWNER_HANDOFF_TONIGHT.md` says
+"11 of 12, one stale". **The second is right**, and I confirmed both ends:
+
+- `champion_watch_test.py` → **278/278 ALL GREEN** (HANDOVER's "278 checks" verified).
+- `integration_authority_test.py` → fails exactly as described:
+  `AttributeError: module 'runner' has no attribute 'is_primary'`. It asserts the pre-LOCK
+  runner internals; the LOCK replaced that file with the shim. **Its two completed checks
+  both PASSED** — the frozen benchmark publishes a complete timing protocol, and the
+  controller's protocol is that same protocol — then it aborts. Stale test, not broken
+  system.
+
+### 5. The 278 tests are better evidence for §7 than the review rounds are
+
+The suite explicitly covers the brake I misread yesterday: *"unauthenticated resolution is
+refused"*, *"resolution with the wrong capability nonce is refused"*, *"resolution
+authorized for another event hash is refused"*, *"only the exact authenticated resolution
+clears it"*, *"the same verdict cannot be resolved twice"*, *"a legacy RULE_VIOLATION row
+latches as an unresolved hard verdict"*. Also *"advisory technical verdict never rescues a
+hard integrity one"*. §7 now cites these by name.
+
+It also **pins a known defect as a passing test** — *"DEFECT, pinned: an aborted launch
+leaves a durable open attempt that only the stale reaper can clear"* — which is the right
+way to carry a limitation: executable, named, unforgettable.
+
+### Still unverified, and now flagged in the draft
+
+**"the final round returned APPROVE"** (§7, thirteen adversarial rounds). Our own memory
+records a Codex round dying on a provider content filter having produced **no verdict
+line**, with the standing rule that *a missing verdict is never an APPROVE*. I did not
+confirm from raw logs that round 13 carries a real APPROVE. Flagged inline: verify or drop
+the clause. The round count and the ~50 fixes stand regardless.
