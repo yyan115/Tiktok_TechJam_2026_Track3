@@ -613,6 +613,45 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 01:47 SGT — MECHANISM QUESTION ANSWERED. The megakernel advantage is doing less
+work, not recovering launch idle.**
+
+Shape 5 was chosen as the cleanest available test of a question the report has to answer
+correctly. Baseline device idle across the measured board spans **0.2% (shape 8) to 86.0%
+(shape 2)**, and shape 5 sits at **1.0%** — the most device-saturated shape where the
+megakernel ships. If the advantage came mainly from recovering span wasted between the
+baseline's 115 host launches per forward, it should collapse there.
+
+Preregistered falsifier: *"if shape 5 lands below 5x, the advantage depends substantially
+on recovering baseline launch idle rather than on doing less work."* **Measured 9.1536x.
+Did not fire.**
+
+**So the claim the report should make is a fusion claim, not a launch-overhead claim:** the
+megakernel wins by keeping a whole transformer block resident in registers instead of
+round-tripping HBM roughly ten times per layer, and that holds even where the baseline has
+essentially no idle to give back. This also retires the framing of every `F-shapeN-graph`
+family, all of which were registered against `launch-overhead` because that was the only
+bottleneck the early evidence supported.
+
+### Board after nine shipped-route shapes
+
+| shape | pre-gate | k009 | delta | baseline idle |
+| --- | --- | --- | --- | --- |
+| 13 | 28.82x | 28.4098x | −1.4% | — |
+| 7 | 25.57x | 21.9645x | −14.1% | 3.2% |
+| 2 | 15.26x | 14.3939x | −5.7% | 86.0% |
+| 11 | 12.98x | 12.6797x | −2.3% | — |
+| 3 | 11.96x | 12.6314x | +5.6% | 82.6% |
+| 12 | 11.44x | 10.8141x | −5.5% | 69.8% |
+| 5 | 11.40x | **9.1536x** | −19.7% | **1.0%** |
+| 4 | 7.30x | 8.8774x | +21.6% | 49.2% |
+| 1 | 10.73x | 8.3303x | −22.4% | 3.4% |
+
+**Mean delta −4.9%, scatter −22.4% to +21.6%.** Note there is no relationship between
+baseline idle and delta — shape 2 at 86% idle and shape 7 at 3.2% idle both land close,
+shape 5 at 1.0% and shape 1 at 3.4% both land ~20% low. The scatter is measurement
+variation between two different harnesses, not a systematic bias.
+
 **31 Aug 01:20–01:23 SGT — THE PRE-GATE BOARD IS BEING VINDICATED. My falsifier fired
 against me and the original numbers look approximately right. Third correction of the
 night, and the most consequential.**
