@@ -16,6 +16,27 @@ Updated: 2026-08-31 ~02:10 SGT. Branch `grind-lastday`.
 
 ---
 
+## ⓞ OWNER ACTIONS — three things only you can do. Everything else is done.
+
+Each is blocked because the agent is denied write access to the files involved, which is
+the design working, not a defect. None of them blocks reading the results.
+
+1. **Fix the two extreme-shape evaluators (one line each).** Both abort instantly, so the
+   shape 6 / shape 14 evidence packets cannot be regenerated. They compare a mask's device
+   against `torch.device("cuda")` while the official generator returns it on `cuda:0`, and
+   those are unequal in PyTorch. Files: `Project/tools/shape14_eval.py:274` and
+   `Project/tools/shape6_local_eval.py:146`. Compare `mask.device.type != device.type`, or
+   normalise first with `device = torch.zeros(0, device=device).device`. Full diagnosis in
+   DECISIONS, 31 Aug ~02:20.
+2. **Fix audit recording.** `audit_champion.py`, inside the LOCK. Three attempts, three
+   distinct failures, retry cap exhausted; `run-be8e56a55edd1926a84bf5d1efc0b154` is stuck
+   in `owner_attention`. Until this is fixed **nothing can be promoted to champion and no
+   verdict binds to any measured row** — the board below is real but unadjudicated.
+3. **Dry-run the two smoke scripts before recording the video.** They are a different pair
+   of files from the broken evaluators and were not testable from the agent's command
+   allowlist, so their status is genuinely unknown rather than assumed good. See the
+   caution block in the video script's Scene 5.
+
 ## 000. ✅ COMPLETE: the shipped route, all twelve shapes, measured under permit.
 
 31 Aug ~02:10 SGT. **The correction campaign is finished.** Every locally-runnable shape
