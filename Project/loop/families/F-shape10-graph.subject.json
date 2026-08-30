@@ -1,0 +1,1 @@
+{"campaign_id":"CAMP-POSTLOCK","family":{"admission":"controller-authorized","allow_new_attempts":true,"bottleneck":"launch-overhead","budget_attempts":8,"budget_minutes":90,"changed_resource":"kernel-launches","expected_counter_change":{"kernel_launch_api_calls":"decrease"},"family_id":"F-shape10-graph","mechanism":"cuda-graph-replay","parent_family_id":null,"shape":10}}

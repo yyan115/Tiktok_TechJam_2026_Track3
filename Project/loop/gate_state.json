@@ -239,7 +239,12 @@
  "cleared_verdicts": [],
  "consumed_capability_nonces": [
   "fad7ed5d110de3e06fdbe76037a6ae20753ff4ef5ab00bcf321a069196bd2040",
-  "6f9a60c5559e8d7516cc684d38e00325eef1bb39d06d06a2fc3b42ed27ee8a34"
+  "6f9a60c5559e8d7516cc684d38e00325eef1bb39d06d06a2fc3b42ed27ee8a34",
+  "0b0d8bc39f3a3e05e2b0386e33767ae130cbfbae1370bd2efff7bd91082d2ee4",
+  "55c95c64bec84c234b411d1564ea185b5e3b15fd8a0bc0ef39ab496366d3f1b8",
+  "c1af8e2e0ba55542e4e4877080515ac91f72e2f78f65c11e762d0ba1f26d17b0",
+  "10422abec19a2d58c1c4272251c6f748340786e850539f676b63e45a75ada64a",
+  "5a14414053c403ef8b75465ce5c81a8de7af0cb514d7a5a0da680788880e098b"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -250,6 +255,46 @@
    "authority_event_id": "evt-20260830T142743.633141Z-7651c4b45cbb",
    "authority_event_sha256": "b5a990b1c2d767317a5e64dcb589e3753ca227fc6333712e5da1b99aa980193e",
    "subject_sha256": "22d58ffe2a5353c3f7f971ace0aa7c706e93e2f955b9c7095c2abd346fe0d85c"
+  },
+  "F-shape10-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T22:37:11+0800",
+   "admitted_epoch": 1788100631.3904421,
+   "authority_event_id": "evt-20260830T143705.829951Z-dae91bd38ded",
+   "authority_event_sha256": "2913ceb8454e04f1ff373a53694f3822442422257c33d836bb6c33640797e279",
+   "subject_sha256": "274e662ea017c2637b6c3aa55e8837152781d7e92a7143c20c911a5ce69e80ee"
+  },
+  "F-shape11-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T22:37:54+0800",
+   "admitted_epoch": 1788100674.7709534,
+   "authority_event_id": "evt-20260830T143749.348645Z-4999ba6e4d3e",
+   "authority_event_sha256": "20daeda03f1b17379bfa8e4fe5d069e4d9e8d2bfca97db90d80110f1c6171c9a",
+   "subject_sha256": "88065d60df11cf23035919f639196a2e0444abea687667e8564b504e38cb5b46"
+  },
+  "F-shape13-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T22:38:05+0800",
+   "admitted_epoch": 1788100685.8094249,
+   "authority_event_id": "evt-20260830T143800.372076Z-543740a6b8ea",
+   "authority_event_sha256": "ee27e18a5e94b412a535edfacfd2e4202586904ffebacc6f7d0ac2f77166f032",
+   "subject_sha256": "1c8e62bdb4a0f7e785de454a15868a0b71d1e38544dcf027613de4706300387c"
+  },
+  "F-shape5-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T22:36:16+0800",
+   "admitted_epoch": 1788100576.7377155,
+   "authority_event_id": "evt-20260830T143611.379551Z-04de119d9f91",
+   "authority_event_sha256": "1c2f8353b67a636c5816dfa4c53ab9b6899abbd1cee23bb42827a814d9b7441a",
+   "subject_sha256": "4e9fc57743b860a4cfcd89994850790adde6a307617833aec9cc582769acd8fa"
+  },
+  "F-shape9-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T22:37:00+0800",
+   "admitted_epoch": 1788100620.374108,
+   "authority_event_id": "evt-20260830T143654.848882Z-2e96d55184fe",
+   "authority_event_sha256": "b62a9c23ffd7febd17aa323ee28d25277e0c13228dc803c18690a0f18d153570",
+   "subject_sha256": "33f383ea42470a0478fe8143957e05862979e5f4e0617a9a9541e9b3b2eb08db"
   }
  },
  "family_registry": {
@@ -267,6 +312,81 @@
    "mechanism": "cuda-graph-replay",
    "parent_family_id": null,
    "shape": 1
+  },
+  "F-shape10-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape10-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 10
+  },
+  "F-shape11-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape11-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 11
+  },
+  "F-shape13-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape13-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 13
+  },
+  "F-shape5-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape5-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 5
+  },
+  "F-shape9-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape9-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 9
   }
  },
  "groups": {
@@ -532,7 +652,7 @@
  ],
  "research_cycle": 1,
  "research_open": false,
- "seq": 37,
+ "seq": 42,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",

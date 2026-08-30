@@ -1,0 +1,23 @@
+{
+  "artifact_type": "audit_request",
+  "artifact_version": 2,
+  "attempt_id": "1788100659-1518603-bb52869497b5206d",
+  "attempt_nonce_sha256": "cf00fffb44db8cd4aac9caae8b33dee9c0b1a74cc31da18e32b65592186e5445",
+  "auditor_backend": "claude",
+  "auditor_independent_vendor": false,
+  "candidate_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+  "candidate_source_path": "Project/authority/blobs/9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40.py",
+  "codex": {
+    "invoked_path": "/usr/local/bin/claude-auditor",
+    "resolved_path": "/usr/local/bin/claude-auditor",
+    "sha256": "fd5f10ff0eb58daec04900466b143ea98aab50abf208a422bc008eaec13f61f7"
+  },
+  "created": "2026-08-30T22:37:39+0800",
+  "entry_id": "run-be8e56a55edd1926a84bf5d1efc0b154",
+  "lane": "primary",
+  "measurement_event_sha256": "257a76a34d4846835e631a5e263c7d70249d1a74f06b35171f3c46fcce74583a",
+  "packet_path": "Project/authority/blobs/78ab0d08ee0f6ee2880a87fa1a93550852c3d42432a592c3352c2c2cecbae08a.json",
+  "packet_sha256": "78ab0d08ee0f6ee2880a87fa1a93550852c3d42432a592c3352c2c2cecbae08a",
+  "schema_path": "Project/audits/verdict_schema.json",
+  "schema_sha256": "b58f71cadc98f557ff0bd99095c5ad442cd7bac8db3233ab7e1d27cf34ac7a8c"
+}
