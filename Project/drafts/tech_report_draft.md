@@ -125,6 +125,26 @@ Critically, each shape was measured on **the kernel its dispatcher actually
 selects** — the error that produced the withdrawn 2.94× board was measuring
 one kernel for all twelve.
 
+**And the shipped file itself was measured, on both dispatcher branches.**
+Ten of the twelve rows below measure the kernel module the dispatcher routes
+to (`k009_fused_tuned.py`, `k010_fused_ln.py`), selected because their headers
+match the dispatcher's. That is a documentation match, not a measurement — the
+same species of reasoning that produced the wrong-kernel board — so we tested
+it directly by running
+`Project/submission/torch_transformer_benchmark_submission.py`
+(sha256 `4da76db6…`), the exact artifact that ships, under its own permits:
+
+| shape | branch | shipped file | kernel-module proxy | agreement |
+|---|---|---|---|---|
+| 13 | megakernel (`d_model` ≤ 128) | **28.2849×** | 28.4098× | **0.44%** |
+| 8 | fp16 stack (`d_model` > 128) | **2.0160×** | 2.0162× | **0.008%** |
+
+Those two shapes are the minimum pair that exercises both sides of the only
+branch the dispatcher takes, so they test not merely that the file loads but
+that the routing predicate selects what we claim. Both agree with their
+proxies to well inside measurement noise, which is why the remaining ten rows
+are reported as figures for the shipped route rather than for a stand-in.
+
 | shape | dials (B · d · heads · seq · layers · ffn) | route | correctness | speedup |
 |---:|---|---|---|---:|
 | 1 | 64 · 128 · 4 · 128 · 4 · 128 | megakernel | PASS | **8.33×** |

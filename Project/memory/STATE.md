@@ -63,6 +63,20 @@ on a verified-quiet box, in the screening lane, `correct: true` on all twelve.
 `k010_fused_ln.py`, an fp16 tensor-core stack with fp32 accumulation, not the megakernel.
 Its file sha (`bda8f703…`) differs from the eleven megakernel runs (`2b96a7c3…`).
 
+**The proxy gap is closed (03:25).** Those twelve rows measure *kernel modules*, chosen
+because their headers match the dispatcher's — a documentation match, which is the same
+species of reasoning that produced the wrong-kernel board. So the **shipped submission
+file itself** (sha `4da76db6…`) was run under its own permits on both dispatcher branches:
+
+| shape | branch | shipped file | proxy | agreement |
+| --- | --- | --- | --- | --- |
+| 13 | megakernel, `d_model` ≤ 128 | **28.2849x** | 28.4098x | **0.44%** |
+| 8 | fp16 stack, `d_model` > 128 | **2.016012x** | 2.016164x | **0.008%** |
+
+Two shapes is the minimum pair that exercises both sides of the only branch the dispatcher
+takes — shape 13 alone would show only that the file loads, shape 8 is what tests the
+routing predicate. **The board is now a claim about the artifact that ships.**
+
 **Mean delta −5.6%, scatter −22.4% to +21.6%, ten below and two above, uncorrelated with
 baseline device idle** — so the spread is harness measurement variation, not bias. The
 pre-gate board was **procedurally invalid but numerically close**: that is the honest

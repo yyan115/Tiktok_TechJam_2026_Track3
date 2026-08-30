@@ -224,7 +224,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 28,
+   "scientific_attempts": 30,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -679,10 +679,11 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 2,
+   "scientific_attempts": 3,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
-    "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911"
+    "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
+    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6"
    ],
    "strikes": 0
   },
@@ -793,10 +794,11 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 2,
+   "scientific_attempts": 3,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
-    "bda8f703f1ddb4ee0a8386d50fce545b4ca17c33661eebc2f60062919fa8dbba"
+    "bda8f703f1ddb4ee0a8386d50fce545b4ca17c33661eebc2f60062919fa8dbba",
+    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6"
    ],
    "strikes": 0
   },
@@ -1785,7 +1787,9 @@
   "458fc35430352db8719f0ad3f8e1838cf2bef2a616aa989931aedba0b66ad94f",
   "559ed55b4439b7743accbeacdd78b176677b03b2b5e15033e104d05de9c105dd",
   "4f0b0bcf711c509f40aab3ae2c4e534480224d74b345e99f6dd586ddf147703d",
-  "2eee29d380f656cb90b5ae726c98bb9b0c6f08bc917c402d3c99ebc313011b93"
+  "2eee29d380f656cb90b5ae726c98bb9b0c6f08bc917c402d3c99ebc313011b93",
+  "1bd8efda12bdb1b866668d034efad37b8d8606c831b49ddc365fdfb3d0b24cea",
+  "52c20a9113e0ad8e42a7ee05f863ecb9ee5d5941c303af13cb344299d828535a"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -1846,11 +1850,13 @@
   "98c547ccdf7cf763a5df63edebe8a4275e57ea6966ba45a86ee47f853f5ae692",
   "819e7b1ec7f7324f35b79868f4260a04817b11f64eda89db2562f0205e8f1709",
   "f94a536a75fb482a73a7fb768de7c5863c1518b0cba714b5c39a80f2594918bc",
-  "b9b1cfe93930fe473fe32421649d2d7e9473636c68ed8bf514d60e71ec0b6396"
+  "b9b1cfe93930fe473fe32421649d2d7e9473636c68ed8bf514d60e71ec0b6396",
+  "9e2bb2395d93c480189de269632fbbdf12bff9b9798f88c19be75a06be74e3ed",
+  "cc98bc9a060db09ce0ebedd7038a89cb2c963d5f4f6fa478b0df1322b1bff821"
  ],
- "research_cycle": 26,
+ "research_cycle": 28,
  "research_open": false,
- "seq": 183,
+ "seq": 191,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1910,6 +1916,8 @@
   "98c547ccdf7cf763a5df63edebe8a4275e57ea6966ba45a86ee47f853f5ae692",
   "819e7b1ec7f7324f35b79868f4260a04817b11f64eda89db2562f0205e8f1709",
   "f94a536a75fb482a73a7fb768de7c5863c1518b0cba714b5c39a80f2594918bc",
-  "b9b1cfe93930fe473fe32421649d2d7e9473636c68ed8bf514d60e71ec0b6396"
+  "b9b1cfe93930fe473fe32421649d2d7e9473636c68ed8bf514d60e71ec0b6396",
+  "9e2bb2395d93c480189de269632fbbdf12bff9b9798f88c19be75a06be74e3ed",
+  "cc98bc9a060db09ce0ebedd7038a89cb2c963d5f4f6fa478b0df1322b1bff821"
  ]
 }

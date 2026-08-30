@@ -1585,3 +1585,50 @@ This is the first time in the campaign I named a falsifiable discriminator, ran 
 it come back against me *without an auditor having to catch it* — which is what the
 scaffolding was built for. Cost: two diagnostic permits, no attempt budget, about four
 minutes.
+
+---
+
+## 31 Aug ~03:25 SGT — The proxy gap is CLOSED. The board describes what ships.
+
+Card C18 wrote down a caveat on 31 Aug 01:12 and then nobody tested it for two hours:
+
+> "k009 is the megakernel CLASS the dispatcher ships, not literally the dispatcher bytes,
+> because dispatcher_region.py references BaselineTransformer as a free name and cannot be
+> loaded standalone as a candidate module."
+
+Every one of the twelve rows measured a kernel module selected because its **header matches
+the dispatcher's description**. That is a documentation match. It is a better grade of
+evidence than the runbook example that produced the k004 disaster, but it is the same
+species, and this campaign exists because of that species.
+
+`dispatcher_region.py` genuinely cannot be loaded standalone. But
+`Project/submission/torch_transformer_benchmark_submission.py` **can** — it is the whole
+official script with only the sanctioned region replaced, so it defines `BaselineTransformer`
+and `UserOptimizedTransformer` both. That had simply never been tried as a candidate impl.
+
+**It works, and it reproduces the board.**
+
+| shape | branch exercised | shipped file (sha 4da76db6...) | kernel-module proxy | agreement |
+|---|---|---|---|---|
+| 13 | megakernel, d_model 128 | **28.2849x** | 28.4098x (k009) | **0.44%** |
+| 8 | fp16 stack, d_model 1024 | **2.016012x** | 2.016164x (k010) | **0.008%** |
+
+Two shapes, deliberately chosen as the minimum pair that exercises **both sides of the only
+branch the dispatcher takes**. Shape 13 alone would only have shown the file loads and runs;
+shape 8 is what tests the routing predicate itself. If the threshold were wrong or the
+branches inverted, shape 13 would still have measured correctly while shape 8 collapsed.
+
+So the twelve-shape board is now a claim about **the artifact that ships**, not about two
+kernel modules that resemble it. The tech report §2.1 says so, with the agreement figures.
+
+### The one band hit in twenty-eight attempts, and why it is not a redemption
+
+Both shipped-file bands hit (28.06–28.76 vs 28.2849; 1.99–2.04 vs 2.0160). After twenty-six
+straight misses that looks like the forecasting finally worked. **It is not, and the
+distinction is the whole point.** Every miss came from predicting what a *mechanism* would
+deliver. These two bands were derived by taking a **direct measurement of nearly identical
+bytes** and asserting the difference would be small. That is not forecasting, it is a
+consistency check — the band is doing the job of a regression test, not a prediction.
+Numeric bands stay retired for mechanism claims per LESSONS 35. If anything these two hits
+sharpen the rule: I can predict that two nearly identical things measure alike, and I cannot
+predict what a change will buy.
