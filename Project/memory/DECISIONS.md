@@ -1292,3 +1292,92 @@ does not, something else is going on and both readings are wrong. This runs in
 miss adds no strike — so it answers the attribution question **without depending on the
 broken audit-recording path**. That is the one genuinely unblocked piece of science
 available tonight, and it is what I will run once no audit is in flight.
+
+---
+
+## 31 Aug ~02:10 SGT — CORRECTION CAMPAIGN COMPLETE. Twelve of twelve, geomean 9.68x.
+
+The board is finished. Every locally-runnable shape re-measured on the kernel the
+dispatcher actually selects, under a one-use permit, quiet box, screening lane,
+`correct: true` on all twelve. **Geometric mean 9.68x**, range 2.02x to 28.41x.
+
+| shape | pre-gate | measured | delta |
+| --- | --- | --- | --- |
+| 13 | 28.82x | 28.4098x | −1.4% |
+| 7 | 25.57x | 21.9645x | −14.1% |
+| 2 | 15.26x | 14.3939x | −5.7% |
+| 11 | 12.98x | 12.6797x | −2.3% |
+| 3 | 11.96x | 12.6314x | +5.6% |
+| 12 | 11.44x | 10.8141x | −5.5% |
+| 5 | 11.40x | 9.1536x | −19.7% |
+| 4 | 7.30x | 8.8774x | +21.6% |
+| 1 | 10.73x | 8.3303x | −22.4% |
+| 10 | 7.45x | 6.5651x | −11.9% |
+| 9 | 5.38x | 4.8355x | −10.1% |
+| 8 (fp16 stack) | 2.04x | 2.0162x | −1.2% |
+| **geomean** | **10.32x** | **9.68x** | **−6.2%** |
+
+### The last two runs
+
+**Shape 9** (one attention head, the shape where the non-shipping k004 was weakest on
+the whole board at 1.1723x) returned **4.8355x**. The preregistered falsifier — "below
+3x means the megakernel also collapses at a single head" — did not fire. The megakernel's
+head-count dependence really is much flatter than k004's.
+
+**Shape 8** is the only shape on the other branch: `d_model` 1024 goes to
+`k010_fused_ln.py`, an fp16 tensor-core stack, sha `bda8f703...` rather than the
+megakernel's `2b96a7c3...`. It returned **2.0162x** against a pre-gate 2.04x. The
+falsifier — "at or below 1.3x means the large-`d_model` branch is decorative" — did not
+fire either. The branch earns its place, and it is honestly the weakest shape on the
+board because the baseline there is already at 64% of the fp16 roofline.
+
+Worth recording: `research/gemm-epilogue-fusion.md:11` claims k010 took shape 8 to
+**2.13x**, and the pre-gate board said **2.04x**. Measured is **2.0162x**. The research
+note was the more optimistic of the two records and the less accurate one, by 5.4%. A
+development-time figure written into a note becomes a claim; this is LESSONS 24 again,
+caught early this time.
+
+### What this campaign actually established
+
+1. **The megakernel wins by doing less work, not by recovering launch gaps.** Shape 5
+   has 1.0% baseline device idle — almost no gaps to recover — and still returns 9.1536x.
+   Block-resident registers delete memory traffic. This is why the auditor's
+   idle-fraction ceiling argument was structurally unable to bound this mechanism, and
+   why my accepting it as fact was the error, not the arithmetic in it.
+2. **Neither MFU nor idle fraction orders the speedups.** Shape 13: 28.41x at MFU 0.62.
+   Shape 7: 21.96x at MFU 0.11. Shape 5: 9.15x at 1.0% idle. Shape 2: 14.39x at 86% idle.
+   Any single-variable story about this board is wrong.
+3. **The withdrawn MFU table is also approximately vindicated.** Recomputing shape 1 from
+   the measured 8.3303x gives 12.15 TF/s / MFU 0.375 against the table's 11.63 / 0.36 —
+   4.5% apart. I withdrew that table on the assumption it was inflated by the same factor
+   as the speedups; that assumption was computed from the wrong kernel. Reinstated as
+   indicative, still owed a clean recompute.
+4. **Procedurally invalid and numerically wrong are different failures.** Mean delta
+   −5.6%, scatter both ways, uncorrelated with idle. The pre-gate board was approximately
+   right and improperly obtained. Withdrawing it was still correct — a number obtained
+   without a permit against an uncalibrated baseline is undefended, not vindicated, when
+   it later turns out close.
+
+### Numeric prediction bands: final record 0 for 26
+
+Shape 8 missed a ±2% band centred on a figure copied directly off the prior record, by
+**0.2%**. Twenty-six attempts, zero hits. Bands stay retired per the preregistered
+commitment on card C11; the field is filled because the gate requires it and nothing is
+ever concluded from it. The *qualitative* falsifiers, by contrast, went the distance —
+every one named in advance what would change the report, and several fired against claims
+I wanted to be true.
+
+### Drafts updated
+
+All three judge-facing drafts now carry the measured board with its three caveats
+(excludes shape 6; screening lane so nothing promotable; no audit verdict bound to any
+row). The tech report keeps the full correction history — 10.32x withdrawn, 2.94x wrong
+kernel, 9.68x measured — rather than silently landing on the final number, because the
+process failure is the more interesting artifact.
+
+### Still owed, and owner-only
+
+Audit recording remains broken: three attempts, three distinct failures, retry cap
+exhausted, entry `run-be8e56a55edd1926a84bf5d1efc0b154` permanently in `owner_attention`.
+The fix is in `audit_champion.py`, inside the LOCK, Write-denied to me. That is the
+correct arrangement and I am not going to route around it.
