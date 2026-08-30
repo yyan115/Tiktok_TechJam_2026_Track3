@@ -613,6 +613,65 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 01:05–01:13 SGT — I MEASURED THE WRONG KERNEL FOR 22 ATTEMPTS. First correction
+run: the shipped megakernel is 1.77x better than what I measured, and it partially
+rehabilitates the board I withdrew an hour ago.**
+
+### The error
+
+Auditing the tech report's *prose* (not its tables) surfaced §3: *"The megakernel (`k009`,
+shipping on 11 of 12 runnable shapes)"*. My entire campaign measured
+`k004_graphed_triton.py`. `Project/submission/dispatcher_region.py` confirms the report:
+`d_model <= 128` routes to a **fused-block megakernel**, larger `d_model` to an **fp16
+tensor-core stack**. k004 is neither.
+
+**Cause:** runbook step 11's worked example profiles k004. I adopted it as the campaign
+candidate on the first lap and never checked it against the dispatcher. Twenty-two
+attempts characterise a route that does not ship.
+
+`k009_fused_tuned.py` is the right proxy — its header matches the dispatcher's line for
+line (K1 norm + packed QKV; K2 flash attention over all heads with the out-projection
+folded into the head loop, then residual + norm2 + exact-erf GELU FFN + residual
+in-register, whole forward captured as one CUDA graph). Caveat carried into the card:
+k009 is the megakernel **class** the dispatcher ships, not literally the dispatcher bytes,
+because `dispatcher_region.py` references `BaselineTransformer` as a free name and cannot
+be loaded standalone as a candidate module.
+
+### First correction measurement — shape 2
+
+| route | shape 2, quiet box, same baseline and protocol |
+| --- | --- |
+| k004 (non-shipping, what I measured) | 8.1115x |
+| **k009 (shipped megakernel)** | **14.3939x** |
+
+**The shipped route is 1.77x better than the one I spent the night on.** Preregistered
+falsifier — "if k009 lands at or below 8.1115x the shipped route is no better" — **did not
+fire**. Seventh qualitative hypothesis to survive; numeric bands now 0 for 15.
+
+### This partially rehabilitates the board I withdrew, and I must not over-correct
+
+The pre-gate board claimed **15.26x** (official script) and **14.98x** (own referee) for
+shape 2. Tonight's controlled measurement of the actually-shipped kernel is **14.3939x** —
+**within about 6% of both**. That is a much better agreement than the blanket withdrawal
+implied.
+
+Being precise about what this does and does not change:
+
+- **The withdrawal stands on process.** Those rows were taken without a permit, without a
+  bound audit verdict, and `HANDOVER.md` §3.1 records their baselines as 6–63% slower than
+  their own calibration. They are not promotable and cannot be quoted.
+- **But their magnitudes may be closer to right than I implied.** The pre-gate board was
+  measuring the megakernel, i.e. the real champion; my 2.94x was measuring a weaker,
+  non-shipping route. Presenting 2.94x as "the corrected figure" was itself misleading and
+  has been amended in all three drafts.
+- **The honest position right now: the shipped route's geomean is unknown**, one shape is
+  measured at 14.39x, and I will not extrapolate from a single point.
+
+**Method note:** this is the second time tonight that a correction of mine needed
+correcting. Both times the cause was the same — asserting a replacement figure before the
+replacement was measured. The rule that keeps surviving is the narrow one: **withdraw what
+cannot be traced, but do not name a substitute until it is measured.**
+
 **31 Aug 00:17–00:21 SGT — head_dim research done, ceiling measured, and the answer is
 that de-padding is NOT worth building. A different target is bigger.**
 
