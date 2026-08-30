@@ -1,0 +1,21 @@
+{
+ "captured_utc": "2026-08-30T14:16:00Z",
+ "captured_sgt": "2026-08-30T22:16:00+0800",
+ "campaign_id": "CAMP-POSTLOCK",
+ "scope": "batch snapshot for the shapes 3,4,5,7,8,9,10,11,12,13 calibration run",
+ "purpose": "owner-side pre-calibration machine snapshot covering one calibration batch",
+ "source": "nvidia-smi --query-gpu=clocks.sm,clocks.mem,temperature.gpu,utilization.gpu,power.draw --format=csv",
+ "sm_clock_mhz": 450,
+ "memory_clock_mhz": 7001,
+ "gpu_temperature_c": 62,
+ "gpu_utilization_pct": 39,
+ "power_draw_w": 45.51,
+ "competing_processes": [
+  {"pid": 2531, "used_gpu_memory_mib": 72},
+  {"pid": 3389, "used_gpu_memory_mib": 41},
+  {"pid": 261505, "used_gpu_memory_mib": 479},
+  {"pid": 1497047, "used_gpu_memory_mib": 149}
+ ],
+ "competing_benchmark_or_audit": false,
+ "note": "ONE snapshot deliberately shared across a calibration batch, so machine_state_sha256 is identical for every shape in it. This is the owner-side supplementary record only; the AUTHORITATIVE per-run machine state is captured independently by the trusted controller inside each run (controller_machine_state.json, its own sha) and differs run to run. Desktop residents only, no benchmark/audit/controller process live at capture. SM clock reads 450 MHz idle and boosts under load; calibration is a within-invocation baseline-vs-baseline ratio, so idle clock state does not bias it (LESSONS 11)."
+}

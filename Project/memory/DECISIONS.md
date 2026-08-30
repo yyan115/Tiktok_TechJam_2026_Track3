@@ -288,3 +288,52 @@ thing under test.
   measurement of k004 itself, and it says 49% of device time is elementwise plus
   normalization across 44 kernels per forward. That is the evidence the fusion family gets
   registered on.
+
+**30 Aug 22:12–22:22 SGT — PLAN CHANGE (owner gave full direction), and all 12 primary
+shapes calibrated.**
+
+**Decision: breadth before depth.** The prior plan was to chase a fusion win on shape 1.
+Against a 31 Aug 20:00 SGT freeze that is the wrong priority, and the owner was told so
+plainly: the score scenario is `geomean-shapes-1-13`, so a shape with no defensible number
+is a hole in the headline, and the failure mode is arriving at freeze with an elegant
+control system and two measured shapes. So: calibrate every primary shape first, then take
+one audited champion per shape with kernels that already exist, then spend what is left of
+the 60 attempts on the shapes with real headroom. A defensible modest geomean across 13
+beats an undefendable 11x, and beats a large win on shape 1 with twelve blanks.
+
+Twelve calibrations run back to back, all `correct: true`, all bound. Shape 6 is excluded
+by design (side lane, never `run`). **These thresholds are now immutable for the campaign:**
+
+| shape | noise | promotion threshold |
+| --- | --- | --- |
+| 1 | 0.35% | 1.030 |
+| 2 | 2.40% | **1.072** |
+| 3 | 1.18% | 1.035 |
+| 4 | 3.14% | **1.094** |
+| 5 | 0.90% | 1.030 |
+| 7 | 1.86% | 1.056 |
+| 8 | 0.25% | 1.030 |
+| 9 | 0.14% | 1.030 |
+| 10 | 0.36% | 1.030 |
+| 11 | 0.39% | 1.030 |
+| 12 | 1.59% | 1.048 |
+| 13 | 0.86% | 1.030 |
+
+Two things worth planning around:
+
+1. **Shapes 2 and 4 have punitive bars (7.2% and 9.4%) and shape 7 is 5.6%.** Those are
+   the small/awkward shapes where run-to-run jitter is largest, so a genuine 5% win there
+   is unprovable under this campaign's own rules. Spend attempts there last, if at all —
+   the eight shapes sitting at the 1.03 floor are where attempts convert to promotions.
+2. **A systematic bias, flagged not yet explained.** Baseline-against-itself should centre
+   on 1.0. Eight of the twelve came in BELOW it (0.9686 … 0.9986) and only four above,
+   with the low outliers on the small shapes. That is consistent with the second slot of a
+   paired run being slightly slower than the first — within-invocation drift, not random
+   scatter. If real, it biases every measured speedup DOWNWARD, which is the safe
+   direction (we would understate wins, never overstate them), but it should be named in
+   the report rather than discovered by a judge. It is also a reason not to read a 1.02
+   result as "nearly a win". Not investigated further tonight; a second calibration per
+   shape (2 of 3 still available on every shape) would confirm or kill it cheaply.
+
+Ledger after this batch: 15 permits issued and consumed, 12 calibration requests, 3
+diagnostics, **still 0 of the 60 attempts spent**, 0 strikes, no permit armed.

@@ -1,0 +1,29 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "expires_epoch": 1788102223.7002065,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-30T22:18:43+0800",
+ "ledger": null,
+ "ledger_namespace": "calibration",
+ "ledger_pre_lines": null,
+ "machine_state_path": "Project/loop/machine_state/batch_precalib_20260830T2216SGT.json",
+ "machine_state_sha256": "de64a319073b3a86b7a58ea38fe38ab160fa0f76332758ff39f9a2c59c4d0ea8",
+ "mode": "calibration",
+ "promotion_allowed": false,
+ "request_id": "1aee07ffbc8921c77ed6d75a8987fc59",
+ "request_kind": "calibration",
+ "request_path": "Project/loop/requests/2c360f8b688e554936c1eadf4d060d4cff4c51ada08f5d1a1bdf8c879bfde06d.json",
+ "request_sha256": "2c360f8b688e554936c1eadf4d060d4cff4c51ada08f5d1a1bdf8c879bfde06d",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 12,
+ "timing_config": {
+  "repeats": 100,
+  "rounds": 3,
+  "warmup": 20
+ },
+ "verdict_lines": 81
+}
