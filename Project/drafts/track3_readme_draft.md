@@ -60,6 +60,30 @@ to rebuild the authority model from scratch.
 > They were measured pre-gate against baselines that `HANDOVER.md` §3.1 records as
 > **6–63% slower than their own calibration**, so the ratios are inflated.
 >
+> ### ⚠ SECOND AMENDMENT 01:26 — the original numbers are being VINDICATED
+>
+> Re-measuring the **actually-shipped** megakernel under permit, on a quiet box, against
+> the same baselines now agrees closely with the figures originally published here:
+>
+> | shape | originally published | shipped route, measured 31 Aug | agreement |
+> | --- | --- | --- | --- |
+> | 2 | 15.26× | **14.3939×** | 5.7% |
+> | 3 | 11.96× | **12.6314×** | 5.6% |
+> | 13 | 28.82× | **28.4098×** | **1.4%** |
+>
+> **The original magnitudes look approximately right.** What was wrong was *process* — no
+> permit, no bound audit verdict, baselines 6–63% off their own calibration. Procedurally
+> invalid and numerically wrong are different things, and the first amendment conflated
+> them.
+>
+> **The 2.94× below is the misleading figure**: it measured `k004`, which this submission
+> does not ship, and understates the shipped route by roughly 3.5×. Ignore it.
+>
+> **Status: 3 of 12 shapes re-measured on the shipped route, no geomean claimed yet.**
+> The original 10.32× is not yet re-earned, but nothing contradicts it.
+>
+> ---
+>
 > **AMENDED 01:05 — there is currently NO valid headline for this submission.**
 >
 > The post-LOCK board below measured `k004_graphed_triton.py`, which is **not the

@@ -125,6 +125,15 @@ differentiated thirty seconds in the video.
 
 ## Numbers to have on the lower third
 
+> ⚠ **SECOND AMENDMENT 01:26 — the original figures are being vindicated.** Re-measuring
+> the actually-shipped megakernel under permit on a quiet box gives shape 2 **14.39×**
+> (originally 15.26×), shape 3 **12.63×** (originally 11.96×) and shape 13 **28.41×**
+> (originally 28.82×, agreement 1.4%). So the original magnitudes look about right; what
+> was wrong was process, not arithmetic. **The 2.94× in the note below is the misleading
+> number** — it measured a kernel this submission does not ship. Still hold the lower
+> third until all twelve shapes are re-measured, but expect it to land near the original
+> figures rather than far below them.
+>
 > ⛔ **WITHDRAWN 31 Aug ~00:30, AMENDED 01:05 — do not read any speedup on
 > camera yet.** The 10.3× / 10.95× geomean and the 28.8× / 25.6× best-shape
 > figures are pre-gate numbers measured against baselines 6–63% slower than their

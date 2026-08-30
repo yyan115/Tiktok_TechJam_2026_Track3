@@ -224,7 +224,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 17,
+   "scientific_attempts": 18,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -639,9 +639,10 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 1,
+   "scientific_attempts": 2,
    "scratch_attempted_shas": [
-    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
+    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+    "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911"
    ],
    "strikes": 0
   },
@@ -1679,7 +1680,8 @@
   "6ff1bf0a4b0f6efe5f9063e926297c46eeaae2510702497afed35287afde7676",
   "8599a3b576ff297481bc78ba64cd0958562203a07cd9ad944b309738c0772075",
   "022b545e11abcde816021ff214ea73c3578324f0d0c7adda0181bad66b34590e",
-  "b85736a4fe81d2d63de580f8c7da104edd4de6cca499d6c2f85e2a40c59b5092"
+  "b85736a4fe81d2d63de580f8c7da104edd4de6cca499d6c2f85e2a40c59b5092",
+  "5696be88d779cbbbf43f522783ae0d807ed32c109a7673e457b27e7a7e474150"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -1727,11 +1729,12 @@
   "e0fa87d62d5132e2ce4dabf339e9528c0d3d7c6102582bd7ff84bdd6d9eb7f7a",
   "eefb1902d1aa7e5147fa6c45955ac574445fe8accaebd5f2443fd77508a7b158",
   "10ab04e81704d91fa4d9c859242de41f3460e9585fb3169a76412a0bd466f53a",
-  "d1fcc0bc892114bb10036c9f4f72af524d6426f6cde86aa0a6cffe92e7e6bb6d"
+  "d1fcc0bc892114bb10036c9f4f72af524d6426f6cde86aa0a6cffe92e7e6bb6d",
+  "bb320b0f26b67341f4a18b5fbfe4a18aad17166d9d4dcb1e241cf3253d1cf0fb"
  ],
- "research_cycle": 17,
+ "research_cycle": 18,
  "research_open": false,
- "seq": 139,
+ "seq": 143,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1778,6 +1781,7 @@
   "e0fa87d62d5132e2ce4dabf339e9528c0d3d7c6102582bd7ff84bdd6d9eb7f7a",
   "eefb1902d1aa7e5147fa6c45955ac574445fe8accaebd5f2443fd77508a7b158",
   "10ab04e81704d91fa4d9c859242de41f3460e9585fb3169a76412a0bd466f53a",
-  "d1fcc0bc892114bb10036c9f4f72af524d6426f6cde86aa0a6cffe92e7e6bb6d"
+  "d1fcc0bc892114bb10036c9f4f72af524d6426f6cde86aa0a6cffe92e7e6bb6d",
+  "bb320b0f26b67341f4a18b5fbfe4a18aad17166d9d4dcb1e241cf3253d1cf0fb"
  ]
 }
