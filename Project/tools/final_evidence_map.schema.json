@@ -23,25 +23,65 @@
     "shapes": {
       "type": "object",
       "required": [
-        "1", "2", "3", "4", "5", "6", "7",
-        "8", "9", "10", "11", "12", "13", "14"
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
       ],
       "additionalProperties": false,
       "properties": {
-        "1": { "$ref": "#/$defs/selector" },
-        "2": { "$ref": "#/$defs/selector" },
-        "3": { "$ref": "#/$defs/selector" },
-        "4": { "$ref": "#/$defs/selector" },
-        "5": { "$ref": "#/$defs/selector" },
-        "6": { "$ref": "#/$defs/selector" },
-        "7": { "$ref": "#/$defs/selector" },
-        "8": { "$ref": "#/$defs/selector" },
-        "9": { "$ref": "#/$defs/selector" },
-        "10": { "$ref": "#/$defs/selector" },
-        "11": { "$ref": "#/$defs/selector" },
-        "12": { "$ref": "#/$defs/selector" },
-        "13": { "$ref": "#/$defs/selector" },
-        "14": { "$ref": "#/$defs/selector" }
+        "1": {
+          "$ref": "#/$defs/selector"
+        },
+        "2": {
+          "$ref": "#/$defs/selector"
+        },
+        "3": {
+          "$ref": "#/$defs/selector"
+        },
+        "4": {
+          "$ref": "#/$defs/selector"
+        },
+        "5": {
+          "$ref": "#/$defs/selector"
+        },
+        "6": {
+          "$ref": "#/$defs/selector"
+        },
+        "7": {
+          "$ref": "#/$defs/selector"
+        },
+        "8": {
+          "$ref": "#/$defs/selector"
+        },
+        "9": {
+          "$ref": "#/$defs/selector"
+        },
+        "10": {
+          "$ref": "#/$defs/selector"
+        },
+        "11": {
+          "$ref": "#/$defs/selector"
+        },
+        "12": {
+          "$ref": "#/$defs/selector"
+        },
+        "13": {
+          "$ref": "#/$defs/selector"
+        },
+        "14": {
+          "$ref": "#/$defs/selector"
+        }
       }
     }
   },
@@ -58,11 +98,14 @@
             "kind",
             "entry_id",
             "measurement_event_sha256",
-            "audit_packet"
+            "audit_packet",
+            "selection_rationale"
           ],
           "additionalProperties": false,
           "properties": {
-            "kind": { "const": "controller" },
+            "kind": {
+              "const": "controller"
+            },
             "entry_id": {
               "type": "string",
               "pattern": "^run-[0-9a-f]{32}$"
@@ -76,16 +119,25 @@
             "selection_rationale": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 1000
+              "maxLength": 1000,
+              "description": "Why this exact evidence is the one that ships."
             }
-          }
+          },
+          "title": "Post-lock trusted-controller primary measurement",
+          "description": "A measurement_recorded event in Project/authority/events.jsonl with a content-addressed audit packet. This is shippable evidence."
         },
         {
           "type": "object",
-          "required": ["kind", "entry_id"],
+          "required": [
+            "kind",
+            "entry_id",
+            "selection_rationale"
+          ],
           "additionalProperties": false,
           "properties": {
-            "kind": { "const": "journal" },
+            "kind": {
+              "const": "journal"
+            },
             "entry_id": {
               "type": "string",
               "pattern": "^[0-9]{8}-[0-9]{6}(?:-[0-9a-f]{6})?$"
@@ -93,9 +145,12 @@
             "selection_rationale": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 1000
+              "maxLength": 1000,
+              "description": "Why this exact evidence is the one that ships."
             }
-          }
+          },
+          "title": "Legacy pre-lock frozen-runner row -- NOT shippable",
+          "description": "A row in Project/results/JOURNAL.jsonl, measured before the trust boundary existed: candidate source executed inside the runner process, no permit was consumed and no measurement event was recorded. This kind is expressible so the manifest can name it and explain precisely why it is refused; ship_manifest.py never emits a shape from it."
         },
         {
           "type": "object",
@@ -104,11 +159,14 @@
             "entry_id",
             "measurement_event_sha256",
             "side_evidence_sha256",
-            "audit_packet"
+            "audit_packet",
+            "selection_rationale"
           ],
           "additionalProperties": false,
           "properties": {
-            "kind": { "const": "side_controller" },
+            "kind": {
+              "const": "side_controller"
+            },
             "entry_id": {
               "type": "string",
               "pattern": "^[0-9]{8}-[0-9]{6}-[0-9a-f]{6}$"
@@ -125,15 +183,21 @@
             "selection_rationale": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 1000
+              "maxLength": 1000,
+              "description": "Why this exact evidence is the one that ships."
             }
-          }
+          },
+          "title": "Post-lock trusted-controller side-lane measurement (shapes 6 and 14 only)",
+          "description": "A side-lane run whose stages were ingested by the controller and stored as content-addressed blobs. This is shippable evidence."
         }
       ]
     },
     "auditPacket": {
       "type": "object",
-      "required": ["path", "sha256"],
+      "required": [
+        "path",
+        "sha256"
+      ],
       "additionalProperties": false,
       "properties": {
         "path": {
@@ -145,5 +209,6 @@
         }
       }
     }
-  }
+  },
+  "description": "One exact evidence selector for every official shape. Selection is never by speed, recency or discovery: the owner names the entry id and the content hashes, and Project/tools/ship_manifest.py refuses if any named id or hash does not resolve to those exact bytes."
 }

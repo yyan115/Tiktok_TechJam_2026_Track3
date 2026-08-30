@@ -252,11 +252,22 @@ def env_fingerprint(torch) -> dict:
             driver = rows[0]
     except (OSError, subprocess.SubprocessError):
         pass
+    # ship_manifest.REQUIRED_ENV_KEYS binds gpu/driver/torch/cuda/triton.  A
+    # missing or "unknown" value makes the packet unshippable, so the version
+    # is resolved here rather than left to the consumer.  The authored kernels
+    # are Triton, so an absent Triton is a fatal evidence defect, not a note.
+    triton_version = "unknown"
+    try:
+        import triton  # noqa: PLC0415 - optional at import time, required here
+        triton_version = str(getattr(triton, "__version__", "")).strip() or "unknown"
+    except Exception:
+        pass
     return {
         "gpu": torch.cuda.get_device_name(0),
         "driver": driver,
         "torch": torch.__version__,
         "cuda": torch.version.cuda,
+        "triton": triton_version,
         "python": platform.python_version(),
         "hostname": platform.node(),
     }
