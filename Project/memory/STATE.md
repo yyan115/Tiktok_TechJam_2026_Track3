@@ -21,17 +21,23 @@ Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 31 Aug ~01:25 SGT. Re-measuring the **actually-shipped** megakernel (k009) now agrees
 closely with the pre-gate figures I withdrew three hours ago:
 
-| shape | pre-gate figure (withdrawn) | **shipped route, measured tonight** | agreement | k004 (wrong kernel) |
+| shape | pre-gate (withdrawn) | **shipped route, measured tonight** | delta | k004 (wrong kernel) |
 | --- | --- | --- | --- | --- |
-| 2 | 15.26x | **14.3939x** | 5.7% | 8.1115x |
-| 3 | 11.96x | **12.6314x** | 5.6% | 7.1845x |
-| 13 | 28.82x | **28.4098x** | **1.4%** | 5.8096x |
-| 11 | 12.98x | **12.6797x** | 2.3% | 4.2433x |
-| 7 | 25.57x | **21.9645x** | 14.2% | 3.4781x |
+| 13 | 28.82x | **28.4098x** | −1.4% | 5.8096x |
+| 7 | 25.57x | **21.9645x** | −14.1% | 3.4781x |
+| 2 | 15.26x | **14.3939x** | −5.7% | 8.1115x |
+| 11 | 12.98x | **12.6797x** | −2.3% | 4.2433x |
+| 3 | 11.96x | **12.6314x** | +5.6% | 7.1845x |
+| 12 | 11.44x | **10.8141x** | −5.5% | 3.2334x |
+| 4 | 7.30x | **8.8774x** | **+21.6%** | 2.7175x |
 
-Five of twelve done. Agreement ranges 1.4% to 14.2% — close in every case, but **not
-uniform**, and shape 7 is the loosest. The k009-over-k004 ratio ranges **1.76x to 6.31x**,
-which is why the "constant 1.77x" claim was wrong.
+**Seven of twelve done.** Deltas scatter **both ways**, −14.1% to +21.6%. So the old board
+was neither systematically inflated nor systematically deflated: it was **approximately
+right with per-shape scatter of roughly ±20%**. That is the honest characterisation and it
+is stronger than either of my earlier readings.
+
+The k009-over-k004 ratio ranges **1.76x to 6.31x** — strongly shape-dependent, which is why
+the "constant 1.77x" claim was wrong.
 
 **Two of my own claims are refuted:**
 
