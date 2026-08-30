@@ -19,25 +19,38 @@ against the code and the ledgers on that date, not carried over from a note.
 
 ## Where the project actually is
 
-**Pre-LOCK. Nothing can be measured.** `trusted_controller.py status` exits 2 with
-`REFUSED: LOCK manifest must be a regular non-symlink file` — that is the expected
-reading today, not a fault. No GPU work is possible until the owner runs
-`Project/OWNER_LOCK.md`.
+**LOCKED AND OPEN. The grind may start.** Steps 1–9 of
+`Project/OWNER_RUNBOOK_POSTLOCK.md` were completed by the owner (via Codex) on 30 Aug
+20:53–20:55 SGT and independently re-verified against the live commands afterwards:
 
-**The FIX phase is done; LOCK is now purely an owner ceremony.**
-`Project/harness/profile_worker.py` is installed (`ef2a866`) and the controller no
-longer refuses on it. `Project/authority/blobs/` holds no keys yet, so the ceremony
-is `keygen` → build → activate, per `Project/OWNER_LOCK.md`.
+- `trusted_controller.py status` → `controller: OK`, lock **active** and **valid**,
+  29 protected files, `lock_id lock-b7848d4736461b971acd`,
+  epoch `post-fix-20260830T125311Z`.
+- All 16 pre-gate `RULE_VIOLATION` brakes retired via
+  `clear_pregate_verdicts.py` (`FINDING_ACCEPTED_ROW_RETIRED`). Zero brakes remain.
+- `CAMP-POSTLOCK` active: 0 attempts, 0 calibrations, 60-attempt budget,
+  `timing_config` bound to the controller protocol.
+- 0 permits issued, 0 consumed, 0 measurements, no permit armed.
+- Auditor is Claude (`/usr/local/bin/claude-auditor`, root-owned, pinned hash matches).
 
-**LOCK does not unblock the first card.** 16 uncleared `RULE_VIOLATION` verdicts freeze
-every new permit. They are the auto-audit's 30 Aug sweep of the pre-gate board, and all
-16 are the same finding — the run predates the citation gate, so it has no plan or
-citation trail. The numbers themselves were called credible; the paperwork did not
-exist, because the runs came before the thing that requires it. Clearing them is
-owner-only and one row at a time (`verdict-clear --kind violation` with a signed
-`resolve_integrity_verdict` capability). Moving the cutoff instead is not available:
-`st["created"]` is set only by `init`, and `init` refuses on an existing state and a
-non-empty log.
+**The next action is runbook step 10: calibrate a shape.** Nothing else is pending.
+
+**The 49 "pending" audits are inert — do not panic at them.**
+`champion_watch.py --dry-run` lists 49 pre-gate entries. Running the watcher skips
+every one of them in about a second with `packet is absent`, *before* any auditor
+process starts: they predate the packet store, so there is nothing to audit. No
+quota is spent, no attempt is recorded, no retry counter moves, and `owner_attention`
+stays empty. They do **not** queue ahead of new work — the loop walks past them and
+launches the first entry that has a real packet. Verified by running it, 30 Aug.
+
+**The private keys are inside HOME, and that is a real residual.** The runbook said
+`~/techjam-keys`, so `keygen` needed `--allow-home-key`. Files are `0600`, but that is
+guard-level, not OS isolation: anything running as `admin` can read them, and the
+passphrase is written in `OWNER_RUNBOOK_POSTLOCK.md` in this repo. So "only the owner
+can sign" is **not currently true** and must not be claimed. Fixing it means moving the
+private keys outside HOME (needs `sudo`, and then every mint needs `sudo` too) or
+changing the passphrase to something not committed. Scrub the passphrase from the
+runbook before the repo ships either way.
 
 **The documented unlock for those verdicts does not work.** `run_gate.py verdict-clear
 --kind violation` spends a signed owner capability, prints "resolved by
