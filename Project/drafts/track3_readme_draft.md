@@ -184,10 +184,14 @@ python3 Project/submission/torch_transformer_benchmark_submission.py \
 #    to the official script.
 python3 Project/tools/build_submission.py --verify
 
-# 3. Any shape through our frozen referee: multi-seed correctness,
-#    tripwires, calibrated noise floor, timing distribution.
+# 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
+#    a shim onto the trusted controller and will NOT time anything without a
+#    one-use permit -- that refusal is the design, not a bug:
+#      error: the following arguments are required: --permit
+#    The full permitted sequence (request -> permit -> run) is in
+#    Project/RUNBOOK.md; the request step needs an owner-signed capability.
 python3 Project/harness/runner.py run --shape 13 \
-        --impl Project/kernels/k009_fused_tuned.py
+        --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
 
 # 4. Regenerate every published table from the append-only journal.
 python3 Project/harness/runner.py leaderboard     # -> Project/results/LEADERBOARD.md

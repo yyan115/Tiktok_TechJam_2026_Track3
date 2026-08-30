@@ -747,9 +747,13 @@ python3 Project/submission/torch_transformer_benchmark_submission.py \
 # Prove the untouched-region byte identity against the official script.
 python3 Project/tools/build_submission.py --verify
 
-# Any shape through our frozen referee (correctness + timing + tripwires).
+# Any shape through our frozen referee. Since the LOCK this REFUSES without a
+# one-use permit ("error: the following arguments are required: --permit"),
+# which is the enforcement boundary working, not a broken command. The full
+# request -> issue-permit -> run sequence is in Project/RUNBOOK.md and needs an
+# owner-signed capability; every row in §2.1.1 was produced that way.
 python3 Project/harness/runner.py run --shape 13 \
-        --impl Project/kernels/k009_fused_tuned.py
+        --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
 
 # Regenerate the leaderboard and the score-sensitivity board from the journal.
 python3 Project/harness/runner.py leaderboard

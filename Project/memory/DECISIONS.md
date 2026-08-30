@@ -1697,3 +1697,52 @@ discriminator, which also killed my hypothesis).
 
 It also goes in the tech report. A four-point pattern that dies on its fifth point is worth
 more in a methods section than a tidy model nobody tested.
+
+---
+
+## 31 Aug ~04:30 SGT — Hostile read of all three drafts. Two real defects found.
+
+Read the three judge-facing documents end to end as an adversarial reviewer rather than as
+their author. Stale numbers were expected and there were several (9.68x left where 9.45x
+belongs, 28.41x ranges, torch.compile comparison rows). Two findings were not cosmetic.
+
+### 1. A baseline/candidate mix-up that inverted the meaning of a number
+
+Both the tech report and the README said shape 8's **baseline** was "already at 64% of the
+fp16 roofline before we touch it". **That 64% is our candidate's figure**, read straight off
+the `cand ms` column of `roofline-table.md`. The baseline runs at
+420.91 GFLOP / 38.4379 ms = **10.95 TF/s, MFU 0.34**. Our kernel reaches **22.08 TF/s, MFU
+0.68**.
+
+So the sentence claimed our starting point was where we finished. The qualitative
+conclusion — shape 8 is arithmetic-bound and has the least headroom — survives, but the
+supporting number was the wrong side of the comparison, and as written it made 2.02x look
+like scraping a nearly-full roofline rather than what it is: **doubling achieved
+utilisation**, which is a better story told accurately.
+
+This error also went into a gate plan hypothesis and is therefore in the immutable log, so
+the report carries an inline correction rather than a silent edit. Root cause is the same
+one as LESSONS 32 and 37: I read a table column without checking which arm it described.
+
+### 2. The video script's live demo command does not run
+
+Scene 3 had the owner type, on camera:
+`python3 Project/harness/runner.py run --shape 13 --impl Project/kernels/k009_fused_tuned.py`
+with "beats while it runs" underneath. **I ran it. It fails instantly:**
+`trusted_controller.py run: error: the following arguments are required: --permit`.
+
+Since the LOCK, `runner.py` is a 27-line shim onto the trusted controller and the controller
+times nothing without a one-use permit. The script would have died on camera in the middle
+of the trust-chain scene.
+
+Rewritten so the refusal **is** the scene, which is stronger and true: show the error, say
+"even I can't start a measurement", then run the real permitted three-command sequence. Also
+flagged that the overnight owner capabilities expire around **21:00 on 31 Aug**, inside the
+recording window, so a fresh short-lived capability must be minted before filming.
+
+The same dead command was in the reproduce blocks of both the README and the tech report.
+Both now show it as refusing by design and point at the RUNBOOK for the permitted sequence.
+
+**Transferable point:** every command a document tells someone to type is a claim, and it
+decays exactly like a number does. The LOCK changed what `runner.py` is and three documents
+kept the pre-LOCK invocation. Test the commands, not just the figures.
