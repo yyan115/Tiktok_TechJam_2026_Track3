@@ -12,6 +12,7 @@ from __future__ import annotations
 import glob
 import ctypes
 import errno
+import functools
 import os
 import resource
 import shutil
@@ -48,6 +49,42 @@ NETWORK_SYSCALLS = (
 )
 CAPTURE_LIMIT_BYTES = 8 * 1024 * 1024
 WORKER_FILE_LIMIT_BYTES = 128 * 1024 * 1024
+# Unchanged from the original (256).  Measured on this host: a worker that
+# imports torch, initialises CUDA and compiles + launches a Triton kernel
+# peaks at 39 open descriptors, so this stays a real bound with headroom.
+WORKER_OPEN_FILE_LIMIT = 256
+
+# Read-only system runtime exposed in the jail.  Real directories are listed
+# first so the merged-/usr symlinks that follow resolve to live content.  /bin
+# and /sbin are mandatory, not cosmetic: Triton's CUDA driver bootstrap shells
+# out to `ldconfig` to locate libcuda.so, so without them every Triton compile
+# dies with "FileNotFoundError: [Errno 2] ... '/sbin/ldconfig'".
+SYSTEM_ROOTS: tuple[str, ...] = (
+    "/usr",
+    "/etc",
+    "/sys",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+)
+# The sbin directories are on PATH for the same reason.  Both spellings are
+# listed so the lookup works whether the host merged /usr or not.
+SANDBOX_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
+
+# RLIMIT_NPROC is charged to the real UID across the entire machine and counts
+# every task (threads included), not just this process tree.  A fixed cap is
+# therefore a cap on the host's total task count, not on the candidate.  The
+# previous (128, 128) value made the clone() that bwrap performs immediately
+# after preexec_fn fail on any normal desktop, so the sandbox could not start
+# at all:  "bwrap: Creating new namespace failed: Resource temporarily
+# unavailable".  (This UID owns ~1.3k tasks at rest.)  The cap is now derived
+# from live usage -- double the current tasks plus this headroom -- and it is
+# skipped entirely whenever that value is not comfortably reachable.  A
+# sandbox that starts outranks a fork cap, and a runaway candidate is still
+# bounded by --unshare-pid, --die-with-parent, the timeout with process-group
+# kill, RLIMIT_NOFILE, RLIMIT_FSIZE and RLIMIT_CORE.
+NPROC_HEADROOM = 4096
 
 
 @dataclass(frozen=True)
@@ -113,8 +150,31 @@ def _python_package_roots() -> list[Path]:
 
 
 def _bind_if_exists(command: list[str], source: Path, destination: str) -> None:
+    """Expose one host path in the jail, preserving its symlink-vs-directory shape.
+
+    On merged-/usr distributions (Fedora here, also Arch and modern Debian) the
+    root-level system paths are symlinks: /bin -> usr/bin, /sbin -> usr/sbin,
+    /lib -> usr/lib, /lib64 -> usr/lib64.  ``Path.exists()`` follows the link,
+    so a plain ``--ro-bind`` mounts the *target* as a second, real directory
+    under the link's name -- a layout the host does not have, which breaks any
+    tool that resolves or compares paths.  ``--symlink`` reproduces the host
+    layout exactly, and a host with real directories still gets a bind, so this
+    cannot regress either way.
+    """
+    if source.is_symlink():
+        command.extend(["--symlink", os.readlink(source), destination])
+        return
     if source.exists():
         command.extend(["--ro-bind", str(source), destination])
+
+
+def _bind_system_roots(command: list[str]) -> None:
+    """Bind the read-only system runtime.  No home directory is mounted.
+
+    Both command builders call this so the two jails cannot drift apart.
+    """
+    for root in SYSTEM_ROOTS:
+        _bind_if_exists(command, Path(root), root)
 
 
 def _gpu_binds(command: list[str]) -> None:
@@ -171,13 +231,13 @@ def build_command(
     ]
     if seccomp_fd is not None:
         command.extend(["--seccomp", str(seccomp_fd)])
+    else:
+        # No syscall ban means the network namespace must do the isolating.
+        # If the kernel refuses it bwrap dies here, which is fail-closed.
+        command.append("--unshare-net")
 
     # System runtime and loader.  No home directory is mounted.
-    _bind_if_exists(command, Path("/usr"), "/usr")
-    _bind_if_exists(command, Path("/lib"), "/lib")
-    _bind_if_exists(command, Path("/lib64"), "/lib64")
-    _bind_if_exists(command, Path("/etc"), "/etc")
-    _bind_if_exists(command, Path("/sys"), "/sys")
+    _bind_system_roots(command)
 
     python_paths: list[str] = []
     for index, package_root in enumerate(_python_package_roots()):
@@ -214,7 +274,7 @@ def build_command(
             "/nonexistent",
             "--setenv",
             "PATH",
-            "/usr/bin:/bin",
+            SANDBOX_PATH,
             "--setenv",
             "PYTHONPATH",
             ":".join(python_paths),
@@ -250,10 +310,58 @@ def build_command(
     return command
 
 
-def _limit_worker() -> None:
+def _uid_task_count() -> int | None:
+    """Count the tasks currently charged to the real UID, or None if unknown."""
+    uid = os.getuid()
+    total = 0
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        return None
+    for name in entries:
+        if not name.isdigit():
+            continue
+        try:
+            if os.stat(f"/proc/{name}").st_uid != uid:
+                continue
+            total += len(os.listdir(f"/proc/{name}/task"))
+        except OSError:
+            continue  # the process exited mid-scan; it is not ours to count
+    return total or None
+
+
+def _worker_nproc_limit() -> int | None:
+    """Defensive RLIMIT_NPROC value for the worker, or None for no cap.
+
+    Computed in the parent, before fork, so the child's preexec_fn only has to
+    call setrlimit.  See NPROC_HEADROOM for why a fixed cap is wrong.
+    """
+    used = _uid_task_count()
+    if used is None:
+        return None
+    soft, hard = resource.getrlimit(resource.RLIMIT_NPROC)
+    wanted = used * 2 + NPROC_HEADROOM
+    if hard != resource.RLIM_INFINITY and wanted > hard:
+        return None  # cannot raise past the hard limit; leave the cap alone
+    if soft != resource.RLIM_INFINITY and wanted >= soft:
+        return None  # the inherited limit is already tighter than anything safe
+    return wanted
+
+
+def _limit_worker(nproc_limit: int | None = None) -> None:
+    """preexec_fn for the sandbox child: per-process bounds only.
+
+    Everything set here is charged to this process alone, except NPROC, which
+    is machine-wide per UID and is therefore passed in already computed (None
+    means: set no cap, because any value would risk breaking process creation).
+    """
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
-    resource.setrlimit(resource.RLIMIT_NPROC, (128, 128))
+    resource.setrlimit(
+        resource.RLIMIT_NOFILE,
+        (WORKER_OPEN_FILE_LIMIT, WORKER_OPEN_FILE_LIMIT),
+    )
+    if nproc_limit is not None:
+        resource.setrlimit(resource.RLIMIT_NPROC, (nproc_limit, nproc_limit))
     # Evidence output is bounded.  GPU allocations are not governed by AS and
     # are controlled separately by request shape/memory checks.
     resource.setrlimit(
@@ -262,13 +370,67 @@ def _limit_worker() -> None:
     )
 
 
+_NETNS_SUPPORTED: bool | None = None
+
+
+def _probe_netns() -> bool:
+    """Fork once and find out whether this user may create a network namespace."""
+    if not hasattr(os, "unshare") or not hasattr(os, "CLONE_NEWNET"):
+        return False
+    try:
+        pid = os.fork()
+    except OSError:
+        return False
+    if pid == 0:  # child: exit 0 only if both namespaces were created
+        code = 1
+        try:
+            os.unshare(os.CLONE_NEWUSER)  # grants CAP_SYS_ADMIN inside the new user ns
+            os.unshare(os.CLONE_NEWNET)
+            code = 0
+        except OSError:
+            code = 1
+        finally:
+            os._exit(code)
+    try:
+        _, status = os.waitpid(pid, 0)
+    except OSError:
+        return False
+    return os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+
+
+def _netns_available() -> bool:
+    """Cached result of :func:`_probe_netns`."""
+    global _NETNS_SUPPORTED
+    if _NETNS_SUPPORTED is None:
+        _NETNS_SUPPORTED = _probe_netns()
+    return _NETNS_SUPPORTED
+
+
+def _network_seccomp_fd() -> int | None:
+    """Network isolation for the worker: fd to pass to --seccomp, or None.
+
+    ``--unshare-net`` is the primary mechanism: the worker gets a private
+    network namespace with nothing but a down loopback, so there is no route
+    off the box and abstract unix sockets (X11, dbus) are unreachable too.
+    It is preferred over the syscall ban because the NVIDIA user-mode driver
+    needs local socket syscalls: with the ban in force cuInit() fails with 304
+    (CUDA_ERROR_OPERATING_SYSTEM) and no GPU work can run at all -- proven by
+    bisection on this host (no seccomp: cuInit 0; seccomp: cuInit 304).
+    The ban stays as the fallback for managed hosts that forbid creating a
+    network namespace even inside a user namespace; such a host cannot run GPU
+    candidates under this sandbox, and that is the fail-closed direction.
+    """
+    if _netns_available():
+        return None
+    return _network_deny_filter()
+
+
 def _network_deny_filter() -> int:
     """Return a sealed memfd containing a libseccomp BPF network deny filter.
 
-    Some managed Linux hosts disallow creating a new network namespace even
-    inside an otherwise supported user namespace.  Blocking socket creation
-    and all connection/transfer syscalls is the fail-closed equivalent needed
-    by this single-process worker and remains enforceable by the kernel.
+    Fallback only -- see :func:`_network_seccomp_fd`.  Blocking socket creation
+    and all connection/transfer syscalls is enforceable by the kernel, but it
+    also blocks the local socket use of the CUDA driver.
     """
     try:
         library = ctypes.CDLL("libseccomp.so.2", use_errno=True)
@@ -323,7 +485,7 @@ def run_sandbox(
 ) -> SandboxResult:
     if timeout_seconds < 1 or timeout_seconds > 24 * 3600:
         raise SandboxError("sandbox timeout must be between 1 second and 24 hours")
-    seccomp_fd = _network_deny_filter()
+    seccomp_fd = _network_seccomp_fd()
     command = build_command(files, worker_args, seccomp_fd=seccomp_fd)
     with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
         try:
@@ -333,11 +495,12 @@ def run_sandbox(
                 stdout=stdout_file,
                 stderr=stderr_file,
                 start_new_session=True,
-                preexec_fn=_limit_worker,
-                pass_fds=(seccomp_fd,),
+                preexec_fn=functools.partial(_limit_worker, _worker_nproc_limit()),
+                pass_fds=() if seccomp_fd is None else (seccomp_fd,),
             )
         finally:
-            os.close(seccomp_fd)
+            if seccomp_fd is not None:
+                os.close(seccomp_fd)
         timed_out = False
         try:
             process.communicate(timeout=timeout_seconds)
@@ -435,15 +598,14 @@ def run_isolated_command(
         "--cap-drop", "ALL", "--clearenv", "--proc", "/proc",
         "--dev", "/dev", "--tmpfs", "/tmp",
     ]
-    seccomp_fd = _network_deny_filter()
-    command.extend(["--seccomp", str(seccomp_fd)])
+    seccomp_fd = _network_seccomp_fd()
+    if seccomp_fd is not None:
+        command.extend(["--seccomp", str(seccomp_fd)])
+    else:
+        command.append("--unshare-net")
     for directory in sorted(parent_dirs, key=lambda value: (value.count("/"), value)):
         command.extend(["--dir", directory])
-    _bind_if_exists(command, Path("/usr"), "/usr")
-    _bind_if_exists(command, Path("/lib"), "/lib")
-    _bind_if_exists(command, Path("/lib64"), "/lib64")
-    _bind_if_exists(command, Path("/etc"), "/etc")
-    _bind_if_exists(command, Path("/sys"), "/sys")
+    _bind_system_roots(command)
     python_paths: list[str] = []
     for index, package_root in enumerate(_python_package_roots()):
         destination = f"/opt/python-site-{index}"
@@ -454,11 +616,12 @@ def run_isolated_command(
         command.extend(["--bind" if writable else "--ro-bind", str(source), destination])
     arguments = list(argv)
     if not arguments or any(not isinstance(item, str) or "\x00" in item for item in arguments):
-        os.close(seccomp_fd)
+        if seccomp_fd is not None:
+            os.close(seccomp_fd)
         raise SandboxError("isolated argv is malformed")
     command.extend([
         "--setenv", "HOME", "/nonexistent",
-        "--setenv", "PATH", "/usr/bin:/bin",
+        "--setenv", "PATH", SANDBOX_PATH,
         "--setenv", "PYTHONPATH", ":".join(python_paths),
         "--setenv", "PYTHONNOUSERSITE", "1",
         "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
@@ -475,11 +638,12 @@ def run_isolated_command(
                 stdout=stdout_file,
                 stderr=stderr_file,
                 start_new_session=True,
-                preexec_fn=_limit_worker,
-                pass_fds=(seccomp_fd,),
+                preexec_fn=functools.partial(_limit_worker, _worker_nproc_limit()),
+                pass_fds=() if seccomp_fd is None else (seccomp_fd,),
             )
         finally:
-            os.close(seccomp_fd)
+            if seccomp_fd is not None:
+                os.close(seccomp_fd)
         timed_out = False
         try:
             process.communicate(timeout=timeout_seconds)
