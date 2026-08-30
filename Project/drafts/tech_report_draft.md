@@ -4,7 +4,7 @@
 >
 > **The headline of this document changed three times in five hours. Every change,
 > and why, is recorded here rather than silently edited away — the process failure
-> is more interesting than the 0.87× it cost us.**
+> is more interesting than the 8.4% it cost us.**
 >
 > **What went wrong, in order.**
 >
@@ -44,17 +44,32 @@
 > against an uncalibrated baseline is undefended, not vindicated, when it later
 > turns out to be near-right.
 >
-> **Scope of this correction.** §2 is written against the measured boards. Every
-> other numeric claim in this document should be traced to
-> `Project/loop/gate_log.jsonl`, `Project/loop/gate_state.json`, or a profile
-> artifact under `Project/loop/profile_evidence/` before it ships. Sections still
-> carrying pre-gate figures are labelled where they stand, and one further factual
-> correction — a baseline/candidate mix-up in §3 — is marked inline there.
+> **Where every figure traces to.** The §2.1.1 board's authority is
+> `Project/authority/events.jsonl` (append-only, `measurement_recorded` events)
+> plus the content-addressed packet under `Project/authority/blobs/` bound to each
+> one, which carries the full 300-sample distributions, the consumed permit id and
+> the candidate sha256. The *scientific* record — hypothesis, falsifier,
+> preregistered band, judged outcome — is `Project/loop/gate_log.jsonl`, with
+> per-shape noise floors in `Project/loop/gate_state.json` and baseline profiles
+> under `Project/loop/profile_evidence/`. `Project/results/JOURNAL.jsonl` holds
+> **pre-LOCK history only**.
+>
+> **Corrections are marked inline, not silently applied.** Six adversarial re-reads
+> of this document found twelve defects, and each is flagged where it occurred
+> rather than smoothed over: a baseline/candidate mix-up (§3), a provenance claim
+> that was true before the LOCK and false after (§5.1, §6, §10), three documented
+> commands that stopped working at the LOCK (§10), a control we misread as broken
+> before checking the authority log (§7), an audit ledger we had rounded into a
+> friendly phrase (§4), a prediction record that got better when recounted (§5.6),
+> a companion board that is pre-gate and disagrees with §2.3 (§2.3), and one
+> negative result we could not source at all (§8). Sections carrying pre-gate
+> figures are labelled where they stand.
 
-**Status: DRAFT v3 (31 Aug, §2 re-measured under the enforcement gate).** The
-speedup board is measured, permitted and cited. Values still owed at code freeze
-are marked **[PENDING]** and name the run that produces them — nothing is
-estimated, projected, or rounded up. The organizers score from this report
+**Status: DRAFT v4 (31 Aug ~06:00).** The speedup board is measured on the shipped
+artifact, permitted, and cited to its packets. Values still owed at code freeze are
+marked **[PENDING]** and name the run that produces them — nothing is estimated,
+projected, or rounded up. One bullet in §8 is marked **unsourced** and must be
+verified or deleted before this ships. The organizers score from this report
 (judges do not re-run the code), so its precision is the technical score's
 carrier.
 
@@ -455,6 +470,15 @@ pre-integration file, and that is what we claim for them.
 ---
 
 ## 3. What we actually did to the kernels
+
+> **Which numbers this section quotes.** The mechanism comparisons below
+> (megakernel vs `k004`, head-count scaling, per-kernel device time) were all
+> measured on the **kernel modules**, §2.1, because that is the only board
+> where the alternative routes exist to compare against — you cannot run
+> `k004` "inside" the shipped file. Where a shape appears in both boards the
+> figures differ by the scatter documented in §2.1.1 (e.g. shape 5: 9.15× on
+> the module, 9.12× shipped; shape 11: 12.68× vs 12.59×). **The headline
+> board is still §2.1.1.**
 
 The official baseline runs a transformer block as roughly forty separate
 GPU operations. Nine of the fourteen test shapes are `d_model` 128 with
