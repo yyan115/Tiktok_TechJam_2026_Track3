@@ -1,7 +1,30 @@
 # Track 3 Tech Report — an AI agent that writes GPU kernels, and a referee it cannot bribe
 
-**Status: DRAFT v2 (30 Aug, rewritten from the v1 skeleton).** Every number
-below is measured and cited. Values still owed at code freeze are marked
+> ## ⛔ DOCUMENT-WIDE CORRECTION — 31 Aug ~00:55 SGT
+>
+> **This draft was written 30 Aug ~11:25, before the LOCK and before the
+> post-LOCK re-measurement campaign. Its headline speedup is withdrawn.**
+>
+> | | claimed in this draft | measured post-LOCK |
+> | --- | --- | --- |
+> | geomean, 12 primary shapes | 10.3× / 10.32× / 10.95× | **2.94×** |
+> | best shape | 28.8× (shape 13) | **8.11×** (shape 2) |
+>
+> Cause: every pre-gate row was measured against a baseline **6–63% slower than
+> its own calibration** (`HANDOVER.md` §3.1), which inflates the ratio. The
+> replacement board was measured on a verified-quiet box, paired inside one
+> invocation, correct on every seed — see the block in §2.
+>
+> **The status claim immediately below ("every number below is measured and
+> cited") was true when written and is not true now.** Treat every numeric claim
+> in this document as unverified until traced to `Project/loop/gate_log.jsonl`,
+> `Project/loop/gate_state.json`, or a profile artifact under
+> `Project/loop/profile_evidence/`. Corrections so far are marked with visible
+> WITHDRAWN blocks rather than silent edits.
+
+**Status: DRAFT v2 (30 Aug, rewritten from the v1 skeleton).** ~~Every number
+below is measured and cited.~~ **← see correction above; this is no longer
+accurate.** Values still owed at code freeze are marked
 **[PENDING]** and name the run that produces them — nothing is estimated,
 projected, or rounded up. The organizers score from this report (judges do
 not re-run the code), so its precision is the technical score's carrier.
@@ -14,8 +37,11 @@ We built an AI agent that authors CUDA/Triton kernels for a transformer
 layer, and — because AI optimizers are documented benchmark cheats — we
 built the referee first and gave the agent no authority over it. On an
 RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
-locally-runnable test shapes at a **geometric-mean 10.3× speedup measured
-by the organizers' own untouched benchmark script**, with every shape
+locally-runnable test shapes at a ~~**geometric-mean 10.3× speedup measured
+by the organizers' own untouched benchmark script**~~ **[WITHDRAWN — the
+post-LOCK controlled measurement is a geometric-mean 2.94×, range 1.11× to
+8.11×; see the correction block at the top of this document and the table in
+§2]**, with every shape
 passing the precision test. The two shapes that cannot run on this
 hardware in their official form — shape 6 (batch 10,000, baseline OOMs)
 and shape 14 (sequence 100,000, whose naive attention table is multi-
@@ -148,6 +174,39 @@ quote **the official script's number**, because that is the artifact a judge
 can verify.
 
 ### 2.3 Utilisation, and where the remaining headroom is
+
+> ⛔ **WITHDRAWN — the `achieved TF/s` and both MFU columns below are invalid.**
+> Added 31 Aug ~00:55 SGT.
+>
+> Those columns are computed from the `cand ms` column of
+> `Project/research/roofline-table.md`, which holds **pre-gate candidate times**
+> — the same dead board withdrawn in §2.1/§2.2. The independent auditor flagged
+> this directly on 30 Aug: *"that 36% is computed from the row's cand ms of
+> 0.6461, a pre-gate candidate time — the same pre-gate board the card itself
+> rules out."* They are inflated by roughly the same ~3.5× factor as the
+> speedups.
+>
+> Indicative recompute for shape 1, inputs shown so it can be checked:
+> 7.52 GFLOP (roofline-table) ÷ (5.154 ms baseline ÷ 2.1428× measured) ≈
+> **3.1 TF/s, MFU ≈ 0.10 against the 32.4 TF/s FP32-accumulate roof** — against
+> the 11.63 TF/s and 0.36 in the table. **Marked indicative, not authoritative:**
+> the 5.154 ms is the baseline median from the one contended run, so the whole
+> column needs a clean recompute from post-LOCK medians before it ships.
+>
+> **What survives, and it is the part that matters.** The *qualitative* reading
+> below — "the small shapes are not compute-limited, they are launch- and
+> grid-limited" — is now **directly measured** rather than inferred from MFU.
+> Baseline device idle fraction, nsys, post-LOCK: shape 2 **86.0%**, shape 3
+> **82.6%**, shape 12 **69.8%**, shape 4 **49.2%**, shape 7 3.2%, shape 1 3.4%,
+> shape 5 1.0%, shape 8 0.2%. The small-batch shapes really are starved, and we
+> now have the counter to prove it instead of an MFU proxy. **The conclusion
+> stands; the numbers under it must be replaced.**
+>
+> One sentence in the prose below must also go: *"the biggest per-shape speedups
+> (25×, 29×) sit next to the lowest MFUs"* cites withdrawn speedups. The measured
+> version is that the biggest speedups (8.11× shape 2, 7.18× shape 3) sit next to
+> the **highest baseline idle fractions** (86.0%, 82.6%) — same claim, real
+> evidence.
 
 Full board: `Project/results_side/SENSITIVITY.md` (regenerate with
 `python3 Project/tools/sensitivity_board.py`).
