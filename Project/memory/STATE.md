@@ -1,9 +1,20 @@
 # STATE — read this first in every session
 
+## !! READ Project/HANDOVER.md FIRST — it is the single source of truth !!
+30 Aug ~12:00. One file now holds current state, every open defect, and the
+FIX -> LOCK -> GRIND plan. It supersedes TEMP-PROGRESS-LOG (deleted),
+ROUND7_FINDINGS (merged), NARROWINGS_TODO, AUTHORITY_V4_PLAN and
+harness_v2_proposal as the working todo.
+The SCOREBOARD below is NOT safe to ship as written: all 12 backing rows
+carry baselines 6-63% slower than their own calibration on identical
+official code, so "quiet box" fails and the honest geomean is ~9-11x, not
+11.0x. See HANDOVER.md 3.1.
+
 Updated: 2026-08-30 ~05:30 — AUTHORITY v4 BUILT + OWNER-APPROVED (after the Track 2 convergence-override violation; full story: Project/loop/AUTHORITY_V4_PLAN.md, lesson 23). Gate hardened in run_gate.py (computed screening, hard-verdict brake, verdict-clear owner/mechanical paths; 22/22 sandbox tests). Awaiting ONE owner action: paste Project/loop/OWNER_PATCH_card_gate.md v4 into .claude/hooks/guard_bash.py (Block A + Block A2 after WRITE_PATTERNS defs, Block B at the END of main) AND add its listed deny lines to .claude/settings.json. Then the agent runs the 8 proof-tests and the caged grind restarts autonomously (shape-14 streamed evidence first). Until then: NARROWINGS/tooling work only, no optimization runs. NOTE: all measurements to date are PRE-GATE (see GATE_DESIGN HONESTY LEDGER); codex tasks 01-06 briefs in Project/audits/codex_tasks/.
 
 ## TIMELINE (binding)
-CODE FREEZE 31 Aug 12:00 SGT -> packaging/report/video until 1 Sep 02:00 -> final 10h reproduction/contingency -> submission+registration close 1 Sep 12:00 GMT+8.
+CODE FREEZE 31 Aug 20:00 SGT (owner moved it from 12:00 on 30 Aug) -> packaging/report/video 31 Aug 20:00 -> 1 Sep 02:00 (SIX hours) -> final 10h reproduction/contingency -> submission+registration close 1 Sep 12:00 GMT+8.
+CONSEQUENCE of the later freeze: packaging shrank 14h -> 6h, so report/README/video PROSE must be finished BEFORE the freeze; only numbers and assembly wait for it.
 SUPERSEDED by the webinar transcript (research/competition-scoring.md): NO rental (single-GPU rule, own-machine; shape-14 = block decomposition locally). NO organizer questions (retired/no-send). Amendment v1.1 docs superseded (frozen runner untouched; side evaluator + results_side packets instead).
 OWNER ITEMS: (1) the gate paste above; (2) verify Devpost registration. Nothing else.
 
@@ -32,10 +43,10 @@ Historic: 15 PASS · 10 RULE_VIOLATION on ORIGINAL k004 = provenance only (super
 - Night experiments ledger: k010 ADOPTED (shape 8 → 2.13x); k008 int8 NEGATIVE; k011 NEGATIVE; k012 TIE (not adopted); k013 deleted untested.
 
 ## ON CONVERGENCE (R4 APPROVE or minor): implement in this order (harness_v2_proposal.md §4)
-0. Owner sends Project/drafts/organizer_questions.md (cutoff 30 Aug 12:00 SGT); rental reserved for 30 Aug; Devpost registration verified.
+0. RETIRED (webinar answered them): organizer questions NO-SEND; rental CANCELLED. Only surviving owner item here: verify Devpost registration.
 1. Card 1: shape-14 shippable path (FA2-style authored attention + pinned side evaluator + evidence packet contract).
 2. Card 2: shape-6 no-graph local candidate-only MFU. 3. Card 3: shape-8 chunked fp16-acc (plain-GEMM falsifier first, 2-3h cap). 4. At most one of 11/13 (tie-break: 11). Cut the rest unless everything green.
-CODE FREEZE 31 Aug 12:00 SGT · packaging 31 Aug noon → 1 Sep 02:00 · final 10h = reproduction/contingency only.
+CODE FREEZE 31 Aug 20:00 SGT · packaging 31 Aug 20:00 → 1 Sep 02:00 · final 10h = reproduction/contingency only.
 
 ## Standing rules (unchanged)
 Never touch frozen/protected files (locks enforce). All benchmarks via the pinned runner + shape id. ONE runner process; NO other GPU work during sweeps; sequential calls; idle box (no codex). Champions auto-audit. Commit candidate bytes BEFORE first runner contact. Reflection after each block. Plain language; the user's stop overrides everything.

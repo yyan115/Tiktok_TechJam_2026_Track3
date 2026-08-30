@@ -1,3 +1,8 @@
+> SUPERSEDED 30 Aug by Project/HANDOVER.md. Kept for the process
+> history only. Do NOT take work instructions from this file; several
+> items here are done, half-done, or retired — HANDOVER.md section 5 says
+> which.
+
 # Active work queue: score-facts critic narrowings (ITEM1/2/3 all "narrow", 29 Aug PM)
 Apply IN ORDER before optimization restarts; each is harness/evidence work.
 1. Rental kill = STRATEGIC CHOICE (not organizer prohibition); keep rental as
@@ -13,7 +18,9 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
    slices, record the SUM; report median-of-sums + raw slice matrix + a
    staging-inclusive wall time. NEVER multiply a B=1 median (B=2 = 2x+9%).
 5. All report prose/tables/skills/curated interactions ready BY CODE FREEZE
-   (31 Aug noon); packaging window is assembly+video only.
+   (31 Aug 20:00 SGT — owner moved the freeze from noon on 30 Aug; packaging
+   is now only 6h, so this item got MORE binding, not less); packaging
+   window is assembly+video only.
 6. Deliverables per transcript; loop artifacts CURATED as supporting
    evidence — do not claim they are "literally scored".
 7. organizer_questions.md -> RETIRED/NO-SEND. Unresolved list (hedge in

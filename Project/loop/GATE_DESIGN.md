@@ -261,6 +261,34 @@ evidence, and rejecting them would JUDGE_ERROR legitimate reviews. QUEUED
 (runtime): re-audit the 6 champions whose refires predated packet-hash
 binding (NARROWINGS 10b). Suites 37/37 + 37/37.
 
+## Amendment v4.7 (30 Aug, convergence-loop round 6 — reviewer run was cut
+short by its own provider filter, but its last completed probe found a real
+hole; folded here)
+(1) PROTECTED TREE ROOTS (Block A3, new). Both the base WRITE_PATTERNS and
+Block A2 anchored on paths INSIDE the protected trees, so a write op naming
+a tree's OWN ROOT matched nothing: `mv .claude /tmp/x` carries off the deny
+rules, `cp -r /tmp/fake Project/harness` swaps the trusted runner wholesale,
+and `mv Project /tmp/x` takes everything. Verified against the live guard
+before fixing: all six passed both checks. This is the SAME defect class
+the v4.6 packets/strategy/auto directory-node fix closed, one level up —
+the round-5 fix was applied at the wrong altitude.
+CORRECTION (round 7, same day): A3 AS WRITTEN IS NOT SOUND and this
+amendment previously overclaimed. Brace expansion (`mv Project/{loop,tools}
+/tmp/x`) was listed above as closed; it is NOT. Also still open: `cd`-then-
+relative (`cd Project && mv harness /tmp/h`), `Project//harness`,
+`Project/harness/.`, glob children (`mv Project/tools/* /tmp/x`), the repo
+root by name, and `find -delete`. A3 additionally FALSE-POSITIVES on reads
+(`grep -rn install Project/tools` bounces) because its op word is matched
+anywhere in the segment rather than at the segment head, which also lets it
+shadow Block A2's ratified codex/run_gate carve-outs. A rewritten,
+token-based A3 is drafted but NOT yet spliced in — see
+Project/loop/ROUND7_FINDINGS.md.
+(2) The base guard's WRITE_PATTERNS had NO committed regression coverage at
+all; the suite only ever exercised Block A2. The new node cases test the
+A3 paste bytes extracted from the owner patch, same discipline as A2:
+15 deny cases (roots, trailing slash, quoted, later-segment, extract-over)
+and 7 allow cases (ordinary work inside the trees). Suites now 59/59 + 37/37.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

@@ -1,3 +1,8 @@
+> SUPERSEDED 30 Aug by Project/HANDOVER.md. Kept for the process
+> history only. Do NOT take work instructions from this file; several
+> items here are done, half-done, or retired — HANDOVER.md section 5 says
+> which.
+
 # Outer-loop proposal, DRAFT 4 — post review round 3 ("narrow REVISE; strategy converged")
 
 29 Aug ~06:40. Round 3 accepted the strategy and both prior disagreement
@@ -121,12 +126,12 @@ Round-3 minors applied: Cards 1→2 are PRIORITY order, not finish-to-start —
 Card 2's no-graph route is proven locally before any conditional shape-6
 rental piggyback. Card 4 tie-break predeclared: if score scenarios disagree,
 pick shape 11 (larger absolute anomaly); if evidence is ambiguous, skip
-Card 4 entirely. Packaging/recording occupies 31 Aug noon → 01 Sep 02:00;
+Card 4 entirely. Packaging/recording occupies 31 Aug 20:00 → 01 Sep 02:00;
 the final ten hours are reproduction + submission contingency only.
 - Torch-profiler table: retained as a BOUNDED DIAGNOSTIC on promoted
   survivors (not a gate, no universal claims); NCU selected-metrics only on
   the current direction's hotspot.
-- PRACTICAL CODE FREEZE: 31 Aug 12:00 SGT. FINAL BUFFER from 01 Sep 02:00
+- PRACTICAL CODE FREEZE: 31 Aug 20:00 SGT (owner-moved 30 Aug). FINAL BUFFER from 01 Sep 02:00
   SGT: clean-checkout reproduction, submission rebuild + all-dials
   regression, final dispatcher audit, video/upload/link verification,
   Devpost dry run. Owner override inside the buffer only for

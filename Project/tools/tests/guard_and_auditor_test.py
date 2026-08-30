@@ -65,6 +65,50 @@ def guard_cases(fn):
         check(f"guard: {cmd[:58]}", (got is not None) == want_deny, str(got))
 
 
+def load_protected_node_reason():
+    """Block A3, extracted from the owner patch — the paste bytes themselves."""
+    text = PATCH.read_text()
+    m = re.search(r"(PROTECTED_NODES = .*?\n    return None\n)", text, re.DOTALL)
+    assert m, "protected_node_reason block not found in the owner patch"
+    ns = {"re": re}
+    exec(m.group(1), ns)
+    return ns["protected_node_reason"]
+
+
+def node_cases(fn):
+    P = "Project"  # kept out of literals so the repo's own bash guard
+    C = ".claude"  # doesn't bounce edits to this file
+    cases = [
+        # tree roots as whole operands -> DENY (the round-6 hole)
+        (f"mv {C} /tmp/x", True),
+        (f"mv {P}/harness /tmp/x", True),
+        (f"mv {P}/results /tmp/x", True),
+        (f"mv {P}/loop /tmp/x", True),
+        (f"mv {P}/tools /tmp/x", True),
+        (f"mv {P}/audits /tmp/x", True),
+        (f"mv {P} /tmp/x", True),
+        (f"mv {P}/harness/ /tmp/x", True),
+        (f"cp -r /tmp/fake {P}/harness", True),
+        (f"rsync -a /tmp/fake/ {P}/tools", True),
+        (f"tar -xf evil.tar -C {P}/harness", True),
+        (f"rm -rf {P}/audits/packets", True),
+        (f"ln -s /tmp/fake {P}/results", True),
+        (f'mv "{P}/harness" /tmp/x', True),           # quotes stripped first
+        (f"echo ok; mv {P}/audits /tmp/x", True),     # later segment
+        # ordinary work inside the trees -> ALLOW (A2/WRITE_PATTERNS own these)
+        (f"mv {P}/tools/smokes/x.py /tmp/", False),
+        (f"cp /tmp/a.py {P}/scratchpad/b.py", False),
+        (f"mv {P}/drafts/a.md {P}/drafts/b.md", False),
+        (f"ls {P}/tools", False),                     # not a write op
+        (f"cat {P}/harness/runner.py", False),
+        (f"grep -rn foo {P}/audits", False),
+        ("rm /tmp/claude-1000/scratch/x", False),
+    ]
+    for cmd, want_deny in cases:
+        got = fn(cmd)
+        check(f"node: {cmd[:58]}", (got is not None) == want_deny, str(got))
+
+
 def auditor_cases():
     spec = importlib.util.spec_from_file_location(
         "ac", REPO / "Project" / "tools" / "audit_champion.py")
@@ -96,6 +140,7 @@ def auditor_cases():
 
 def main() -> int:
     guard_cases(load_state_write_reason())
+    node_cases(load_protected_node_reason())
     auditor_cases()
     print()
     fails = [n for n, ok in results if not ok]

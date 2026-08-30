@@ -254,19 +254,60 @@ def state_write_reason(command):
     return None
 ```
 
+Block A3 — insert immediately AFTER Block A2 (same anchor region). Protects
+the protected TREES' OWN ROOT NODES. Both the base `WRITE_PATTERNS` and
+Block A2 anchor on paths *inside* the trees (`Project/harness/`,
+`Project/audits/verdicts.jsonl`, ...), so a write op naming the tree root
+itself matched nothing: `mv .claude /tmp/x` carries off the deny rules,
+`cp -r /tmp/fake Project/harness` swaps the trusted runner wholesale,
+`mv Project /tmp/x` takes the entire project. This is the same defect class
+the round-5 `packets|strategy|auto` directory-node fix closed, one level up.
+
+```python
+# --- Protected directory NODES (review round 6). WRITE_PATTERNS and Block
+# A2 both match paths INSIDE the protected trees; naming a tree's own root
+# as an operand matched neither. Deny write-style ops whose text names a
+# protected root as a WHOLE operand — `Project/harness`, `Project/harness/`
+# or a bare `Project` — while leaving ordinary work inside the trees
+# (`mv Project/tools/smokes/x.py /tmp/`) untouched.
+PROTECTED_NODES = (r"(\.claude|Project/(harness|results|loop|tools|"
+                   r"audits(/(packets|strategy|auto))?)|Project)")
+NODE_OPS = r"\b(mv|cp|rm|rmdir|ln|rsync|install|shred|dd|tar|unzip)\b"
+
+
+def protected_node_reason(command):
+    norm = command.replace("\\\n", "").replace('"', "").replace("'", "")
+    for seg in re.split(r"[|;&\n\r]+", norm):
+        if not re.search(NODE_OPS, seg):
+            continue
+        # whole-operand match only: the node, an optional trailing slash,
+        # then whitespace or end of segment.
+        if re.search(PROTECTED_NODES + r"/?(?=\s|$)", seg):
+            return ("Blocked: that names a protected tree's ROOT as an "
+                    "operand. Moving, replacing, or unpacking over "
+                    ".claude/, Project/harness, results, loop, tools or "
+                    "audits relocates the rules, the referee, or the "
+                    "evidence wholesale — the per-file guards would never "
+                    "see it. Owner lifts this by hand.")
+    return None
+```
+
+
 Block B — insert into `main()` at the VERY END, AFTER the WRITE_PATTERNS
 loop (i.e., after the last existing deny check, just before the function
 returns). Permit consumption must be the FINAL authorization action: a
 command that any other check would deny must be denied BEFORE its permit is
 consumed, or doomed commands burn permits and record false failures. The
-state-write check runs FIRST inside the same fail-closed wrapper (it never
-consumes anything).
+node and state-write checks run FIRST inside the same fail-closed wrapper
+(neither consumes anything).
 
 ```python
     # FAIL CLOSED: any exception inside the gates is itself a DENY — a hook
     # crash exits nonzero-but-not-2, which Claude Code treats as ALLOW.
     try:
-        gate = state_write_reason(command) or permit_gate_reason(command)
+        gate = (protected_node_reason(command)
+                or state_write_reason(command)
+                or permit_gate_reason(command))
     except Exception as exc:
         gate = f"Blocked: permit gate error ({type(exc).__name__}) — fail closed."
     if gate:

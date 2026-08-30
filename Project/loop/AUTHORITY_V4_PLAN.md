@@ -1,3 +1,8 @@
+> SUPERSEDED 30 Aug by Project/HANDOVER.md. Kept for the process
+> history only. Do NOT take work instructions from this file; several
+> items here are done, half-done, or retired — HANDOVER.md section 5 says
+> which.
+
 # AUTHORITY v4 — compilation of 30 Aug learnings + the final governance plan
 STATUS: AWAITING OWNER GO. Nothing below is implemented until the owner
 approves (the run_gate.py working-tree draft predates this plan and will be
