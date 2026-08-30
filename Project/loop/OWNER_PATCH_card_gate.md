@@ -217,16 +217,18 @@ be able to edit its own referee):
 def state_write_reason(command):
     norm = command.replace("\\\n", "").replace('"', "").replace("'", "")
     GS = (r"Project/(loop/(gate_state\.json|gate_log\.jsonl|permit\.json|"
-          r"in_flight\.json|permits_used|\.gate\.lock)|"
-          r"audits/(strategy/|verdicts\.jsonl|auto/|packets/|verdict_schema\.json)|"
+          r"in_flight\.json|permits_used\b|\.gate\.lock)|"
+          r"audits/((strategy|auto|packets)\b|verdicts\.jsonl|"
+          r"verdict_schema\.json|audit_backlog\.txt)|"
           r"tools/(run_gate\.py|audit_champion\.py|champion_watch\.py|"
           r"\.champion_cache\.json))")
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
     for s in segs:
         t = s.strip()
         if (re.search(r"\bcodex\s+exec\b", t)
-                and not re.search(r"Project/(loop/|audits/(verdicts|auto/|"
-                                  r"packets/|verdict_schema)|tools/)", t)):
+                and not re.search(r"Project/(loop/|audits/(verdicts|auto\b|"
+                                  r"packets\b|verdict_schema|audit_backlog)|"
+                                  r"tools/)", t)):
             continue  # critic consultations may write ONLY strategy receipts
         if (re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
                      r"reconcile|screen-judge|verdict-clear|reopen|status|"
@@ -293,6 +295,7 @@ bash). Paste inside the existing `"deny": [ ... ]` list:
       "Edit(Project/audits/auto/**)", "Write(Project/audits/auto/**)",
       "Edit(Project/loop/.gate.lock)", "Write(Project/loop/.gate.lock)",
       "Edit(Project/audits/packets/**)", "Write(Project/audits/packets/**)",
+      "Edit(Project/audits/audit_backlog.txt)", "Write(Project/audits/audit_backlog.txt)",
       "Edit(Project/tools/.champion_cache.json)", "Write(Project/tools/.champion_cache.json)",
 ```
 

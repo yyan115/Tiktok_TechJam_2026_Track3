@@ -54,7 +54,11 @@ def run_gate_post() -> None:
 
 
 def verdict_ids() -> set:
-    """Entry ids with a DURABLE verdict row — the only real 'handled'."""
+    """Entry ids with a durable REAL verdict row. JUDGE_ERROR/TIMEOUT rows
+    do NOT count as handled (reviewer round 5: a failed judgment must
+    refire, not suppress) — but an entry that failed judgment 3+ times
+    (counted by its response artifacts) parks for the owner instead of
+    looping forever."""
     ids = set()
     try:
         for line in (ROOT / "Project" / "audits" /
@@ -62,11 +66,20 @@ def verdict_ids() -> set:
             if not line.strip():
                 continue
             try:
-                ids.add(json.loads(line).get("entry_id"))
+                v = json.loads(line)
             except Exception:
-                pass
+                continue
+            if v.get("verdict") in ("PASS", "RETEST", "NEEDS_CONTEXT",
+                                    "RULE_VIOLATION"):
+                ids.add(v.get("entry_id"))
     except Exception:
         pass
+    for m in AUDIT_LOG_DIR.glob("audit_*.response.txt"):
+        eid = m.name[len("audit_"):].split(".")[0]
+        if eid not in ids:
+            n = len(list(AUDIT_LOG_DIR.glob(f"audit_{eid}.*.response.txt")))
+            if n >= 3:
+                ids.add(eid)  # judge-failed cap: owner attention required
     return ids
 
 
@@ -113,6 +126,18 @@ def main() -> int:
                  if l.strip() and not l.startswith("#")]
     except Exception:
         pass
+    # PROSPECTIVE persistence (reviewer round 5): every champion ever seen
+    # goes into the backlog BEFORE its audit launches, so dethroning after
+    # a failed audit can never lose it.
+    unseen = [c for c in champions if c not in extra]
+    if unseen:
+        try:
+            with backlog.open("a") as fh:
+                for c in unseen:
+                    fh.write(c + "\n")
+            extra += unseen
+        except Exception:
+            pass
     done = verdict_ids() | running_ids()
     new = [c for c in list(champions) + extra if c not in done]
     new = list(dict.fromkeys(new))  # dedupe, keep order

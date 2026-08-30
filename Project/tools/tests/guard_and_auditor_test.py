@@ -53,6 +53,12 @@ def guard_cases(fn):
         ("mv Project/loop/permits_used/x.json /tmp/", True),
         ("tee Project/audits/verdicts.jsonl < fake", True),
         ("ls Project/tools", False),
+        ("mv Project/audits/packets /tmp/stash", True),      # dir node itself
+        ("mv Project/audits/strategy /tmp/s2", True),
+        ("rm -r Project/audits/auto", True),
+        ("echo x > Project/audits/audit_backlog.txt", True),
+        ("cat Project/audits/audit_backlog.txt", False),
+        ("codex exec r > Project/audits/audit_backlog.txt", True),
     ]
     for cmd, want_deny in cases:
         got = fn(cmd)

@@ -243,6 +243,24 @@ write-protected from the agent, and each receipt binds the audited
 packet's sha256 in its recorded bytes. Accepted residuals: pid-reuse
 against the 300s stale window; suites 31/31 + 37/37.
 
+## Amendment v4.6 (30 Aug, convergence-loop round 5 folded — 5 items, now at
+polish/TOCTOU/doc-wording caliber; reviewer confirmed all round-4 changes)
+(1) Candidate bytes are hashed ONCE per issuance — eligibility checks and
+the permit binding share the same sha (no swap window between them).
+(2) The ever-crowned backlog is PROSPECTIVE: every champion is persisted to
+audit_backlog.txt before its audit launches, and the file is
+write-protected; dethroning can never lose an audit. (3) The guard matches
+audit DIRECTORY NODES, not just descendants — moving/replacing the whole
+packets/strategy/auto directory now bounces. (4) Refire semantics fixed:
+JUDGE_ERROR/TIMEOUT rows no longer count as handled — failed judgments
+refire, capped at 3 attempts (counted by response artifacts) before
+parking for the owner. (5) DOC CORRECTION (v4.5 overclaimed): the parser
+requires exactly one VERDICT-BEARING document; non-verdict JSON documents
+in the output are tolerated by design — audit responses quote JSON
+evidence, and rejecting them would JUDGE_ERROR legitimate reviews. QUEUED
+(runtime): re-audit the 6 champions whose refires predated packet-hash
+binding (NARROWINGS 10b). Suites 37/37 + 37/37.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

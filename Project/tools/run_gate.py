@@ -355,8 +355,11 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
             impl_p.relative_to(ROOT)
         except ValueError:
             return None, "impl must live inside the repository (fail closed)"
+        # Hash ONCE: every eligibility check and the permit binding use the
+        # same bytes (reviewer round 5: re-hashing opened a swap window).
+        impl_sha = sha_file(impl_p)
         if mode == "optimization":
-            if sha_file(impl_p) in grp.get("attempted_shas", []):
+            if impl_sha in grp.get("attempted_shas", []):
                 return None, ("optimization permit refused: these exact "
                               "candidate bytes were already attempted in this "
                               "group — an identical re-run is 'confirmation', "
@@ -364,13 +367,13 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         if mode == "confirmation" and not retest_open:
             # A confirmation of bytes never attempted in this group would be
             # a free, non-striking primary run (reviewer round 4).
-            if sha_file(impl_p) not in grp.get("attempted_shas", []):
+            if impl_sha not in grp.get("attempted_shas", []):
                 return None, ("confirmation is for previously-attempted "
                               "bytes in this group — new bytes are an "
                               "optimization or screening attempt, label it "
                               "honestly")
         if retest_open and mode == "confirmation":
-            if (sha_file(impl_p), shape) not in retest_targets:
+            if (impl_sha, shape) not in retest_targets:
                 return None, ("outstanding RETEST: confirmation permits are "
                               "bound to the retested (candidate bytes, shape) "
                               "pairs only — no cross-shape or cross-candidate "
@@ -386,7 +389,7 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                 if not row:
                     continue
                 if (row.get("impl", {}).get("sha256"),
-                        int(row.get("shape_id", -1))) != (sha_file(impl_p), shape):
+                        int(row.get("shape_id", -1))) != (impl_sha, shape):
                     continue
                 sat = _retest_satisfying_row(row, h.get("recorded"))
                 if sat:
@@ -424,7 +427,7 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         "mode": mode,
         "shape": shape,
         "impl_path": str(impl_p.relative_to(ROOT)) if impl_p else None,
-        "impl_sha256": sha_file(impl_p) if impl_p else None,
+        "impl_sha256": impl_sha if impl_p else None,
         "ledger": str(ledger_p),
         "ledger_pre_lines": pre_lines,
         "prediction": prediction,

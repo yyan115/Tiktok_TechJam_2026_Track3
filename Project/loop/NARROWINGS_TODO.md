@@ -65,7 +65,10 @@ Apply IN ORDER before optimization restarts; each is harness/evidence work.
     are CURRENT champions. The rebuilt watcher now derives handled-ness
     from verdict rows + live process markers, so these REFIRE automatically
     on its next pass; run them on an idle box (contention rule) and check
-    the tally reaches parity before freeze.
+    the tally reaches parity before freeze. ALSO (round 5): manually
+    re-fire the 6 current champions whose 07:47-07:49 verdicts predate
+    packet-hash binding (`python3 Project/tools/audit_champion.py <id>`,
+    idle box) so every current champion's receipt carries PACKET_SHA256.
 
 11a. Ship manifest verdict filter = codex task 06 (after task 03): hard
     verdicts exclude entries from selection unless verdict-clear'd; no
