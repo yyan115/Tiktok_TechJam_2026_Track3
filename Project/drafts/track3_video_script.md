@@ -82,9 +82,10 @@ causal attention over all heads with the output projection folded into the
 head loop and the FFN finished in-register. Then we capture the entire
 four-layer forward pass as a single CUDA graph."
 
-**Board on screen:** geomean **10.3×** on the organizers' own untouched
-script, all twelve runnable shapes passing precision. Best shapes 25.6×
-and 28.8×.
+**Board on screen:** geomean **9.68×** across all twelve locally-runnable
+shapes, every one measured under a one-use permit on the kernel the
+dispatcher actually selects, all passing precision. Best shapes **28.4×**
+(sequence 1024) and **22.0×** (`d_model` 32).
 
 **Honest beat:** "The int8 attempt failed the tolerance test and it's in
 the repo as a documented negative result. The referee doesn't grade on
@@ -125,27 +126,22 @@ differentiated thirty seconds in the video.
 
 ## Numbers to have on the lower third
 
-> ⚠ **SECOND AMENDMENT 01:26 — the original figures are being vindicated.** Re-measuring
-> the actually-shipped megakernel under permit on a quiet box gives shape 2 **14.39×**
-> (originally 15.26×), shape 3 **12.63×** (originally 11.96×) and shape 13 **28.41×**
-> (originally 28.82×, agreement 1.4%). So the original magnitudes look about right; what
-> was wrong was process, not arithmetic. **The 2.94× in the note below is the misleading
-> number** — it measured a kernel this submission does not ship. Still hold the lower
-> third until all twelve shapes are re-measured, but expect it to land near the original
-> figures rather than far below them.
->
-> ⛔ **WITHDRAWN 31 Aug ~00:30, AMENDED 01:05 — do not read any speedup on
-> camera yet.** The 10.3× / 10.95× geomean and the 28.8× / 25.6× best-shape
-> figures are pre-gate numbers measured against baselines 6–63% slower than their
-> own calibration (`HANDOVER.md` §3.1). **The 2.94× post-LOCK board is also not a
-> substitute**: it measured `k004_graphed_triton.py`, which is *not* the route
-> this submission ships (the dispatcher uses the fused-block megakernel for
-> `d_model ≤ 128` and an fp16 stack above that). **The shipped route currently
-> has no valid measured speedup.** Leave the lower third blank on speed until it
-> does; the correctness and control-system claims below are unaffected.
+> ✅ **RESOLVED 31 Aug ~02:10 — the lower third is cleared to show numbers again.**
+> All twelve locally-runnable shapes have now been re-measured under one-use permits,
+> on a quiet box, on the kernel the dispatcher actually selects. The withdrawn figures
+> were **procedurally invalid but numerically close**: mean delta −5.6%, geomean 9.68×
+> against the withdrawn 10.32×. Use the numbers below and no others. The 2.94× figure
+> that briefly replaced them was itself wrong — it measured a kernel we do not ship.
 
-- ~~geomean **10.3×** (organizers' script) / 10.95× (our referee)~~ **WITHDRAWN — no valid replacement yet**
-- ~~best shape **28.8×** (sequence 1024) · **25.6×** (`d_model` 32)~~ **WITHDRAWN — no valid replacement yet**
+- geomean **9.68×** across the twelve locally-runnable shapes
+- best shapes **28.4×** (sequence 1024) · **22.0×** (`d_model` 32)
+- weakest shapes **2.02×** (`d_model` 1024) · **4.84×** (single attention head) — say
+  these out loud if the per-shape board is on screen; the spread is the honest story
 - shape 14: seq 100,000 causal, **0 violations**, 305 MiB
 - shape 6: batch 10,000, **0 violations**, 3.4 GiB
 - **all 14 shapes pass precision**
+
+**Say the caveats or cut the number.** These are screening-lane characterisation runs:
+correct on all twelve, but none is a promoted champion, no audit verdict is bound to any
+of them (the audit recorder is broken and only the owner can fix it), and the geomean
+excludes shapes 6 and 14, which do not run locally at all.

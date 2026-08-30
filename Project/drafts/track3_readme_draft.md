@@ -14,9 +14,12 @@
 touch.**
 
 On an NVIDIA RTX 3060 Ti (consumer, 8 GB), authored Triton/CUDA kernels run
-the track's 14 test shapes with a **geometric-mean 10.3× speedup on the
-organizers' own untouched benchmark script**, every shape passing the
-precision test (`abs_err ≤ 0.002 OR rel_err ≤ 0.02`). The two shapes that
+the track's 14 test shapes with a **geometric-mean 9.68× speedup** across
+the twelve that have a runnable official baseline — ranging from 2.02× on
+the one already near its arithmetic roofline to 28.41× on the longest
+sequence — every shape passing the precision test
+(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`). Each figure was measured under a
+one-use permit bound to the candidate's file hash. The two shapes that
 cannot run in their official form on this hardware are solved by block
 decomposition on the same card and verified against exact references.
 
@@ -54,60 +57,47 @@ to rebuild the authority model from scratch.
 
 ## Results
 
-> ### ⛔ WITHDRAWN — the table below is invalid. Do not ship.
->
-> Added 31 Aug ~00:30 SGT. The **10.32×** and **10.95×** figures are withdrawn.
-> They were measured pre-gate against baselines that `HANDOVER.md` §3.1 records as
-> **6–63% slower than their own calibration**, so the ratios are inflated.
->
-> ### ⚠ SECOND AMENDMENT 01:26 — the original numbers are being VINDICATED
->
-> Re-measuring the **actually-shipped** megakernel under permit, on a quiet box, against
-> the same baselines now agrees closely with the figures originally published here:
->
-> | shape | originally published | shipped route, measured 31 Aug | agreement |
-> | --- | --- | --- | --- |
-> | 2 | 15.26× | **14.3939×** | 5.7% |
-> | 3 | 11.96× | **12.6314×** | 5.6% |
-> | 13 | 28.82× | **28.4098×** | **1.4%** |
->
-> **The original magnitudes look approximately right.** What was wrong was *process* — no
-> permit, no bound audit verdict, baselines 6–63% off their own calibration. Procedurally
-> invalid and numerically wrong are different things, and the first amendment conflated
-> them.
->
-> **The 2.94× below is the misleading figure**: it measured `k004`, which this submission
-> does not ship, and understates the shipped route by roughly 3.5×. Ignore it.
->
-> **Status: 3 of 12 shapes re-measured on the shipped route, no geomean claimed yet.**
-> The original 10.32× is not yet re-earned, but nothing contradicts it.
->
-> ---
->
-> **AMENDED 01:05 — there is currently NO valid headline for this submission.**
->
-> The post-LOCK board below measured `k004_graphed_triton.py`, which is **not the
-> route this submission ships**. The dispatcher sends `d_model ≤ 128` to the
-> fused-block megakernel and larger `d_model` to an fp16 tensor-core stack.
->
-> | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
-> |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-> | k004, **not shipped** | 2.14× | 8.11× | 7.18× | 2.72× | 2.15× | 3.48× | 1.11× | 1.17× | 1.58× | 4.24× | 3.23× | 5.81× | **2.94×** |
->
-> So: **10.32× is withdrawn, and 2.94× describes a different kernel.** The shipped
-> route has no post-LOCK measurement yet. Quote neither figure as the result.
+### The shipped route, measured under permit
 
-### On the organizers' untouched script
+Every figure below was measured on the kernel the dispatcher **actually
+selects** for that shape, under a one-use permit bound to the candidate's
+file hash, on an otherwise-idle machine, with correctness checked on five
+seeds by the official predicate. All twelve pass with zero failing elements.
 
-| shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | geomean |
+| shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| speedup | 10.73× | 15.26× | 11.96× | 7.30× | 11.40× | 25.57× | 2.04× | 5.38× | 7.45× | 12.98× | 11.44× | 28.82× | **10.32×** |
+| speedup | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | **9.68×** |
 
-All twelve PASS the official precision check with zero failing elements.
-An independent path — our own frozen referee, measured on a different day —
-puts the same set at 10.95× geomean; the two agree within 6%. Per-shape
-scatter reaches ±25% on the sub-millisecond shapes, which we report rather
-than averaging away.
+Eleven of these run the fused-block megakernel; shape 8 (`d_model` 1024)
+runs the fp16 tensor-core stack, which is a different kernel with a
+different file hash.
+
+**Read the spread, not just the mean.** The result ranges from 2.02× to
+28.41×. The win is largest where the baseline is launch-bound and smallest
+where it is already near the arithmetic roofline (shape 8 reaches 64% of
+the fp16 roofline before we touch it) or where attention is a single
+well-shaped matmul (shape 9, one head). A geometric mean over that range is
+a summary, not a description, and we present both.
+
+**How this relates to the earlier 10.32× figure.** An earlier board
+measured 10.32× on the organizers' untouched script. Those runs were
+**procedurally invalid** — no permit, no bound audit verdict, and baselines
+that `HANDOVER.md` §3.1 records as 6–63% slower than their own calibration.
+We withdrew them and re-measured everything under the gate. The two boards
+agree to 6.2% on the geometric mean, with a mean per-shape delta of −5.6%
+and scatter of −22.4% to +21.6% in both directions, uncorrelated with
+baseline device idle. So the old numbers were approximately right and
+improperly obtained; we report the ones that were properly obtained.
+Procedurally invalid and numerically wrong are different failures, and only
+the first one happened.
+
+> **Caveats that travel with these numbers.** They are *characterisation*
+> runs in a screening lane: correct on all twelve, but none was promoted to
+> champion through the promotion gate, and no audit verdict is bound to any
+> of them — our audit recorder broke mid-campaign and only the human owner
+> is permitted to repair it. The geometric mean covers the twelve
+> locally-runnable shapes and excludes shapes 6 and 14, which have no
+> runnable official baseline on this hardware (see below).
 
 ### Shapes 6 and 14 (no runnable official baseline)
 
@@ -149,8 +139,8 @@ CPU can queue the next, so launch overhead, not arithmetic, is the wall.
 No external kernel library is wrapped (no FlashAttention, no xFormers) —
 the kernels are authored. `torch.compile` and SDPA appear only as
 correctness fallbacks and as a measured comparison: `max-autotune` reaches
-7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8 dials, against our 11.96× /
-28.82× / 2.04×.
+7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8 dials, against our 12.63× /
+28.41× / 2.02×.
 
 ## Setup and installation
 
@@ -224,9 +214,19 @@ code hash and harness version, so only like-for-like profiles are compared.
 - Sub-millisecond shapes are genuinely noisy on a consumer card (±25%
   between independent runs of the same code). The published board is a
   median of repeated sweeps and states the noise.
-- All published measurements predate our final enforcement gate going
-  live. They rest on the frozen runner, the tripwires, committed-bytes
-  provenance and blind audits — which is what we claim, and no more.
+- The published speedup board was measured **after** the enforcement gate
+  went live — every row carries a one-use permit bound to the candidate's
+  file hash — but in the **screening lane**, which cannot promote. So these
+  are characterisation runs, not promoted champions, and no audit verdict is
+  bound to them: our audit recorder failed mid-campaign and repairing it
+  requires the human owner, who alone can write to those files. We would
+  rather ship a correctly-labelled measurement than an over-claimed one.
+- An earlier version of this README published a 10.32× geometric mean from
+  runs that had no permit and used baselines 6–63% off their own
+  calibration. We withdrew it, re-measured all twelve shapes under the gate,
+  and got 9.68×. The correction is in the git history rather than quietly
+  overwritten, because the process failure is more interesting than the
+  0.6× it cost us.
 - One GPU, one architecture, one framework (PyTorch). Nothing here is
   validated on the TensorFlow path.
 - On a single-user machine, our anti-tamper measures are
