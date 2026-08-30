@@ -37,6 +37,7 @@ prints it.
 | `Project/authority/critic_public_key.pem` | public half of the critic key |
 | `Project/authority/LOCK.json` | the list of files that are now frozen, with their hashes |
 | `Project/authority/LOCK.sig` | your signature over that list |
+| `Project/authority/rules_snapshot.json` | per-document hashes of the rule documents, so `verify` can name which one drifted (advisory, never enforced) |
 | one line in `Project/authority/events.jsonl` | the record that you switched the lock on |
 
 ---
@@ -67,14 +68,15 @@ export KEYS=$HOME/.techjam-owner-keys      # then add --allow-home-key in step 2
 
 ---
 
-## Step 1 — put the reviewed guard files in place
+## Step 1 — put the reviewed files in place
 
 The lock records file hashes **as they are at the moment you build it**. So the
-new guard, the new settings and the controller shim must go in *first*. If you
-install them afterwards, the lock breaks instantly and the harness refuses
-everything.
+new guard, the new settings, the controller shim and the profile worker must go
+in *first*. If you install them afterwards, the lock breaks instantly and the
+harness refuses everything.
 
-Back up what is there now, then copy the three staged files into place:
+Back up what is there now, then copy the three staged files that exist today
+into place (the fourth is below):
 
 ```bash
 cp .claude/settings.json ~/settings.json.before-lock
@@ -99,6 +101,29 @@ What each one changes, in one line:
 The third one is a real decision, not a formality: after this, any benchmark run
 without a permit is refused. That is the point. The old runner is still in git
 history and in your backup copy if you ever need to look at it.
+
+### The fourth file — and today it is the thing blocking LOCK
+
+```bash
+cp Project/lock_staging/profile_worker.py Project/harness/profile_worker.py
+```
+
+`Project/harness/profile_worker.py` is the in-jail worker for the controller's
+diagnostic (profiling) lane. **It does not exist yet**, so as of right now
+`build-lock` stops before it prints anything:
+
+```
+FAILED: these protected files are missing or are not regular files:
+        Project/harness/profile_worker.py   [control-plane]   <-- CONTROL PLANE
+        Put the file on disk and run build-lock again.
+```
+
+Do not `--exclude` it to get past that — the tool explains why in the same
+message: the lock would sign cleanly while that file stayed unprotected. The
+agent cannot put it there either (`.claude/settings.json` denies
+`Write(Project/harness/**)`), so it has to be staged like the other three and
+copied in by you. If `Project/lock_staging/profile_worker.py` is not there when
+you start, LOCK is blocked and the agent owes you that file first.
 
 ---
 
@@ -175,7 +200,7 @@ python3 Project/tools/owner_lock_ceremony.py build-lock --yes
 ```
 
 **Expect:** `wrote Project/authority/LOCK.json`, a random `lock_id`, an `epoch`
-label, and `protected files = 28`.
+label, and `protected files     = 29`.
 
 At this point the lock exists but is unsigned, which means it is worth nothing.
 The tool says so.
@@ -374,10 +399,11 @@ being true. There is no partial version of this.
 cd /home/admin/Desktop/Repos/Tiktok_TechJam_2026_Track3
 export KEYS=/run/media/$USER/<stick>/techjam-owner-keys
 
-# 1. install the reviewed guard files (see step 1 for the backup lines first)
-cp Project/lock_staging/guard_bash.py .claude/hooks/guard_bash.py
-cp Project/lock_staging/settings.json .claude/settings.json
-cp Project/lock_staging/runner.py     Project/harness/runner.py
+# 1. install the reviewed files (see step 1 for the backup lines first)
+cp Project/lock_staging/guard_bash.py     .claude/hooks/guard_bash.py
+cp Project/lock_staging/settings.json     .claude/settings.json
+cp Project/lock_staging/runner.py         Project/harness/runner.py
+cp Project/lock_staging/profile_worker.py Project/harness/profile_worker.py
 
 # 2. keys — write the owner fingerprint down, then back the keys up offline
 python3 Project/tools/owner_lock_ceremony.py keygen --key-dir "$KEYS"

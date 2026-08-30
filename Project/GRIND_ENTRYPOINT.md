@@ -59,9 +59,10 @@ incomparable invocations (HANDOVER 3.3, LESSONS #11). Never quote it as a result
 ### The single next permitted action — first match wins
 
 1. Controller `status` refuses on LOCK → **pre-LOCK**. No GPU work is possible; the
-   controller refuses every run. Do the remaining FIX items in HANDOVER §4 Phase 1, then
-   stop and tell the owner LOCK is next. Do not start experiments, do not improvise a
-   measurement path.
+   controller refuses every run. Do the remaining FIX items in HANDOVER §4 Phase 1 —
+   `Project/harness/profile_worker.py` is the one that currently blocks LOCK itself (§8
+   residual 1) — then stop and tell the owner LOCK is next. Do not start experiments, do
+   not improvise a measurement path.
 2. `_permit_armed` true, or a request issued and unsettled → finish that one attempt, or
    `run_gate.py reconcile`. One attempt at a time, always.
 3. `pending_screen_judgment` set → `run_gate.py screen-judge` (§4 step 6).
@@ -74,9 +75,29 @@ incomparable invocations (HANDOVER 3.3, LESSONS #11). Never quote it as a result
 
 ## 4. The mandatory loop
 
-Shapes 6 and 14 never use `run`. They have a dedicated side lane
-(`run_gate.py side-evaluate`, then `trusted_controller.py side`), and side evidence is
+Shapes 6 and 14 never use `run`. They have a dedicated side lane, and side evidence is
 never a primary champion.
+
+**The four controller lanes.** Each is its own subcommand and the controller refuses the
+wrong one — `run` on a diagnostic permit returns
+`REFUSED: diagnostic request must use the diagnostic command`, and on a shape 6/14 permit
+`REFUSED: dedicated side request must use the side command`.
+
+| Lane | Gate request | Controller command |
+|---|---|---|
+| primary | `run_gate.py plan\|delta --mode screening\|correctness\|optimization\|confirmation ...` | `trusted_controller.py run --permit <id> --shape <N> --impl <path>` |
+| calibration | `run_gate.py calibrate --campaign <CID> --shape <N> --machine-state <file>` | `trusted_controller.py run --permit <id> --shape <N>` — no `--impl`; candidate bytes are refused |
+| side (6 and 14 only) | `run_gate.py side-evaluate --campaign <CID> --shape 6\|14 --submission Project/submission/torch_transformer_benchmark_submission.py` | `trusted_controller.py side --permit <id>` — no `--shape`, no `--impl` |
+| diagnostic | `run_gate.py diagnostic --campaign <CID> --shape <N> --target-sha256 <sha> --tool <tool> --supports <bottleneck> --question ... --route ...` | `trusted_controller.py diagnostic --permit <id> [--target <path>]` — no `--shape` |
+
+Every lane goes through the same middle step and the same settle step:
+```
+python3 Project/harness/trusted_controller.py issue-permit \
+  --request Project/loop/requests/<request-sha256>.json --capability <owner-signed capability>
+...the lane command above...
+python3 Project/tools/run_gate.py reconcile
+```
+Requests are content-addressed: the file name is the request's own sha256.
 
 **1. Diagnostic permit.** Profile before you prescribe. No direction opens on a hunch.
 ```
@@ -84,7 +105,7 @@ python3 Project/tools/run_gate.py diagnostic --campaign <CID> --shape <N> \
   --target-sha256 <champion sha> --tool nsys --supports launch-overhead \
   --question "<the concrete question, >=40 chars>" --route "<code route being profiled>"
 python3 Project/harness/trusted_controller.py issue-permit \
-  --request Project/loop/requests/<request>.json --capability <owner-signed capability>
+  --request Project/loop/requests/<request-sha256>.json --capability <owner-signed capability>
 ```
 `--tool` must appear in that bottleneck's `evidence_tools` in
 `Project/loop/mechanism_catalog.json`. A diagnostic permit cannot authorize candidate
@@ -92,12 +113,18 @@ bytes, promotion, a primary-ledger write, or a strike.
 
 **2. Profile.**
 ```
-python3 Project/harness/trusted_controller.py run --permit <permit-id> --shape <N> \
-  --impl Project/submission/torch_transformer_benchmark_submission.py
+python3 Project/harness/trusted_controller.py diagnostic --permit <permit-id> \
+  --target Project/submission/torch_transformer_benchmark_submission.py
 ```
-The profile artifact must land in `Project/loop/profile_evidence/` and be hash-bound by
-the controller. Nothing else may write there. See §8 residual 1 — this lane is not wired
-end to end yet.
+`--target` is optional: omitted, the controller resolves the bytes from the permit's
+sha256, but only if exactly one file under `Project/kernels/` or `Project/submission/`
+carries that hash — otherwise it refuses and tells you to pass `--target`. The default
+timeout is three hours, because a profiler is not on a benchmark's budget.
+
+The profile artifact lands in `Project/loop/profile_evidence/`; the controller binds its
+digest as `diagnostic_profile_sha256` into both the measurement event and the packet, and
+reconcile refuses the record if those two disagree. Nothing else may write there. The lane
+cannot run until `Project/harness/profile_worker.py` exists — see §8 residual 1.
 
 **3. Counter-backed diagnosis.**
 ```
@@ -214,7 +241,12 @@ These exist because they were broken and it cost this project its headline numbe
 
 - **One GPU process at a time.** Ever. No parallel sweeps, no background GPU work.
 - **Never benchmark while an audit runs.** Contention inflates graphed-candidate ratios by
-  up to 3x (LESSONS #22). Establish an idle box before anything timed.
+  up to 3x (LESSONS #22). Establish an idle box before anything timed — and never with
+  `pgrep -f`, which matches the joined command line and reads any command that merely
+  NAMES a benchmark or an auditor as one running. `champion_watch.py` already refuses to
+  launch an audit while a runner or controller run is live (`runner_busy()`, whole-argv
+  matching, own process tree exempt); `champion_watch.py --dry-run` reports audits in
+  flight as `active`, from the ledger rather than a process scan.
 - **Profiling and timing never interleave.** A profiled run is not a timed run.
 - **Profiler output backs mechanism claims only.** It never becomes a published
   performance number, in any document, ever.
@@ -235,11 +267,15 @@ These exist because they were broken and it cost this project its headline numbe
 
 Frozen, never edit: `torch_transformer_benchmark.py`,
 `tensorflow_transformer_benchmark.py`, `README.md`, `Project/shapes.json`,
-`Project/manifest.json`, everything the runner writes under `Project/results/`,
-`.claude/**`, and after LOCK the whole authority surface — `Project/authority/**`,
-`Project/loop/gate_state.json`, `gate_log.jsonl`, `cards.jsonl`, `permits_used/`,
-`profile_evidence/`, the audit ledgers under `Project/audits/`, `Project/tools/run_gate.py`
-and `Project/harness/**`.
+`Project/manifest.json`, everything the runner writes under `Project/results/`, and
+`.claude/**`. After LOCK the control plane is hash-pinned on top of that — the exact set
+is whatever `owner_lock_ceremony.py build-lock` prints (29 files today: the harness
+control plane, the gate and audit code and schemas, the benchmark-truth files, the
+evidence tools, and the staged and live guard files) and it is recorded in
+`Project/authority/LOCK.json`. Editing any of them breaks the lock and the controller
+then refuses everything. The authority journal, gate state and ledgers under
+`Project/authority/`, `Project/loop/` and `Project/audits/` are append-only working state
+protected by their own hash chains rather than by the lock — never hand-edit them either.
 
 Yours to edit: `Project/kernels/`, `Project/submission/dispatcher_region.py` and the
 generated submission, `Project/research/`, `Project/drafts/`, and the memory files under
@@ -248,10 +284,11 @@ generated submission, `Project/research/`, `Project/drafts/`, and the memory fil
 Post-LOCK the Bash surface is a deny-by-default allowlist
 (`Project/lock_staging/guard_bash.py`): the locked Python entrypoints, a few read-only
 tools (`sed -n`, `head`, `tail`, `wc`, `ls`, `stat`, `sha256sum`, `rg`, all `--`-separated
-and repo-relative), and a narrow `git` subset. No pipes, no redirection, no globbing, no
-`python3 -c`, no `cat`. If a command bounces, that is the design working: find the
-sanctioned route or stop and ask. Never argue with the guard, never work around it, never
-edit it.
+and repo-relative), a narrow `git` subset, a fixed `nvidia-smi` query set for machine
+state, and the inert `--version` probe of `nsys` / `ncu` / `compute-sanitizer`. No pipes,
+no redirection, no globbing, no `python3 -c`, no `cat`. If a command bounces, that is the
+design working: find the sanctioned route or stop and ask. Never argue with the guard,
+never work around it, never edit it.
 
 Guard etiquette that predates LOCK and still applies: never put `clean`, `reset`,
 `restore`, or `checkout` after `git` in one command segment.
@@ -270,7 +307,9 @@ Guard etiquette that predates LOCK and still applies: never put `clean`, `reset`
 - **A missing audit verdict makes a result ineligible.** Absence is not a pass. An entry
   with no bound verdict never promotes and never appears in a claim.
 - **Hard verdicts freeze permits.** An uncleared RULE_VIOLATION freezes every new permit.
-  RETEST clears mechanically (`verdict-clear --kind retest --confirm-entry <row>`: same
+  RETEST clears mechanically (`verdict-clear --entry-id <id> --recorded <the verdict's
+  timestamp> --kind retest --confirm-entry <row>` — the pair is the `_clear_key` the
+  refusal prints: same
   bytes, same shape, passed, newer than the verdict, produced under a reconciled
   confirmation permit). RULE_VIOLATION is owner-only: a signed controller capability bound
   to that exact verdict and resolution. Workspace text has no authority.
@@ -284,15 +323,27 @@ Guard etiquette that predates LOCK and still applies: never put `clean`, `reset`
 Call this system **AI control with published residuals**. Never call it zero trust; that
 label is false and would be caught.
 
-1. **The diagnostic lane is not wired end to end.** The gate emits diagnostic requests and
-   validates profile artifacts, but the controller never binds `diagnostic_profile_sha256`
-   and the worker does not profile — so a diagnostic cannot reconcile, and until it can,
-   `plan --counter-evidence` has nothing valid to cite. Completing this lane is real work,
-   not a formality. Do not route around it by prescribing without counters.
-2. **No profiler is mounted in the sandbox** and none is on the post-LOCK allowlist, so
-   `nsys`, `ncu` and `compute-sanitizer` are not reachable from the agent shell. `ncu`
-   additionally needs sudo on this box (never modprobe, never reboot). Sanitizer and
-   profiler passes are owner-run or pre-LOCK work.
+1. **The diagnostic lane is built but cannot run: its worker is not on disk.** The
+   controller's `diagnostic` subcommand runs the profile worker in the jail and binds
+   `diagnostic_profile_sha256` into both the measurement event and the packet, and the
+   gate reconciles a profile record against that digest. What is missing is
+   `Project/harness/profile_worker.py` itself. The controller refuses
+   (`profile worker is absent; the diagnostic lane cannot run`) and the LOCK ceremony
+   refuses to build a lock without it, because it is a control-plane file. No agent
+   session can create it — `Write(Project/harness/**)` is denied — so it is staged and the
+   owner installs it (`Project/OWNER_LOCK.md` step 1). Until then `plan
+   --counter-evidence` has nothing valid to cite, and prescribing without counters is not
+   the way round that.
+2. **The profilers exist inside the jail but have never been exercised there.** The
+   sandbox binds `/usr` read-only, so `/usr/local/cuda/bin/{nsys,ncu,compute-sanitizer}`
+   are visible to a worker at their absolute paths — they are not on the sandbox `PATH`
+   (`/usr/bin:/bin:/usr/sbin:/sbin`), and no worker has ever launched one, so treat
+   in-jail profiling as unproven until the diagnostic lane runs. From the agent shell they
+   stay out of reach: the post-LOCK allowlist admits only the inert `--version` probe,
+   deliberately, because a profiler is a process launcher. `ncu` additionally needs root
+   on this box (never modprobe, never reboot), and `compute-sanitizer` is in no
+   bottleneck's `evidence_tools`, so no agent route can produce a sanitizer artifact —
+   that pass is owner-run or pre-LOCK work.
 3. **Every measurement in the repo today is pre-gate**, and all 12 published rows carry
    baselines 6-63% slower than their own calibration — so the recorded figure near 11x is
    not a defensible headline. It can only be replaced by a controlled campaign, never by
