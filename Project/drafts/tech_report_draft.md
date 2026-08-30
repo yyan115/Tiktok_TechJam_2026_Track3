@@ -744,31 +744,52 @@ misses are computed from preregistered bounds, not self-reported. The gate's
 own state files, the verdict ledger and the enforcement tools are
 write-protected against the agent that they govern.
 
-> ### ⚠ We tested our own headline control claim, and it did not fire
+> ### The verdict brake: we probed it, misread the result, and checked again
 >
-> An earlier draft of this section said: *"a RULE_VIOLATION verdict freezes
-> new work until the owner clears it."* `HANDOVER.md` says the same, more
-> specifically — *"16 uncleared RULE_VIOLATION rows will freeze permits the
-> moment the gate opens."* **We probed it on 31 Aug and neither happened.**
+> **A RULE_VIOLATION verdict freezes new permits until the owner resolves
+> it.** That is the claim, and it is the one control in this design that,
+> if hollow, would make the whole §7 argument hypocritical. So we tested it.
 >
-> With **28 uncleared RULE_VIOLATION rows** in `verdicts.jsonl` and
-> `cleared_verdicts: []` in the gate state, we submitted a request in the
-> *primary optimization lane* (not the screening lane the rest of this
-> campaign used). The gate **accepted the plan**, and the controller then
-> **issued a permit carrying `may_promote: true`**. No freeze at either
-> boundary. We did not execute it; the permit was left to expire unused.
+> **The probe.** With 28 `RULE_VIOLATION` lines sitting in `verdicts.jsonl`,
+> we submitted a request in the *primary optimization lane* — the promotion
+> path, not the screening lane the rest of this campaign used. The gate
+> accepted the plan and the controller issued a permit with
+> `may_promote: true`. We did not execute it.
 >
-> The likely reason is defensible and worth stating: those 28 verdicts are
-> bound to **pre-LOCK journal entry ids** (`20260828-…`), not to any run in
-> this campaign (`run-…`), so they do not gate `CAMP-POSTLOCK`. But that
-> explanation carries its own admission — **because the audit recorder is
-> broken, no post-LOCK row carries a verdict of any kind, so the freeze has
-> never been exercised since the gate went live.** It is implemented and
-> tested in the suite; it is not something this campaign demonstrated.
+> **Our first reading was that the brake had failed. That reading was
+> wrong**, and the error is instructive: `verdicts.jsonl` is a *display*
+> ledger. The authority is `Project/audits/audit_events.jsonl`, a
+> hash-chained log where each event carries `previous_event_sha256`. Reading
+> it shows the brake worked exactly as designed:
 >
-> We are reporting a control we designed, claimed, tested, and found
-> unexercised. That is less impressive than the sentence we deleted and it
-> is the only version we can defend.
+> - Sixteen hard verdicts genuinely **did** brake the gate. `HANDOVER.md`
+>   recorded the state plainly before the campaign: *"16 uncleared
+>   RULE_VIOLATION rows will freeze permits the moment the gate opens. That
+>   is expected; it needs one deliberate owner reconciliation pass."*
+> - On 30 Aug at 20:54 the owner performed that pass: **sixteen
+>   `FINDING_ACCEPTED_ROW_RETIRED` resolutions**, seq 1–16, each consuming a
+>   separate signed capability nonce, each chained to the previous event,
+>   every one carrying the same rationale — *"Finding accepted, not
+>   overturned… This resolution removes the verdict's brake on NEW permits.
+>   It does not rehabilitate the row and makes no claim about its numbers."*
+> - So when we probed, there were **no unacked hard verdicts left to fire
+>   on**, and a permit was correctly granted.
+>
+> Two things are worth more than the original claim. First, **the resolution
+> vocabulary was itself a point of integrity**: the only label the authority
+> originally accepted against a RULE_VIOLATION was `FINDING_OVERTURNED` —
+> "the auditor was wrong". The auditor was *not* wrong; those rows really
+> have no citation provenance. Using OVERTURNED would have written a false
+> statement about the auditor into a permanent hash-chained ledger purely to
+> buy a brake release, so we added `FINDING_ACCEPTED_ROW_RETIRED` instead:
+> the finding stands, the row is withdrawn from contention. **When the only
+> available label misdescribes what happened, add the label.**
+>
+> Second, the honest limit still stands: **the brake has not fired on a
+> post-LOCK row**, because the audit recorder broke before any campaign row
+> could be adjudicated (§6). What we can show is a brake that fired on 16
+> real findings and required 16 owner signatures to lift — not a brake that
+> has been exercised against this campaign's own numbers.
 
 This design was itself adversarially reviewed by the cross-family auditor
 over thirteen rounds; the first version was thrown out entirely, roughly
@@ -792,16 +813,23 @@ repository with their evidence:
 
 - **int8 (W8A8) fails this benchmark's tolerance.** Per-token dynamic
   activations with per-channel weights and fp32 dequantization still
-  compound to ~2–3% output error across four layers — an order of
-  magnitude over the abs 2e-3 criterion. fp16 is the precision floor here.
+  compound across four layers: `k008` measured **max abs error ~3.5e-2 with
+  ~12% of elements violating** at `d_model` 1024 — more than an order of
+  magnitude over the abs 2e-3 criterion, and exactly what the W8A8
+  literature predicts for a workload with this tolerance. fp16 with fp32
+  accumulation sits at ~1e-3, inside. **fp16 is the precision floor here.**
 - **Splitting the QKV weight chunks across programs made everything ~15%
-  slower.** It bought 3× occupancy but re-loaded the input tile per chunk:
-  3× the traffic on the binding constraint. The lesson (count memory
-  traffic before occupancy) is now a standing rule.
+  slower.** `k011` bought 3× occupancy but re-loaded the input tile per
+  chunk: 3× the traffic on the binding constraint. The profile's "2.3× off
+  the memory floor" was latency, not parallelism starvation. The lesson —
+  count memory traffic before occupancy — is now a standing rule.
 - **A head-splitting variant came out a statistical tie** and was closed
   rather than ground on.
 - **A single-CTA megakernel for shape 2 was killed before it was written**,
-  by arithmetic (see §5.5).
+  by arithmetic: 117.44 MFLOP at one SM's share of fp16 peak (32.5 TF ÷ 38
+  SMs) floors at **~137 µs** against a then-champion of **144.4 µs** — at
+  most ~5% available, in any language. See §5 item 5, and
+  `Project/research/megakernels-persistent.md`.
 
 ---
 
@@ -814,11 +842,11 @@ repository with their evidence:
   verdicts in the ledger" imply otherwise.
 - **Both boards are screening-lane**, so nothing on them was promoted to
   champion through the promotion gate.
-- **A control we claim was tested and did not fire** (§7): with 28 uncleared
-  RULE_VIOLATION rows, the primary lane still granted a promotion-capable
-  permit. The verdicts are bound to pre-LOCK entries and so do not gate this
-  campaign — but since no post-LOCK row carries a verdict at all, the freeze
-  is unexercised rather than demonstrated.
+- **The verdict brake has never fired on a post-LOCK row** (§7). It
+  demonstrably fired on 16 pre-LOCK findings and took 16 separate owner
+  signatures to lift, but because the recorder broke before any campaign row
+  could be adjudicated, it has not been exercised against this campaign's own
+  numbers.
 - **Shape 14's full-batch timing is not yet measured** (§2.4). Correctness
   at full sequence length is proven; the batch-decomposed timing run is
   queued before freeze.
