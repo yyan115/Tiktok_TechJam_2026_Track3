@@ -613,6 +613,58 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 00:04–00:06 SGT — shape 7 measures 3.4781x and DISAMBIGUATES shape 11. Head
+WIDTH, not head count, is the larger factor — correcting an entry I wrote earlier tonight.**
+
+Shape 7 was chosen not to add a number but to separate two variables that shape 11
+confounded. Shape 11 has sixteen heads **and** head dimension 8, so my earlier attribution
+of its 4.2433x to "sixteen small per-head matmuls" was underdetermined by the evidence I
+had. Shape 7 holds head dimension at 8 while dropping head count to 4:
+
+| shape | heads | head_dim | measured |
+| --- | --- | --- | --- |
+| 1 | 4 | 32 | 2.1428x |
+| **7** | **4** | **8** | **3.4781x** |
+| 11 | 16 | 8 | 4.2433x |
+
+Holding head count at 4 and narrowing head_dim from 32 to 8 moves the result from 2.14 to
+**3.48**. Then raising head count from 4 to 16 at the same width adds only 2.14 → wait,
+3.48 → 4.24. **So narrow head width contributes roughly +1.34x and the extra twelve heads
+add roughly +0.76x on top.** Head *width* is the bigger lever, and I had it backwards.
+
+**Correction to the record:** the DECISIONS entry of 23:34–23:37 and the STATE table both
+describe shape 11's advantage as "16 small per-head matmuls". That is not wrong so much as
+incomplete and mis-weighted — the dominant term is the narrow head dimension, which forces
+the baseline into thin, badly-shaped matmuls regardless of how many there are. The
+falsifier I preregistered was aimed precisely at this ("if shape 7 lands at or below 2.15
+then the shape 11 result was driven entirely by head COUNT, and the sentence I already
+wrote must be corrected") and it did not fire, so the correction runs the other way: head
+count was over-credited, not under-credited.
+
+**A second assumption corrected, before the run rather than after.** I went into this cycle
+expecting model dimension 32 to be launch-bound. Its baseline measures `gpu_idle_fraction`
+**0.0318**, essentially identical to shape 1's 0.0336. So **small model dimension does not
+imply launch-bound** — only small *batch* (shape 3, 82.6%) or short *sequence* (shape 12,
+69.8%) has produced that regime. Shape 7 is work-bound and still wins 3.48x, which also
+shows the launch-bound regime is not required for a large gain.
+
+### Board after ten shapes — geomean 2.68x
+
+| shape | k004 | idle | dominant weakness |
+| --- | --- | --- | --- |
+| 8 | 1.1060x | 0.2% | none |
+| 9 | 1.1723x | — | none |
+| 10 | 1.5833x | — | mild head splitting |
+| 1 | 2.1428x | 3.4% | reference |
+| 5 | 2.1475x | 1.0% | reference |
+| 12 | 3.2334x | 69.8% | launch-bound |
+| 7 | 3.4781x | 3.2% | **narrow head_dim 8** |
+| 11 | 4.2433x | — | narrow head_dim 8 **plus** 16 heads |
+| 13 | 5.8096x | — | quadratic score tensor |
+| 3 | 7.1845x | 82.6% | launch-bound |
+
+**Scorecard: numeric bands 0 for 12. Qualitative regime hypotheses 4 for 4.**
+
 **30 Aug 23:58 – 31 Aug 00:01 SGT — shape 8 measures 1.1060x, the LOWEST on the board, and
 the regime model passed the falsification test that could have embarrassed it.**
 

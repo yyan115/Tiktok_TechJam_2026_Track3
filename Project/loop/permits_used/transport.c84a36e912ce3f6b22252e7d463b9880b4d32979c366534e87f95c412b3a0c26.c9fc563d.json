@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788108551.7189944,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T00:04:11+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-d8e4523b55aa917d4b4f36b6.json",
+ "profile_record_id": "profile-d8e4523b55aa917d4b4f36b6",
+ "promotion_allowed": false,
+ "question": "Establish the baseline device idle fraction on shape 7, whose model dimension of thirty two gives the smallest per-kernel work of any shape at batch sixty four, to place it on the launch-bound axis alongside shapes 3 and 12.",
+ "request_id": "6b390e5347b541b105d8ca1aa3329044",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/c84a36e912ce3f6b22252e7d463b9880b4d32979c366534e87f95c412b3a0c26.json",
+ "request_sha256": "c84a36e912ce3f6b22252e7d463b9880b4d32979c366534e87f95c412b3a0c26",
+ "route": "k000-baseline eager route on shape 7",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 7,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+ "tool": "nsys",
+ "verdict_lines": 81
+}
