@@ -93,7 +93,50 @@ SHAPE6_MEMORY_LIMITS = {
 # protocol or a different official shape table can never be selected -- the
 # side lane has enforced official numerics from the start, the primary lane
 # enforced none.
-CONTROLLER_TIMING = {"warmup": 20, "repeats": 100, "rounds": 3}
+def _controller_timing() -> dict[str, int]:
+    """Read the trusted controller's timing protocol; never copy the literal.
+
+    An adversarial review found the benchmark timing protocol written down
+    independently in five places.  Two writers disagreeing is exactly what
+    wedged the gate: the controller stamped one protocol into every
+    measurement while the campaign was bound to another, and the ledger would
+    have recorded a protocol it did not measure under.  A third hardcoded copy
+    here would recreate that class of bug, so the constant is parsed out of
+    the controller rather than duplicated.  A controller that cannot be read
+    or that publishes no protocol is fatal here: this module decides what
+    ships, and guessing is the defect.
+    """
+    import ast
+
+    source = ROOT / "Project" / "harness" / "trusted_controller.py"
+    try:
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError) as exc:
+        raise ManifestError(
+            f"cannot read the controller timing protocol from {source}: {exc}"
+        ) from exc
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        if "TIMING" not in names:
+            continue
+        try:
+            value = ast.literal_eval(node.value)
+        except ValueError as exc:
+            raise ManifestError(
+                f"controller TIMING is not a literal: {exc}") from exc
+        if (not isinstance(value, dict)
+                or set(value) != {"warmup", "repeats", "rounds"}
+                or any(type(v) is not int or v <= 0 for v in value.values())):
+            raise ManifestError(f"controller TIMING is malformed: {value!r}")
+        return value
+    raise ManifestError(
+        f"{source} publishes no module-level TIMING; the shippable timing "
+        "protocol is undefined and no manifest may be built")
+
+
+CONTROLLER_TIMING = _controller_timing()
 CONTROLLER_NUMERICAL = {
     "padding_ratio": 0.0,
     "input_scale": 1.0,

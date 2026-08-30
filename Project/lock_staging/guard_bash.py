@@ -196,6 +196,7 @@ SAFE_PYTHON_SCRIPTS: dict[str, object] = {
     "Project/tools/tests/competence_gate_test.py": _only_flags(),
     "Project/tools/tests/evidence_submission_test.py": _only_flags(),
     "Project/tools/tests/gate_v4_cli_test.py": _only_flags(),
+    "Project/tools/tests/integration_authority_test.py": _only_flags(),
     "Project/tools/tests/guard_and_auditor_test.py": _only_flags(),
     "Project/tools/tests/lock_manifest_test.py": _only_flags(),
     "Project/tools/tests/sandbox_boundary_test.py": _only_flags(),

@@ -4,8 +4,10 @@ Renders existing files only — journal, verdicts, gate log, cards, side
 packets. Zero instrumentation, zero writes."""
 import json
 import math
+import os
 import re
 import subprocess
+import sys
 import time
 from html import escape
 from pathlib import Path
@@ -14,6 +16,35 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[2]
 P = ROOT / "Project"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from champion_watch import (  # noqa: E402 - path set above
+    _argv_is_busy,
+    _process_argv,
+    _self_and_ancestors,
+)
+
+
+def _is_benchmark_argv(argv: list[str]) -> bool:
+    """A real runner/controller benchmark invocation, not a mention of one."""
+    return _argv_is_busy(argv)
+
+
+def _is_auditor_argv(argv: list[str]) -> bool:
+    """A real `codex exec` invocation, not a command that names one."""
+    return len(argv) >= 2 and Path(argv[0]).name == "codex" and argv[1] == "exec"
+
+
+def _busy_pids(predicate) -> str:
+    """Pids whose argv satisfies `predicate`, excluding this process tree."""
+    try:
+        exempt = _self_and_ancestors()
+        pids = [int(name) for name in os.listdir("/proc") if name.isdigit()]
+    except Exception:
+        return ""  # a read-only dashboard reports unknown as idle, never blocks
+    hits = [str(pid) for pid in pids
+            if pid not in exempt and predicate(_process_argv(pid))]
+    return "\n".join(hits)
 JOURNAL = P / "results/JOURNAL.jsonl"
 VERDICTS = P / "audits/verdicts.jsonl"
 GATE_LOG = P / "loop/gate_log.jsonl"
@@ -391,10 +422,14 @@ def render():
     cage = ("🟢 OPEN — one attempt armed" if permit else
             "🟡 attempt IN FLIGHT" if inflight else
             "🔒 CLOSED — needs research + plan before the next attempt")
-    run_live = subprocess.run(["pgrep", "-f", r"harness[./]runner"],
-                              capture_output=True, text=True, check=False).stdout.strip()
-    sol_live = subprocess.run(["pgrep", "-f", "codex exec"],
-                              capture_output=True, text=True, check=False).stdout.strip()
+    # `pgrep -f` matches the JOINED command line, so any shell that merely
+    # NAMES a benchmark or an auditor reads as one running.  DECISIONS.md:53
+    # already recorded that false reading once, and STATE.md/LESSONS #22 tell
+    # every session to trust `pgrep -f "codex exec"` before measuring.  Match
+    # whole argv elements instead, and never count this process or its
+    # ancestors.
+    run_live = _busy_pids(_is_benchmark_argv)
+    sol_live = _busy_pids(_is_auditor_argv)
     st.html(status_grid_html([
         ("Thinking cage", cage),
         ("Benchmark", "🏃 running" if run_live else "idle"),

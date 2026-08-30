@@ -142,10 +142,10 @@ This writes nothing. It prints every file that will be pinned, one line of
 reasoning for each, then the list of things deliberately left out and what
 protects those instead. It also checks that step 1 actually happened.
 
-**Expect:** 28 files across six groups — the control-plane code (6), the gate and
+**Expect:** 29 files across six groups — the control-plane code (7), the gate and
 audit code and schemas (9), the official benchmark files and shape definitions
 (4), the tools that assemble what ships (4), the staged guard files (3) and the
-live guard files they were copied to (2). Then `TOTAL: 28 files will be
+live guard files they were copied to (2). Then `TOTAL: 29 files will be
 hash-pinned by this lock.` and `DRY RUN — nothing was written`.
 
 If it stops with *"staged bytes are not installed yet"*, go back and finish
@@ -190,7 +190,7 @@ python3 Project/tools/owner_lock_ceremony.py sign-lock --private-key "$KEYS/owne
 
 **Expect:** it confirms the key, the installed public key and `LOCK.json` all
 agree, writes `LOCK.sig`, then immediately re-verifies and prints
-`verify_lock() says valid=True` with `28 (all hashes match)`.
+`verify_lock() says valid=True` with `29 (all hashes match)`.
 
 If the key does not match the lock, it stops and writes nothing. It will not
 produce a signature that would fail later.
