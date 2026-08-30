@@ -853,6 +853,16 @@ def record_resolution(
     capability for action ``audit.resolve`` whose subject is the exact target
     verdict hash.  Pasted owner text and workspace files are never accepted as
     authentication.
+
+    On resolution kinds: ``FINDING_OVERTURNED`` asserts the auditor was wrong.
+    That is a strong claim and it is often not the true one.  A finding can be
+    entirely correct and still need to stop braking the loop -- a pre-gate row
+    audited as having no citation provenance is a correct finding about a row
+    that is being retired, not promoted.  Recording that as OVERTURNED would
+    put a false statement about the auditor into a hash-chained journal nobody
+    can edit afterwards, to buy a brake release that
+    ``FINDING_ACCEPTED_ROW_RETIRED`` grants on honest terms.  Prefer the one
+    that is true.
     """
     _require_entry_id(entry_id)
     _require_sha(target_event_sha256, "target event hash")
@@ -862,7 +872,8 @@ def record_resolution(
         raise AuditAuthorityError("capability nonce is required")
     if superseding_event_sha256:
         _require_sha(superseding_event_sha256, "superseding event hash")
-    allowed = {"FINDING_OVERTURNED", "RETEST_SATISFIED", "TECHNICAL_SUPERSEDED"}
+    allowed = {"FINDING_OVERTURNED", "FINDING_ACCEPTED_ROW_RETIRED",
+               "RETEST_SATISFIED", "TECHNICAL_SUPERSEDED"}
     if resolution_kind not in allowed:
         raise AuditAuthorityError(f"unknown resolution kind: {resolution_kind}")
     if not rationale.strip():
@@ -887,6 +898,10 @@ def record_resolution(
             target_technical = None
         compatible = {
             "FINDING_OVERTURNED": target_integrity == "RULE_VIOLATION",
+            # The finding stands; the row it names is withdrawn from contention
+            # rather than defended.  Same authority, same one-use owner
+            # capability, different and truthful claim.
+            "FINDING_ACCEPTED_ROW_RETIRED": target_integrity == "RULE_VIOLATION",
             "RETEST_SATISFIED": target_integrity == "RETEST",
             "TECHNICAL_SUPERSEDED": target_technical in BLOCKING_TECHNICAL,
         }

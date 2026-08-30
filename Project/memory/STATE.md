@@ -14,7 +14,7 @@ Then read all of `Project/memory/LESSONS.md`, every session, and
 
 **If a command and a document disagree, the command is right** — including this one.
 
-Updated: 2026-08-30 ~18:50 SGT. Branch `grind-day1`. Every claim below was checked
+Updated: 2026-08-30 ~20:30 SGT. Branch `grind-day1`. Every claim below was checked
 against the code and the ledgers on that date, not carried over from a note.
 
 ## Where the project actually is
@@ -24,11 +24,31 @@ against the code and the ledgers on that date, not carried over from a note.
 reading today, not a fault. No GPU work is possible until the owner runs
 `Project/OWNER_LOCK.md`.
 
-**LOCK is blocked on one missing file.** `Project/harness/profile_worker.py` — the
-in-jail worker for the controller's diagnostic (profiling) lane. The ceremony refuses
-to build a lock without it because it is a control-plane file, and no agent session can
-create it (`Write(Project/harness/**)` is denied). Staging it for the owner is the
-current front of the FIX phase.
+**The FIX phase is done; LOCK is now purely an owner ceremony.**
+`Project/harness/profile_worker.py` is installed (`ef2a866`) and the controller no
+longer refuses on it. `Project/authority/blobs/` holds no keys yet, so the ceremony
+is `keygen` → build → activate, per `Project/OWNER_LOCK.md`.
+
+**LOCK does not unblock the first card.** 16 uncleared `RULE_VIOLATION` verdicts freeze
+every new permit. They are the auto-audit's 30 Aug sweep of the pre-gate board, and all
+16 are the same finding — the run predates the citation gate, so it has no plan or
+citation trail. The numbers themselves were called credible; the paperwork did not
+exist, because the runs came before the thing that requires it. Clearing them is
+owner-only and one row at a time (`verdict-clear --kind violation` with a signed
+`resolve_integrity_verdict` capability). Moving the cutoff instead is not available:
+`st["created"]` is set only by `init`, and `init` refuses on an existing state and a
+non-empty log.
+
+**The documented unlock for those verdicts does not work.** `run_gate.py verdict-clear
+--kind violation` spends a signed owner capability, prints "resolved by
+controller-verified owner authority", and leaves the brake exactly where it was — the
+brake is an audit-authority hard event, and `cleared_verdicts` is display state. It also
+cannot be minted through the ceremony without `--allow-unknown-action`, because the
+ceremony signs `verdict.resolve` while the gate demands `resolve_integrity_verdict`.
+Both were found by rehearsing the whole ceremony on a repo copy, and `verdict-clear` now
+says so and exits 1. The path that works is
+`python3 Project/tools/clear_pregate_verdicts.py` — read its header; it retires all 16
+from ONE `audit.resolve` signature and was rehearsed end to end (16 retired, brake off).
 
 **Ten commits landed on 30 Aug between 15:46 and 17:08** (`ed053f2..eae70a1`) and they
 changed what is true:
@@ -39,8 +59,8 @@ changed what is true:
   permits, and a controller that refuses everything until the lock validates.
 - The competence gate, audit authority, staged allowlist guard and the diagnostic lane
   all exist in code.
-- Twelve test suites live under `Project/tools/tests/`; all twelve were green at
-  `eae70a1`. Re-run them before trusting any of the above.
+- Thirteen test suites live under `Project/tools/tests/`; all thirteen were green at
+  `1ed6e20`. Re-run them before trusting any of the above.
 
 **The board is dead until it is re-measured.** 130 promoted rows exist in
 `Project/results/JOURNAL.jsonl`; **zero** are promotion-eligible under the new audit

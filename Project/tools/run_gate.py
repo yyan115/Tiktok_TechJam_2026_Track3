@@ -3139,7 +3139,19 @@ def cmd_verdict_clear(args) -> int:
                           verifies it; no prose involved.
       --kind violation -> OWNER-ONLY: requires a controller-verified signed
                           capability bound to this verdict and resolution.
-                          Workspace quotes have no authority."""
+                          Workspace quotes have no authority.
+
+    READ THIS BEFORE USING --kind violation. It records an owner resolution in
+    THIS module's state and log. It does NOT lift the permit brake, because the
+    brake is not held here: unacked_hard_verdicts treats cleared_verdicts as
+    "legacy display state only" and re-reads the audit authority's own
+    first-write-wins hard event on every call. Rehearsed on a full copy of this
+    repo with a live LOCK: 16 verdicts cleared through this path, 16 still
+    braking afterwards. Spending 16 signed owner capabilities here buys nothing.
+    To actually release the brake, write a resolution into the audit authority
+    journal (audit_authority.record_resolution, action ``audit.resolve``, subject
+    = the AUDIT EVENT hash) -- Project/tools/clear_pregate_verdicts.py does that
+    for the whole pre-gate set from one signature."""
     st = load_state_strict()
     key = f"{args.entry_id}|{args.recorded}"
     outstanding = {h.get("_clear_key"): h for h in unacked_hard_verdicts(st)}
@@ -3244,6 +3256,21 @@ def cmd_verdict_clear(args) -> int:
                     "authority_event_sha256": verified["authority_event_sha256"],
                     "subject_sha256": sha_json(subject)})
         print(f"RULE_VIOLATION {key} resolved by controller-verified owner authority.")
+        # Say plainly whether that achieved the thing the operator wanted. The
+        # brake lives in the audit authority, not here, and a capability has
+        # already been spent by this point -- so the one useful thing left is
+        # to refuse to imply success.
+        still = [h for h in unacked_hard_verdicts(load_json(STATE, st))
+                 if h.get("entry_id") == args.entry_id]
+        if still:
+            print("WARNING: new permits are STILL frozen by this entry. This "
+                  "command records an owner resolution in gate state; the brake "
+                  "is held by the audit authority's own hard event and is not "
+                  "released from here. Write a resolution into the audit "
+                  "journal instead -- Project/tools/clear_pregate_verdicts.py "
+                  "does the whole pre-gate set from one signature. The "
+                  "capability spent above is gone; mint an audit.resolve one.")
+            return 1
         return 0
     print("REFUSED: --kind must be retest or violation.")
     return 1

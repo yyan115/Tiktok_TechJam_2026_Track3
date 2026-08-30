@@ -59,10 +59,12 @@ incomparable invocations (HANDOVER 3.3, LESSONS #11). Never quote it as a result
 ### The single next permitted action — first match wins
 
 1. Controller `status` refuses on LOCK → **pre-LOCK**. No GPU work is possible; the
-   controller refuses every run. Do the remaining FIX items in HANDOVER §4 Phase 1 —
-   `Project/harness/profile_worker.py` is the one that currently blocks LOCK itself (§8
-   residual 1) — then stop and tell the owner LOCK is next. Do not start experiments, do
-   not improvise a measurement path.
+   controller refuses every run. The FIX items are done and `profile_worker.py` is
+   installed, so what remains is owner-only: `Project/authority/blobs/` holds no keys
+   yet, so the ceremony is `keygen`, then build, then activate (`Project/OWNER_LOCK.md`).
+   Stop and tell the owner LOCK is next. Do not start experiments, do not improvise a
+   measurement path. Note that LOCK alone does not unblock the first card — see §8
+   residual 1.
 2. `_permit_armed` true, or a request issued and unsettled → finish that one attempt, or
    `run_gate.py reconcile`. One attempt at a time, always.
 3. `pending_screen_judgment` set → `run_gate.py screen-judge` (§4 step 6).
@@ -123,8 +125,9 @@ timeout is three hours, because a profiler is not on a benchmark's budget.
 
 The profile artifact lands in `Project/loop/profile_evidence/`; the controller binds its
 digest as `diagnostic_profile_sha256` into both the measurement event and the packet, and
-reconcile refuses the record if those two disagree. Nothing else may write there. The lane
-cannot run until `Project/harness/profile_worker.py` exists — see §8 residual 1.
+reconcile refuses the record if those two disagree. Nothing else may write there. The
+worker is installed and its plumbing is proven in the jail; the profiler collectors it
+would call are not — see §8 residual 2.
 
 **3. Counter-backed diagnosis.**
 ```
@@ -323,17 +326,34 @@ Guard etiquette that predates LOCK and still applies: never put `clean`, `reset`
 Call this system **AI control with published residuals**. Never call it zero trust; that
 label is false and would be caught.
 
-1. **The diagnostic lane is built but cannot run: its worker is not on disk.** The
-   controller's `diagnostic` subcommand runs the profile worker in the jail and binds
-   `diagnostic_profile_sha256` into both the measurement event and the packet, and the
-   gate reconciles a profile record against that digest. What is missing is
-   `Project/harness/profile_worker.py` itself. The controller refuses
-   (`profile worker is absent; the diagnostic lane cannot run`) and the LOCK ceremony
-   refuses to build a lock without it, because it is a control-plane file. No agent
-   session can create it — `Write(Project/harness/**)` is denied — so it is staged and the
-   owner installs it (`Project/OWNER_LOCK.md` step 1). Until then `plan
-   --counter-evidence` has nothing valid to cite, and prescribing without counters is not
-   the way round that.
+1. **LOCK does not unblock the first card: 16 uncleared RULE_VIOLATIONs freeze every
+   new permit.** They were recorded 30 Aug 07:48–08:05 by the auto-audit sweeping the
+   pre-gate board, and all 16 say the same thing — the run predates the citation gate, so
+   there is no plan, no quoted source and no reasoning chain to verify. The auditors were
+   explicit that the GPU numbers themselves looked credible (one cites 15.33x event-timed,
+   corroborated at 13.18x wall-clock) and that the fix is to rerun under a genuine
+   pre-run cited plan, never to attach citations retroactively. That is already the plan
+   (HANDOVER 3.1: the whole board gets re-measured), but the gate treats any unresolved
+   hard verdict as a brake on *everything*, not just the row it names.
+   Moving the cutoff is not an alternative — `st["created"]` is set only by `init`, and
+   `init` refuses on an existing state and a non-empty log, so changing it would mean
+   hand-editing gate state.
+   **Do not use `run_gate.py verdict-clear --kind violation`.** It reads like the unlock
+   and is not one: it spends a signed owner capability, prints "resolved by
+   controller-verified owner authority", and leaves the brake untouched, because the
+   brake is the audit authority's hard event and `cleared_verdicts` is display state. It
+   also cannot be minted through the ceremony without `--allow-unknown-action` — the
+   ceremony signs `verdict.resolve`, the gate demands `resolve_integrity_verdict`. Both
+   were found by rehearsing the ceremony on a repo copy; `verdict-clear` now prints a
+   warning and exits 1 rather than implying success.
+   The path that works is `python3 Project/tools/clear_pregate_verdicts.py` (read its
+   header). One `audit.resolve` signature covers all 16 — `verify_capability` takes an
+   `audit:*` wildcard while the journal still records the specific `audit:<entry_id>`
+   each use was spent on. Rehearsed end to end: 16 retired, brake off. The resolution
+   kind is `FINDING_ACCEPTED_ROW_RETIRED`, not `FINDING_OVERTURNED`, because the
+   auditors were right.
+   The diagnostic lane itself is fine: `Project/harness/profile_worker.py` is installed
+   and the controller no longer refuses on it.
 2. **The profilers exist inside the jail but have never been exercised there.** The
    sandbox binds `/usr` read-only, so `/usr/local/cuda/bin/{nsys,ncu,compute-sanitizer}`
    are visible to a worker at their absolute paths — they are not on the sandbox `PATH`
