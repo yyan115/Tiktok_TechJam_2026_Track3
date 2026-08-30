@@ -1,0 +1,17 @@
+{
+ "captured_utc": "2026-08-30T15:14:20Z",
+ "captured_sgt": "2026-08-30T23:14:20+0800",
+ "campaign_id": "CAMP-POSTLOCK",
+ "shape": 1,
+ "scope": "pre-run snapshot for the shape-1 screening attribution split (k003 vs baseline), card C6",
+ "source": "nvidia-smi --query-gpu=clocks.sm,clocks.mem,temperature.gpu,utilization.gpu,power.draw --format=csv",
+ "sm_clock_mhz": 210,
+ "memory_clock_mhz": 405,
+ "gpu_temperature_c": 56,
+ "gpu_utilization_pct": 1,
+ "power_draw_w": 14.38,
+ "champion_watch_active": [],
+ "competing_benchmark_or_audit": false,
+ "note": "Deep-idle state: SM 210 MHz and memory 405 MHz are the low-power idle clocks, 1 percent utilisation, 14.38 W. Contrast the 22:16 batch snapshot taken during the calibration run (SM 450 MHz, 39 percent util, 45.51 W) and note that attempt 1 at 22:31 was taken in that busier regime. champion_watch.py --dry-run reported active: [] immediately before this capture, with the only backlog entry escalated to owner_attention rather than running.",
+ "known_residual": "This snapshot is NOT cryptographically bound to the measurement event. The controller binds a machine_state_sha256 to calibration and diagnostic runs but not to optimization or screening runs, which the independent audit flagged as a gap on attempt 1. Fixing that requires editing the locked controller, so this file is committed evidence with a timestamp rather than a bound attestation, and should be described that way."
+}

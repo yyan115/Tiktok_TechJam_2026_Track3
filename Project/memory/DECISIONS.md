@@ -497,6 +497,73 @@ Ledger at stop: **1 of 60 attempts spent**, 0 promoted, 0 strikes recorded, 6 fa
 registered (1 planned against, 5 inert and misframed), 12 shapes calibrated, 4 profiles,
 no permit armed, lock valid, campaign not stalled.
 
+**30 Aug 23:17 SGT — ATTRIBUTION SETTLED. k003 alone measures 1.6010x on a quiet box, and
+three independent lines now agree on what k004 is really worth.**
+
+Third audit attempt also failed (`AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT`), so
+the retry cap is exhausted and `run-be8e56a55edd1926a84bf5d1efc0b154` is escalated to
+`owner_attention` permanently. Three audits, three parse failures, roughly $7.50, zero
+verdicts recorded. The recording fault is conclusively systematic and owner-only.
+
+With the box finally at `active: []` and deeply idle (**SM 210 MHz, memory 405 MHz, 1%
+utilisation, 14.38 W**, versus SM 450 MHz / 39% / 45.5 W when attempt 1 ran at 22:31), I
+ran the isolating experiment in the **screening lane** — which cannot promote and adds no
+strike, so it does not depend on the broken audit path at all.
+
+Chain: baseline static-analysis diagnostic `profile-66aaa1f1db26652c96e8c4d4` (needed
+because counter evidence must carry the *plan's* target sha, `run_gate.py:1068`) → family
+`F-shape1-fusion` registered (`kernel-fusion` / `global-memory-traffic` /
+`launches-and-intermediate-bytes`) → card C6 → research cycle 2 → screening plan → run.
+
+### The result
+
+| arm | what it is | measured | conditions |
+| --- | --- | --- | --- |
+| k003 | authored Triton attention, **no graph** | **1.6010x**, correct | quiet box, screening lane |
+| k004 | Triton attention **plus** whole-forward graph | 2.0748x, correct | contended box, tripwire fired |
+| — | launch-overhead ceiling from the baseline profile | **~1.035x** | derived, audit-confirmed |
+
+**The Triton attention is the mechanism. It carries 1.60x on its own.** Graph replay is a
+thin top-up bounded at ~1.035x by the baseline's own 96.6% GPU-busy fraction. My original
+family — `cuda-graph-replay` against `launch-overhead` — was crediting the small effect
+with the large result. LESSONS 32 confirmed by direct measurement, not just by argument.
+
+### A convergence worth stating carefully
+
+Three independent routes to k004's true value on a quiet box:
+
+- 1.6010 (measured k003) x 1.035 (profile-derived launch ceiling) = **1.657**
+- 2.0748 (contended measurement) / 1.2552 (its own event-vs-wall tripwire ratio) = **1.653**
+
+These agree to 0.25%. **State the caveat honestly: dividing a speedup by its event/wall
+disagreement ratio is not a derivation, it is a coincidence-level observation** — the
+tripwire measures disagreement between two timing methods, not a contamination factor. So
+this is *consistent with* k004 ≈ 1.65x and is suggestive, not proof. What is solid without
+it: k003 = 1.601x measured on a verified-quiet box, and the graph cannot add more than
+~1.035x on top. **k004's honest value on shape 1 is therefore about 1.60–1.66x, not 2.07x.**
+
+### I predicted 2.10 and got 1.601 — wrong again, and here is the actual reason
+
+Not a small miss. I built the band from device-busy time: baseline 5.729 ms/iter (nsys)
+against k004 2.61 ms/iter (torch-profiler), and assumed k003 would do k004's device work
+plus the baseline's 0.199 ms launch idle, giving 5.928/2.809 ≈ 2.11. Observed span is
+5.928/1.601 = **3.70 ms/iter**, so k003 carries about **0.9 ms/iter more overhead than I
+modelled**. The error: I had **no direct measurement of k003's own device time** and
+substituted k004's, which is exactly the cross-tool, cross-route arithmetic the auditor
+warned about on the previous card. Twice now I have predicted from numbers taken on a
+different route than the one being run. **Rule: if the arm has never been profiled, say
+the band is a guess and mark the prediction kind `characterization`** — which I did do
+here, which is why this cost zero strikes.
+
+### What this changes
+
+- `F-shape1-fusion` is the correct family for shape 1 and it has a real, quiet-box,
+  correct measurement behind it.
+- The five `*-graph` families registered earlier for shapes 5, 9, 10, 11, 13 are confirmed
+  misframed and should be replaced by fusion families before any attempt is spent on them.
+- Nothing here is promotable until the audit-recording fault is fixed, but the *science*
+  is now correct and the plans built on it will be too.
+
 **30 Aug 22:45–23:05 SGT — second audit read. It CORRECTS my self-criticism, and it is
 sharper than the first.**
 

@@ -1,0 +1,13 @@
+{
+ "family_id": "F-shape1-fusion",
+ "shape": 1,
+ "mechanism": "kernel-fusion",
+ "bottleneck": "global-memory-traffic",
+ "changed_resource": "launches-and-intermediate-bytes",
+ "expected_counter_change": {"dram_bytes": "decrease"},
+ "parent_family_id": null,
+ "budget_attempts": 8,
+ "budget_minutes": 90,
+ "admission": "controller-authorized",
+ "allow_new_attempts": true
+}
