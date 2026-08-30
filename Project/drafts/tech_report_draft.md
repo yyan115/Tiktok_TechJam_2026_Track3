@@ -276,6 +276,12 @@ MFU here counts *model* FLOPs only (projections, attention, FFN; causal halved).
 LayerNorm, GELU and softmax consume real GPU time but are not in the numerator, so
 these figures understate utilisation rather than overstate it.
 
+**These rows use the §2.1 kernel-module candidate times, not the §2.1.1 shipped-file
+ones**, as do the per-kernel diagnostics in §2.3.1. The two boards differ by −2.4% on
+the geometric mean and by −10.0% to +2.6% per shape, so treat this table as indicative
+to a few percent. The speedups in §2.1.1 are the figures measured on the shipped
+artifact and are the ones to quote.
+
 The reading that matters: **the small shapes are not compute-limited, they
 are launch- and grid-limited.** At ideal fusion every shape's arithmetic
 intensity clears the 72 FLOP/byte balance point of this card, so the
