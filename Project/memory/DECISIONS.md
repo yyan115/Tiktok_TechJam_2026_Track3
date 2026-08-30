@@ -415,3 +415,84 @@ What this does NOT mean: the 2.07x is not "better than expected" in a way that f
 us. It is a paired, within-invocation, permit-bound measurement at the campaign timing
 protocol against a baseline measured in the same invocation, which is precisely the
 comparison the old board got wrong. It means the old 11x was measuring something else.
+
+**30 Aug 22:37–22:50 SGT — GRIND STOPPED. The audit came back and it is right and I was
+wrong. Two separate problems, one of them mine.**
+
+### Problem 1 (mine): the 2.0748x is real but I attributed it to the wrong mechanism
+
+Technical review verdict: **WEAK_DIAGNOSIS**. Promotion pauses. The auditor's arithmetic,
+which I re-derived independently before accepting it:
+
+- The bound baseline profile `profile-575ff8b9d235cb8378ba8739` records
+  `gpu_busy_ns` 114578000 inside `gpu_span_ns` 118566764 over 20 iterations.
+  That is **96.6% GPU-busy**, `gpu_idle_fraction` 0.0336.
+- Per forward: 5.928 ms of span, 5.729 ms busy, **0.199 ms of host-launch idle**.
+- So removing all 113 eliminated launches buys at most 5.928/5.729 = **1.0348x** — which
+  is essentially shape 1's own calibrated promotion threshold of 1.03.
+- The run saved 2.670 ms against a 5.154 ms median. Launch removal explains **at most
+  ~7%** of that.
+
+The rest is the second change k004 makes and I did not account for: it also replaces eager
+attention with an inlined flash-style Triton kernel plus a fused packed QKV projection,
+removing repeated passes over a 64x4x128x128 fp32 score tensor (16.8 MB per layer). At
+448 GB/s each read-plus-write pass is ~75 us, and several passes across 4 layers accounts
+for most of the 2.67 ms.
+
+**So `F-shape1-graph` is the wrong family for this result.** The mechanism did fire
+(`kernel_launch_api_calls` 115 → 2, exactly the declared `expected_counter_change`) and it
+is still not what produced the win. I had the idle fraction in hand hours earlier, called
+it "sensible", and never computed the ceiling it implies. Written up as LESSONS 32.
+
+Note also: this retroactively explains the band miss. The band was sized for the graph
+mechanism; the measurement captured something else entirely. **An overshoot is a
+diagnosis failure, not a bonus.**
+
+**Consequence for tonight's prepared work:** the families I registered while waiting —
+`F-shape5-graph`, `F-shape9-graph`, `F-shape10-graph`, `F-shape11-graph`,
+`F-shape13-graph`, all `cuda-graph-replay` / `launch-overhead` — carry the same misframing
+and should NOT be planned against as they stand. They are registered and inert; nothing
+was spent on them. The right framing for the shapes that k004 wins is attention/fusion
+against `global-memory-traffic`, which is also where my own torch-profiler kernel table
+pointed (49% of device time in 44 elementwise and normalization kernels per forward).
+
+### Problem 2 (infrastructure, owner-only): audit results cannot be recorded
+
+Integrity verdict: **RETEST** — a hard verdict. Its cause is narrow and, importantly, the
+auditor found **no manipulation**: the harness's own tripwire fired. `supporting_timing`
+reports `event_speedup` 2.0748 against `wall_speedup` 2.6043, an
+`event_wall_speedup_agreement_ratio` of **1.2552** against the threshold in
+`Project/harness/candidate_worker.py:476` (`"suspicious": agreement_ratio > 1.25`) — I
+verified that line myself. The controller had already failed closed:
+`performance_eligible: false`, `promotion_blocker: "performance_or_correctness"`. So this
+run was never promotable, independently of the audit. The auditor traced a benign cause
+(wall timing runs two unpaired sequential blocks, and both raw sample streams show a
+disturbance confined to round 3) and asked for a re-measure on a quiet box.
+
+**But the verdict never reached the ledger.** `record_audit_result` refused it:
+`verdict does not match full schema`, listing `schema_version`, `attempt_nonce`,
+`entry_id`, `packet_sha256`, `candidate_sha256`, `integrity`, `technical_review` and
+`summary` as missing — while the stored response artifact
+`Project/authority/blobs/0b3fa1ce…audit-response.json` visibly contains every one of them.
+The journal therefore shows `attempt_failed` /
+`AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT` and **no hard verdict is latched**, so
+no brake is set and permits are not frozen. That absence is a bug, not a pass
+(LESSONS 33). I am treating the RETEST as binding anyway.
+
+`Project/tools/audit_champion.py` and the audit authority are inside the LOCK and
+Write-denied to the agent, so **I cannot fix this. It is owner work.**
+
+### Why the grind is stopped rather than continuing
+
+1. The owner's standing instruction for this loop is to stop on a hard integrity verdict.
+   RETEST is one. A plumbing failure that prevents it being recorded does not unmake it.
+2. Until audit results can be recorded, **nothing can ever promote**, so every further
+   attempt would spend budget and roughly **$2.49 of audit cost** to produce a row that
+   cannot become a champion. (Audit cost is measured, not estimated: `total_cost_usd`
+   2.4904 for this one, 384 s wall, Opus 5, 25496 output tokens.)
+3. The family framing needs redoing before more attempts, or the same attribution error
+   repeats on every shape.
+
+Ledger at stop: **1 of 60 attempts spent**, 0 promoted, 0 strikes recorded, 6 families
+registered (1 planned against, 5 inert and misframed), 12 shapes calibrated, 4 profiles,
+no permit armed, lock valid, campaign not stalled.

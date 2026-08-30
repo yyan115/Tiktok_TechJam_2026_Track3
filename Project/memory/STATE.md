@@ -50,16 +50,45 @@ is an artifact — `collect_nsys` passes no `--cuda-graph-trace=node`, so it saw
 58 kernels. torch-profiler read 0.124 on identical bytes. LESSONS 31. The "98% GPU
 idle" line in the 30 Aug rehearsal note is withdrawn.
 
-**The next action is runbook step 12, and it needs the owner.** Registering
-`F-shape1-graph` on `launch-overhead` as the runbook drafts it would build on a
-premise now falsified. The evidence points at `kernel-fusion` against
-`global-memory-traffic`, whose required metric `dram_bytes` neither profile carries.
-`static-analysis` or `microbenchmark` produce it and need no root (unlike `ncu`), so
-one more diagnostic unblocks the family — then `mint-capability register_family` →
-`authorize` → `family-register`, which is owner-signed either way.
+## STOPPED 30 Aug ~22:50 SGT — two things need the owner
 
-Ledger: 3 permits issued and consumed, 1 calibration, 2 diagnostics, **0 of the 60
-attempts spent**, 0 strikes, no permit armed.
+**1. Audits cannot be recorded. This blocks everything.** The first real audit ran, cost
+$2.49, took 384 s, and returned a complete verdict — integrity **RETEST**, technical
+**WEAK_DIAGNOSIS**. `record_audit_result` then refused it with "verdict does not match
+full schema", naming every required property as missing while the stored artifact
+`Project/authority/blobs/0b3fa1ce…audit-response.json` visibly contains all of them. The
+journal shows only `attempt_failed` / `AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT`,
+so **no hard verdict is latched and no brake is set** — the absence is a bug, not a pass.
+`audit_champion.py` and the audit authority are inside the LOCK and Write-denied to the
+agent, so this is owner-only. **Until it is fixed nothing can promote**, and each further
+attempt burns budget plus ~$2.49 to produce an unpromotable row.
+
+**2. The shape-1 result is real but was credited to the wrong mechanism — my error.**
+Attempt 1 measured **2.0748x, correct**, on shape 1. The auditor showed, and I re-derived,
+that the bound baseline profile has the forward **96.6% GPU-busy** (0.199 ms of launch
+idle per 5.93 ms forward), so graph replay can buy at most **~1.035x** — barely the 1.03
+threshold. The other ~93% of the 2.67 ms saving comes from the second change bundled into
+k004: an inlined flash-style Triton attention plus fused packed QKV, which removes
+repeated passes over a 16.8 MB per-layer score tensor. So `F-shape1-graph`
+(`cuda-graph-replay` / `launch-overhead`) is the wrong family for this win, and the five
+further graph-replay families registered for shapes 5, 9, 10, 11, 13 carry the same
+misframing. They are inert; nothing was spent on them. See LESSONS 32 and 33.
+
+Also independent of the audit: the run tripped the harness's **own** timing tripwire
+(`event_wall_speedup_agreement_ratio` 1.2552 against the 1.25 threshold at
+`candidate_worker.py:476`), so the controller had already set
+`performance_eligible: false`. This run was never promotable. The auditor found **no
+manipulation** and traced a benign cause (unpaired sequential wall blocks plus a
+disturbance confined to round 3); it asks for a re-measure on a quiet box.
+
+**Ledger at stop:** 1 of 60 attempts spent, 0 promoted, 0 strikes, 12 shapes calibrated
+with immutable thresholds, 4 profiles, 6 families registered, no permit armed, lock valid,
+campaign not stalled, tree clean on `grind-lastday`.
+
+**What is genuinely banked and defensible:** the 12 calibrated noise floors; the
+115-launches-to-2 counter measured on both routes; the nsys graph-blindness finding with
+its clean control; and the fact that the control system caught a real attribution error
+that its own operator had missed and written up as a success.
 
 **The 49 "pending" audits are inert — do not panic at them.**
 `champion_watch.py --dry-run` lists 49 pre-gate entries. Running the watcher skips
