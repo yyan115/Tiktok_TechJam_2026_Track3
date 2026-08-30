@@ -21,11 +21,17 @@ Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 31 Aug ~01:25 SGT. Re-measuring the **actually-shipped** megakernel (k009) now agrees
 closely with the pre-gate figures I withdrew three hours ago:
 
-| shape | pre-gate figure (withdrawn) | **shipped route, measured tonight** | agreement |
-| --- | --- | --- | --- |
-| 2 | 15.26x | **14.3939x** | 5.7% |
-| 3 | 11.96x | **12.6314x** | 5.6% |
-| 13 | 28.82x | **28.4098x** | **1.4%** |
+| shape | pre-gate figure (withdrawn) | **shipped route, measured tonight** | agreement | k004 (wrong kernel) |
+| --- | --- | --- | --- | --- |
+| 2 | 15.26x | **14.3939x** | 5.7% | 8.1115x |
+| 3 | 11.96x | **12.6314x** | 5.6% | 7.1845x |
+| 13 | 28.82x | **28.4098x** | **1.4%** | 5.8096x |
+| 11 | 12.98x | **12.6797x** | 2.3% | 4.2433x |
+| 7 | 25.57x | **21.9645x** | 14.2% | 3.4781x |
+
+Five of twelve done. Agreement ranges 1.4% to 14.2% — close in every case, but **not
+uniform**, and shape 7 is the loosest. The k009-over-k004 ratio ranges **1.76x to 6.31x**,
+which is why the "constant 1.77x" claim was wrong.
 
 **Two of my own claims are refuted:**
 
