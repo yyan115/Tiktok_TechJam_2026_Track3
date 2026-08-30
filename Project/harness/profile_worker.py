@@ -2421,14 +2421,20 @@ def run_profile(worker_request: dict[str, Any], output_dir: Path,
             metrics["incumbent_speedup_source"] = "unavailable"
     else:
         # The controller's flat request carries no incumbent_speedup field, so
-        # this is the live path.  Say so rather than inventing a number: the
-        # gate's _validate_prediction refuses a "win" prediction citing a
-        # profile record without one, which is the correct outcome for
-        # evidence that never measured the champion.
+        # this is the live path, and it is deliberate.  A diagnostic runs under
+        # an instrument and states plainly that its timings are not performance
+        # numbers, so it is the wrong place to decide what the champion is.
+        # The gate reads the incumbent from its own durable state instead
+        # (run_gate.py::_incumbent_speedup), where only an audited,
+        # controller-measured, correct-and-clean run can write it.  Reporting
+        # the absence honestly is therefore the complete and correct behaviour;
+        # a "win" prediction citing this record is still validated, against a
+        # number this worker cannot influence.
         metrics["incumbent_speedup_source"] = "unavailable"
         notes.append("incumbent_speedup absent (the controller's diagnostic "
-                     "request does not carry one); a 'win' prediction citing "
-                     "this record will be refused by the gate, which is correct")
+                     "request does not carry one, by design); the gate takes "
+                     "the incumbent from its own durable champion state, not "
+                     "from this artifact")
 
     after = capture_machine_state("after", overrides=parsed["tool_paths"],
                                   search_paths=parsed["tool_search_paths"])
@@ -2907,6 +2913,9 @@ def _selftest() -> int:  # noqa: PLR0915 - a linear test script reads better fla
               all(metric in artifact["metrics"]
                   for metrics in request_document["required_metrics"].values()
                   for metric in metrics))
+        # The worker must never volunteer a champion number.  The gate reads
+        # the incumbent from its own durable state, and an artifact that
+        # asserted one here would be a jailed process describing the board.
         check("incumbent_speedup is honestly reported as unavailable",
               artifact["metrics"]["incumbent_speedup_source"] == "unavailable"
               and "incumbent_speedup" not in artifact["metrics"])

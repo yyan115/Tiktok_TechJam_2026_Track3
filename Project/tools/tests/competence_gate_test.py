@@ -466,6 +466,17 @@ def main() -> int:
     check("first plan snapshots immutable family budget",
           budget["budget_attempts"] == 8 and len(budget["catalog_sha256"]) == 64,
           str(budget))
+    # The floor this card had to clear, recorded in the immutable request so a
+    # later reader can re-derive it. No champion-eligible row exists yet, so
+    # the incumbent is the baseline; the profile's own claim of 1.0 is carried
+    # alongside for comparison and is not what the gate read.
+    emitted = json.loads(request_path.read_bytes())
+    check("the request records the incumbent the gate actually used",
+          emitted["incumbent_speedup"] == 1.0
+          and "baseline" in emitted["incumbent_speedup_source"]
+          and emitted["profile_reported_incumbent_speedup"] == 1.0
+          and projection["incumbent_speedup"] == 1.0,
+          str({k: v for k, v in emitted.items() if "incumbent" in k}))
     consume_projection(failed=True)
     rc, out = run("reconcile")
     check("authority run failure excludes scientific strike",

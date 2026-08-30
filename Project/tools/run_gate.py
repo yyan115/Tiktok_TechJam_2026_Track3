@@ -1091,8 +1091,65 @@ def _profile_record(st: dict, ref: str, family: dict, target_sha: str) -> dict:
     return record
 
 
-def _validate_prediction(campaign: dict, group: dict, profile: dict,
-                         kind: str, pmin, pmax) -> tuple[float, float]:
+def _incumbent_speedup(st: dict, shape: int) -> tuple[float, str]:
+    """The speedup a win prediction must beat, read from durable gate state.
+
+    Authority for "what is the champion" lives here and nowhere else.
+    ``groups[gkey]["best_speedup"]`` is written in exactly one place --
+    ``audit-finalize``, and only for a run that was controller-measured,
+    correct, clean, and audited promotion-eligible -- so it is the only number
+    in the system that means it.  The profile artifact carries an
+    ``incumbent_speedup`` metric of its own, but a jailed worker writes that,
+    and a candidate that can name its own incumbent can claim a win over a
+    number it chose.  So it is recorded as supporting evidence and never read
+    for authority.
+
+    The board is per shape, so the incumbent is the best champion-eligible
+    speedup on this shape across every family, not merely the family making
+    the claim: a second family does not "win" shape 3 by predicting 2x where
+    another family already holds 6x.  With no champion yet the incumbent is
+    the baseline itself, 1.0 -- the first win claim on a shape still has to
+    beat the unoptimized code by the calibrated effect floor.
+
+    Malformed state refuses rather than degrades.  Every failure mode here
+    that guessed low would *loosen* the floor, which is the direction that
+    lets a weak candidate through.
+    """
+    best, source = 1.0, "baseline (no champion-eligible row on this shape yet)"
+    groups = st.get("groups") or {}
+    if not isinstance(groups, dict):
+        raise GateRefusal("gate state groups are malformed; refusing to "
+                          "guess the incumbent")
+    for gkey, grp in groups.items():
+        if not isinstance(gkey, str) or "|" not in gkey:
+            raise GateRefusal(f"group key {gkey!r} is malformed; refusing to "
+                              "guess the incumbent")
+        # family_id is [A-Za-z0-9._-]{3,96} (_validate_family), so the last
+        # "|" is unambiguously the shape separator.
+        try:
+            gshape = int(gkey.rpartition("|")[2], 10)
+        except ValueError:
+            raise GateRefusal(f"group key {gkey!r} has no readable shape; "
+                              "refusing to guess the incumbent")
+        if not isinstance(grp, dict):
+            raise GateRefusal(f"group {gkey} is malformed; refusing to guess "
+                              "the incumbent")
+        if gshape != shape:
+            continue
+        value = grp.get("best_speedup")
+        if value is None:
+            continue
+        if (isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or value <= 0):
+            raise GateRefusal(f"group {gkey} has a malformed best_speedup; "
+                              "refusing to guess the incumbent")
+        if float(value) > best:
+            best, source = float(value), f"champion-eligible best of group {gkey}"
+    return best, source
+
+
+def _validate_prediction(campaign: dict, st: dict, profile: dict,
+                         kind: str, pmin, pmax) -> tuple[float, float, float, str]:
     if kind not in ("win", "characterization"):
         raise GateRefusal("prediction-kind must be win or characterization")
     try:
@@ -1120,17 +1177,18 @@ def _validate_prediction(campaign: dict, group: dict, profile: dict,
         raise GateRefusal(
             f"prediction band is uninformative: relative width {relative_width:.4f} "
             f"> noise-calibrated maximum {max_width:.4f}")
-    incumbent = profile["metrics"].get("incumbent_speedup")
+    incumbent, source = _incumbent_speedup(st, int(profile["shape"]))
     if kind == "win":
-        if not isinstance(incumbent, (int, float)) or incumbent <= 0:
-            raise GateRefusal("win prediction evidence needs numeric incumbent_speedup")
         effect = max(IMPROVE_MARGIN - 1.0,
                      policy["minimum_effect_noise_multiples"] * noise)
-        if pmin <= incumbent * (1.0 + effect):
+        floor = incumbent * (1.0 + effect)
+        if pmin <= floor:
             raise GateRefusal(
                 "win prediction must exclude the incumbent by the calibrated "
-                f"effect floor ({effect:.4f})")
-    return pmin, pmax
+                f"effect floor: predict-min {pmin:.4f} must exceed {floor:.4f} "
+                f"(incumbent {incumbent:.4f} from {source}; effect floor "
+                f"{effect:.4f} from calibrated noise {noise:.4f})")
+    return pmin, pmax, incumbent, source
 
 
 def parse_citations(spec: str):
@@ -1442,15 +1500,15 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         return None, ("optimization/confirmation permits must use the PRIMARY "
                       "journal — champion-grade and retest evidence never "
                       "comes from scratch ledgers")
+    incumbent = None
+    incumbent_source = "not applicable (this mode validates no prediction band)"
     try:
         profile = _profile_record(st, counter_evidence, family, target_sha256)
-        if mode in ("optimization", "screening"):
-            predict_min, predict_max = _validate_prediction(
-                campaign, grp, profile, prediction_kind,
-                predict_min, predict_max)
-        elif prediction_kind == "characterization":
-            predict_min, predict_max = _validate_prediction(
-                campaign, grp, profile, prediction_kind,
+        if (mode in ("optimization", "screening")
+                or prediction_kind == "characterization"):
+            (predict_min, predict_max, incumbent,
+             incumbent_source) = _validate_prediction(
+                campaign, st, profile, prediction_kind,
                 predict_min, predict_max)
     except GateRefusal as exc:
         return None, str(exc)
@@ -1480,6 +1538,14 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         "prediction_kind": prediction_kind,
         "predict_min": predict_min,
         "predict_max": predict_max,
+        # What this card had to beat, and where the number came from, so a
+        # later reader can re-derive the floor instead of trusting the verdict.
+        "incumbent_speedup": incumbent,
+        "incumbent_speedup_source": incumbent_source,
+        # The jailed profiler's own reading of the same quantity. Recorded for
+        # comparison only; _validate_prediction never reads it.
+        "profile_reported_incumbent_speedup":
+            profile["metrics"].get("incumbent_speedup"),
         "counter_evidence_id": counter_evidence,
         "counter_evidence_sha256": profile["artifact_sha256"],
         "budget_snapshot": snapshot,
