@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788106232.318443,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-30T23:25:32+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-1c6e3b5b015f76066f82eec3.json",
+ "profile_record_id": "profile-1c6e3b5b015f76066f82eec3",
+ "promotion_allowed": false,
+ "question": "Establish the host launch count and GPU busy fraction of the unmodified baseline route on shape 5, which is shape 1 physics at double the batch, so the shape-5 screening card cites counter evidence taken on the route being replaced rather than inherited from another shape.",
+ "request_id": "3e6932e79a2f56e7ba941877153c1cbd",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/4235e56dbc894d9212a9895dece63150e137d1634c869dbbb8f705d841aebaeb.json",
+ "request_sha256": "4235e56dbc894d9212a9895dece63150e137d1634c869dbbb8f705d841aebaeb",
+ "route": "k000-baseline eager route on shape 5",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 5,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+ "tool": "nsys",
+ "verdict_lines": 81
+}

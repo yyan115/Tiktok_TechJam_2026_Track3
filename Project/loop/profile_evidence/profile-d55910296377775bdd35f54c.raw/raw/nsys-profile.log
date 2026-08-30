@@ -1,0 +1,12 @@
+$ /usr/local/cuda/bin/nsys profile --trace=cuda,nvtx --sample=none --cpuctxsw=none --force-overwrite=true --output /output/raw/nsys-timeline /usr/bin/python3 /work/profile_worker.py --execute-route --request /work/request.json --output /output --summary-out /output/raw/nsys-route-summary.json
+--- rc=0
+--- stdout
+{"status": "route-executed", "iterations": 20}
+Collecting data...
+Generating '/tmp/nsys-report-01cc.qdstrm'
+[1/1] [0%                          ] nsys-timeline.nsys-rep[1/1] [0%                          ] nsys-timeline.nsys-rep[1/1] [====================84%     ] nsys-timeline.nsys-rep[1/1] [========================100%] nsys-timeline.nsys-rep[1/1] [========================100%] nsys-timeline.nsys-rep
+Generated:
+	/output/raw/nsys-timeline.nsys-rep
+
+--- stderr
+

@@ -613,6 +613,49 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:25–23:30 SGT — quiet-box screening board grows to four shapes, and HEAD COUNT
+turns out to dominate. Three more preregistered falsifiers fired against me.**
+
+All runs below: screening lane, `--prediction-kind characterization`, k004 against the
+eager baseline, verified-quiet box (`active: []`, SM 210 MHz, ~3% util, ~14 W), correct on
+every seed, **0 strikes** across all of them.
+
+| shape | B | heads | measured k004 | I predicted | outcome |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 64 | 4 | **2.1428x** | 1.65–1.67 | miss, falsifier fired |
+| 5 | 128 | 4 | **2.1475x** | 1.84–1.86 | miss, falsifier fired |
+| 9 | 64 | **1** | **1.1723x** | 2.12–2.16 | miss, falsifier fired |
+
+**The finding: attention head count governs this candidate's advantage, and problem size
+does not.** Shape 5 doubles the batch over shape 1 and changes nothing (2.1475 vs 2.1428).
+Shape 9 keeps the batch and drops from 4 heads to 1, and the gain collapses by nearly half.
+`roofline-table.md` records shapes 1, 9, 10 and 11 as carrying *identical* useful FLOPs of
+7.52 GFLOP, so this is not a work-volume effect at all. The plausible reading, to be tested
+on shapes 10 and 11 rather than asserted: with a single head the baseline's dense attention
+is one large well-shaped matmul that cuBLAS already handles efficiently, so the authored
+fused kernel has little to take back; with four or more heads the baseline pays per-head
+overhead on smaller matmuls that the fused kernel avoids.
+
+**Independent corroboration of an old number.** LESSONS 22 recorded k004 on shape 9 at
+**1.14x on an idle box** (against 3.14x under load). Tonight's controlled quiet-box
+screening gives **1.1723x**. Those agree closely. So the LESSONS 22 idle figures were
+sound and, critically, they were **shape-specific** — my original error on attempt 1 was
+importing shape 9's 1.14x as an anchor for *shape 1*, which is a different regime entirely.
+The old note was right; I read it wrong.
+
+**Prediction scorecard, stated plainly: four bands tonight, four misses.**
+1.15 → 2.075; 2.10 → 1.601; 1.66 → 2.143; 1.85 → 2.147; 2.14 → 1.172. Every band derived
+from mechanism theory failed, and the one derived from "nearest measured analogue" failed
+too — because I picked the wrong analogue, treating same-FLOPs as same-regime. What has
+actually worked is the discipline around the predictions: every miss cost zero strikes
+because the runs were characterization-kind in the scratch lane, and three of them fired
+falsifiers I had written to point at my own position, which is why each error was caught
+within minutes instead of reaching a report.
+
+**Method for the remaining shapes:** map the head-count axis first (10 at H=2, 11 at H=16)
+before predicting anything else, and treat every band as a hypothesis about *regime*, not
+about magnitude.
+
 **30 Aug 22:45–23:05 SGT — second audit read. It CORRECTS my self-criticism, and it is
 sharper than the first.**
 
