@@ -1632,3 +1632,68 @@ consistency check — the band is doing the job of a regression test, not a pred
 Numeric bands stay retired for mechanism claims per LESSONS 35. If anything these two hits
 sharpen the rule: I can predict that two nearly identical things measure alike, and I cannot
 predict what a change will buy.
+
+---
+
+## 31 Aug ~04:00 SGT — All twelve on the shipped file. Headline is 9.45x. One model killed.
+
+Two shapes were not enough. Finished the job: all twelve measured on
+`torch_transformer_benchmark_submission.py` (sha `4da76db6...`) via the delta lane, one
+fresh permit per row, all `correct: true`.
+
+| shape | shipped file | kernel module | delta |
+|---|---|---|---|
+| 13 | 28.2849x | 28.4098x | −0.44% |
+| 7 | 20.9595x | 21.9645x | −4.58% |
+| 2 | 13.1434x | 14.3939x | −8.69% |
+| 3 | 12.9618x | 12.6314x | **+2.62%** |
+| 11 | 12.5909x | 12.6797x | −0.70% |
+| 12 | 10.4348x | 10.8141x | −3.51% |
+| 5 | 9.1150x | 9.1536x | −0.42% |
+| 4 | 8.9211x | 8.8774x | **+0.49%** |
+| 1 | 8.1673x | 8.3303x | −1.96% |
+| 10 | 6.5352x | 6.5651x | −0.46% |
+| 9 | 4.3503x | 4.8355x | −10.03% |
+| 8 | 2.0160x | 2.0162x | −0.008% |
+| **geomean** | **9.45x** | 9.68x | **−2.4%** |
+
+**The headline is now 9.45x** and every judge-facing draft says so. The module board is
+demoted to a cross-check. This is the fourth headline this campaign has had — 10.32x
+withdrawn, 2.94x wrong kernel, 9.68x kernel modules, **9.45x shipped artifact** — and each
+move was toward measuring the thing that actually ships.
+
+### The fixed-dispatch-cost model: preregistered, then killed on its first out-of-sample point
+
+After four shipped-file rows the deltas looked beautifully ordered by candidate time:
+shape 8 −0.008% at 19.06 ms, shape 13 −0.44% at 5.86 ms, shape 1 −1.96% at 0.570 ms,
+shape 2 −8.69% at 0.121 ms. That is the exact signature of a **fixed** per-forward cost,
+and a mechanism was sitting right there: the shipped `UserOptimizedTransformer` inspects the
+incoming shape on every call to pick a branch, and the bare kernel module does not. A fixed
+10 microseconds predicts 0.05, 0.17, 1.75 and 8.3 percent against 0.008, 0.44, 1.96 and
+8.69 measured. Four points, one free parameter, a plausible physical story.
+
+I wrote it into card C32 with **eight out-of-sample point predictions before running any of
+them**, precisely so it could not be tuned afterwards.
+
+**Shape 3 came in at +2.62 percent — faster than its module.** A fixed overhead cannot make
+anything faster. Refuted on the first test.
+
+Then refuted a second, independent way: shapes 1, 9 and 10 have candidate times within 4
+percent of one another (0.5704, 0.5601, 0.5509 ms) and landed at −1.96, −10.03 and −0.46
+percent. The gap is not a function of candidate time at all.
+
+**What it actually is:** ordinary cross-invocation scatter, exactly LESSONS 11. Baseline and
+candidate are paired *inside* each run, so every row is internally valid; comparing two
+rows from separate invocations carries the documented up-to-9-percent variance. Shape 9 at
+−10.03 percent is an outlier, not a trend.
+
+**Why I am pleased about this rather than embarrassed.** This is the same failure mode as
+LESSONS 37 — inferring a mechanism from a suggestive pattern — but this time the scaffolding
+caught it in one attempt instead of an auditor catching it after it reached the report. The
+cost was one screening run. The difference was preregistering the model with out-of-sample
+predictions *before* looking. That is the whole point of the machinery, and it is now the
+second time tonight it has worked prospectively (the other being the shape-11 K2
+discriminator, which also killed my hypothesis).
+
+It also goes in the tech report. A four-point pattern that dies on its fifth point is worth
+more in a methods section than a tidy model nobody tested.

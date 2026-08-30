@@ -82,10 +82,10 @@ causal attention over all heads with the output projection folded into the
 head loop and the FFN finished in-register. Then we capture the entire
 four-layer forward pass as a single CUDA graph."
 
-**Board on screen:** geomean **9.68×** across all twelve locally-runnable
-shapes, every one measured under a one-use permit on the kernel the
-dispatcher actually selects, all passing precision. Best shapes **28.4×**
-(sequence 1024) and **22.0×** (`d_model` 32).
+**Board on screen:** geomean **9.45×** across all twelve locally-runnable
+shapes — every one measured on the submission file itself, under a one-use
+permit, all passing precision. Best shapes **28.3×** (sequence 1024) and
+**21.0×** (`d_model` 32).
 
 **Honest beat:** "The int8 attempt failed the tolerance test and it's in
 the repo as a documented negative result. The referee doesn't grade on
@@ -141,9 +141,10 @@ differentiated thirty seconds in the video.
 > against the withdrawn 10.32×. Use the numbers below and no others. The 2.94× figure
 > that briefly replaced them was itself wrong — it measured a kernel we do not ship.
 
-- geomean **9.68×** across the twelve locally-runnable shapes
-- best shapes **28.4×** (sequence 1024) · **22.0×** (`d_model` 32)
-- weakest shapes **2.02×** (`d_model` 1024) · **4.84×** (single attention head) — say
+- geomean **9.45×** across the twelve locally-runnable shapes, measured on the
+  submission file itself
+- best shapes **28.3×** (sequence 1024) · **21.0×** (`d_model` 32)
+- weakest shapes **2.02×** (`d_model` 1024) · **4.35×** (single attention head) — say
   these out loud if the per-shape board is on screen; the spread is the honest story
 - shape 14: seq 100,000 causal, **0 violations**, 305 MiB
 - shape 6: batch 10,000, **0 violations**, 3.4 GiB

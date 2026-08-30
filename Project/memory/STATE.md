@@ -37,7 +37,48 @@ the design working, not a defect. None of them blocks reading the results.
    allowlist, so their status is genuinely unknown rather than assumed good. See the
    caution block in the video script's Scene 5.
 
-## 000. ✅ COMPLETE: the shipped route, all twelve shapes, measured under permit.
+## 0000. ✅✅ THE HEADLINE IS 9.45x, MEASURED ON THE FILE THAT SHIPS. Read this first.
+
+31 Aug ~04:00 SGT. All twelve shapes have now been measured **on
+`Project/submission/torch_transformer_benchmark_submission.py` itself** (sha `4da76db6…`),
+not on the kernel modules. That is the artifact a judge would run.
+
+| shape | **shipped file** | kernel module | delta |
+| --- | --- | --- | --- |
+| 13 | **28.2849x** | 28.4098x | −0.44% |
+| 7 | **20.9595x** | 21.9645x | −4.58% |
+| 2 | **13.1434x** | 14.3939x | −8.69% |
+| 3 | **12.9618x** | 12.6314x | **+2.62%** |
+| 11 | **12.5909x** | 12.6797x | −0.70% |
+| 12 | **10.4348x** | 10.8141x | −3.51% |
+| 5 | **9.1150x** | 9.1536x | −0.42% |
+| 4 | **8.9211x** | 8.8774x | **+0.49%** |
+| 1 | **8.1673x** | 8.3303x | −1.96% |
+| 10 | **6.5352x** | 6.5651x | −0.46% |
+| 9 | **4.3503x** | 4.8355x | −10.03% |
+| 8 | **2.0160x** | 2.0162x | −0.008% |
+| **geomean** | **9.45x** | 9.68x | **−2.4%** |
+
+**Quote 9.45x.** The module board (9.68x) is now a cross-check, not the result. All twelve
+`correct: true`, one-use permit per row, quiet box, screening lane.
+
+**Why the module board was not enough.** Those twelve rows measured `k009`/`k010`, chosen
+because their headers match the dispatcher's. That is a documentation match — the same
+species of reasoning that produced the 22 wrong-kernel attempts this campaign exists to
+correct. Card C18 wrote the caveat down at 01:12 and nobody tested it for two hours.
+
+**A hypothesis I preregistered and then killed.** The first four shipped-file rows appeared
+to order by candidate time (shape 8 −0.008%, 13 −0.44%, 1 −1.96%, 2 −8.69%), which fits a
+fixed ~10 µs per-forward dispatch cost. I preregistered that model on card C32 with eight
+point predictions **before** running the rest. Shape 3 came in at **+2.62%** — *higher* than
+its proxy, which a fixed cost cannot produce — and shapes 1, 9 and 10 have candidate times
+within 4% of each other yet landed at −1.96%, −10.03% and −0.46%. **Model refuted, twice
+over.** The spread is ordinary cross-invocation scatter (LESSONS 11, up to ~9% on small
+shapes): baseline and candidate are paired *within* each run, so each row is internally
+valid, but comparing across separate invocations carries that noise. Shape 9 is an outlier,
+not a trend.
+
+## 000. The same board measured on the kernel modules (now a cross-check)
 
 31 Aug ~02:10 SGT. **The correction campaign is finished.** Every locally-runnable shape
 has been re-measured on the kernel the dispatcher actually selects, under a one-use permit,

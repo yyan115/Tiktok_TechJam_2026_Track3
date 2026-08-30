@@ -31,12 +31,17 @@
 > correct: a number obtained without a permit against an uncalibrated baseline is
 > not defensible merely because it later turns out to be near-right.
 >
-> | | originally claimed | final, measured under the gate |
+> | | originally claimed | final, measured on the shipped file |
 > | --- | --- | --- |
-> | geomean, 12 primary shapes | 10.32× (also 10.95× on our own referee) | **9.68×** |
-> | best shape | 28.82× (shape 13) | **28.41×** (shape 13) |
+> | geomean, 12 primary shapes | 10.32× (also 10.95× on our own referee) | **9.45×** |
+> | best shape | 28.82× (shape 13) | **28.28×** (shape 13) |
 > | worst shape | 2.04× (shape 8) | **2.02×** (shape 8) |
 > | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* |
+>
+> A fourth step followed: even the corrected board measured *kernel modules*
+> rather than the submission file, so all twelve shapes were measured again on
+> `torch_transformer_benchmark_submission.py` itself, giving **9.45×** against
+> the module board's 9.68×. See §2.1.1.
 >
 > **Scope of this correction.** §2 is rewritten against the measured board. Every
 > other numeric claim in this document should be traced to
@@ -59,11 +64,11 @@ We built an AI agent that authors CUDA/Triton kernels for a transformer
 layer, and — because AI optimizers are documented benchmark cheats — we
 built the referee first and gave the agent no authority over it. On an
 RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
-locally-runnable test shapes at a **geometric-mean 9.68× speedup**, ranging
+locally-runnable test shapes at a **geometric-mean 9.45× speedup**, ranging
 from **2.02×** on the one shape already near its arithmetic roofline to
-**28.41×** on the longest sequence, with every shape passing the precision
-test and every figure measured under a one-use permit bound to the
-candidate's file hash. The two shapes that cannot run on this
+**28.28×** on the longest sequence, with every shape passing the precision
+test and every figure measured **on the submission file itself**, under a
+one-use permit bound to its hash. The two shapes that cannot run on this
 hardware in their official form — shape 6 (batch 10,000, baseline OOMs)
 and shape 14 (sequence 100,000, whose naive attention table is multi-
 terabyte) — are solved by block decomposition on the same 8 GB card and
@@ -125,25 +130,15 @@ Critically, each shape was measured on **the kernel its dispatcher actually
 selects** — the error that produced the withdrawn 2.94× board was measuring
 one kernel for all twelve.
 
-**And the shipped file itself was measured, on both dispatcher branches.**
-Ten of the twelve rows below measure the kernel module the dispatcher routes
-to (`k009_fused_tuned.py`, `k010_fused_ln.py`), selected because their headers
-match the dispatcher's. That is a documentation match, not a measurement — the
-same species of reasoning that produced the wrong-kernel board — so we tested
-it directly by running
+**Every row was then re-measured on the shipped file itself.** The table
+below measures the kernel modules the dispatcher routes to
+(`k009_fused_tuned.py`, `k010_fused_ln.py`), selected because their headers
+match the dispatcher's. That is a documentation match, not a measurement —
+the same species of reasoning that produced the wrong-kernel board — so we
+ran all twelve shapes again against
 `Project/submission/torch_transformer_benchmark_submission.py`
-(sha256 `4da76db6…`), the exact artifact that ships, under its own permits:
-
-| shape | branch | shipped file | kernel-module proxy | agreement |
-|---|---|---|---|---|
-| 13 | megakernel (`d_model` ≤ 128) | **28.2849×** | 28.4098× | **0.44%** |
-| 8 | fp16 stack (`d_model` > 128) | **2.0160×** | 2.0162× | **0.008%** |
-
-Those two shapes are the minimum pair that exercises both sides of the only
-branch the dispatcher takes, so they test not merely that the file loads but
-that the routing predicate selects what we claim. Both agree with their
-proxies to well inside measurement noise, which is why the remaining ten rows
-are reported as figures for the shipped route rather than for a stand-in.
+(sha256 `4da76db6…`), the exact artifact a judge would execute. **That board
+is §2.1.1 and it is the one we quote.**
 
 | shape | dials (B · d · heads · seq · layers · ffn) | route | correctness | speedup |
 |---:|---|---|---|---:|
@@ -164,6 +159,41 @@ are reported as figures for the shipped route rather than for a stand-in.
 Provenance: `Project/loop/gate_log.jsonl`; per-shape calibrated noise floors
 and immutable promotion thresholds in `Project/loop/gate_state.json`;
 baseline counter evidence in `Project/loop/profile_evidence/`.
+
+### 2.1.1 The same twelve shapes, measured on the file that ships — **the headline board**
+
+Identical protocol, one fresh permit per row, candidate =
+`torch_transformer_benchmark_submission.py` (sha256 `4da76db6…`).
+
+| shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| **shipped file** | **8.17×** | **13.14×** | **12.96×** | **8.92×** | **9.12×** | **20.96×** | **2.02×** | **4.35×** | **6.54×** | **12.59×** | **10.43×** | **28.28×** | **9.45×** |
+| kernel module (§2.1) | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
+| delta | −2.0% | −8.7% | +2.6% | +0.5% | −0.4% | −4.6% | −0.008% | −10.0% | −0.5% | −0.7% | −3.5% | −0.4% | **−2.4%** |
+
+**We quote 9.45×.** It is the artifact that ships, so it is the number that
+means anything. The module board agrees to 2.4% on the geometric mean and
+serves as a cross-check.
+
+**The per-shape deltas are cross-invocation scatter, and we tested that
+rather than asserting it.** The first four shipped-file rows appeared to
+order neatly by candidate time (shape 8 −0.008% at 19.06 ms, shape 13
+−0.44% at 5.86 ms, shape 1 −1.96% at 0.570 ms, shape 2 −8.7% at 0.121 ms),
+which is exactly the signature of a **fixed** per-forward cost — plausibly
+the dispatcher's own shape inspection, which the bare kernel module does not
+perform. A fixed 10 µs predicts 0.05%, 0.17%, 1.75% and 8.3% against those
+four measurements. We preregistered that model with eight out-of-sample
+point predictions before running the remaining shapes.
+
+**It was refuted immediately.** Shape 3 measured **+2.6%** — *faster* than
+its module, which no fixed overhead can produce — and shapes 1, 9 and 10
+have candidate times within 4% of one another yet came in at −2.0%, −10.0%
+and −0.5%. So the difference is not dispatch cost and does not scale with
+anything; it is the cross-invocation variance documented in §6, since each
+row is a separate runner invocation even though baseline and candidate are
+paired *inside* each one. Shape 9 is an outlier, not a trend. We report this
+because a suggestive four-point pattern that dies on its fifth point is
+worth more in a methods section than a tidy model that was never tested.
 
 **Three caveats that must travel with 9.68× wherever it is quoted:**
 

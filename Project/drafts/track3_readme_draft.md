@@ -14,12 +14,12 @@
 touch.**
 
 On an NVIDIA RTX 3060 Ti (consumer, 8 GB), authored Triton/CUDA kernels run
-the track's 14 test shapes with a **geometric-mean 9.68× speedup** across
+the track's 14 test shapes with a **geometric-mean 9.45× speedup** across
 the twelve that have a runnable official baseline — ranging from 2.02× on
-the one already near its arithmetic roofline to 28.41× on the longest
+the one already near its arithmetic roofline to 28.28× on the longest
 sequence — every shape passing the precision test
-(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`). Each figure was measured under a
-one-use permit bound to the candidate's file hash. The two shapes that
+(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`). Every figure was measured **on the
+submission file itself**, under a one-use permit bound to its hash. The two shapes that
 cannot run in their official form on this hardware are solved by block
 decomposition on the same card and verified against exact references.
 
@@ -66,11 +66,22 @@ seeds by the official predicate. All twelve pass with zero failing elements.
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| speedup | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | **9.68×** |
+| **shipped file** | **8.17×** | **13.14×** | **12.96×** | **8.92×** | **9.12×** | **20.96×** | **2.02×** | **4.35×** | **6.54×** | **12.59×** | **10.43×** | **28.28×** | **9.45×** |
+| kernel modules | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
 
-Eleven of these run the fused-block megakernel; shape 8 (`d_model` 1024)
-runs the fp16 tensor-core stack, which is a different kernel with a
-different file hash.
+Eleven shapes route to the fused-block megakernel; shape 8 (`d_model` 1024)
+routes to the fp16 tensor-core stack, a different kernel with a different
+file hash.
+
+**Both rows are ours, and the top one is the answer.** The second row
+measures the kernel *modules* the dispatcher routes to, chosen because their
+headers match the dispatcher's — a documentation match, not a measurement.
+So we measured all twelve again on
+`Project/submission/torch_transformer_benchmark_submission.py`, the exact
+artifact a judge would run. The two boards agree to 2.4% on the geometric
+mean; per shape they differ by −10.0% to +2.6%, which is the
+cross-invocation scatter documented below, not a systematic cost. We quote
+the shipped file.
 
 **Read the spread, not just the mean.** The result ranges from 2.02× to
 28.41×. The win is largest where the baseline is launch-bound and smallest
