@@ -76,8 +76,12 @@ def auditor_cases():
     check("parser: minified decoy vs pretty real -> JUDGE_ERROR",
           pv(decoy, 0) == "JUDGE_ERROR")
     dup = '{"verdict": "RETEST"}\nnoise\n{"verdict": "RETEST"}'
-    check("parser: repeated same-verdict docs -> that verdict",
-          pv(dup, 0) == "RETEST")
+    check("parser: two verdict docs (even same value) -> JUDGE_ERROR",
+          pv(dup, 0) == "JUDGE_ERROR")
+    pretty = ('banner line\n{\n  "verdict": "RULE_VIOLATION",\n'
+              '  "reasoning": "tampering found"\n}\ntrailer')
+    check("parser: one pretty-printed doc with banners -> its verdict",
+          pv(pretty, 0) == "RULE_VIOLATION")
     bad = '{"verdict": "MAYBE"}'
     check("parser: unknown verdict value -> JUDGE_ERROR",
           pv(bad, 0) == "JUDGE_ERROR")

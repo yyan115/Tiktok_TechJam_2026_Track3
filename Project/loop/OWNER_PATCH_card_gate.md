@@ -37,6 +37,12 @@ def permit_gate_reason(command):
     ANCHOR = r"(runner\.py|harness[./]runner)"  # single source of truth
     touches_referee = re.search(ANCHOR, norm)
     if touches_referee:
+        if re.search(r"\b(record-verdict|packet)\b", norm):
+            return ("Blocked: verdict recording and evidence-packet "
+                    "generation belong to the detached auditor pipeline, "
+                    "never the agent shell — a self-recorded PASS would "
+                    "suppress the real audit. Owner may lift for a manual "
+                    "record.")
         if re.search(r"\b(for|while|until)\b", norm):
             return ("Blocked: shell loops around a referee invocation violate "
                     "one-permit-one-run. Write the single literal command.")
@@ -212,7 +218,7 @@ def state_write_reason(command):
     norm = command.replace("\\\n", "").replace('"', "").replace("'", "")
     GS = (r"Project/(loop/(gate_state\.json|gate_log\.jsonl|permit\.json|"
           r"in_flight\.json|permits_used|\.gate\.lock)|"
-          r"audits/(strategy/|verdicts\.jsonl|auto/|verdict_schema\.json)|"
+          r"audits/(strategy/|verdicts\.jsonl|auto/|packets/|verdict_schema\.json)|"
           r"tools/(run_gate\.py|audit_champion\.py|champion_watch\.py|"
           r"\.champion_cache\.json))")
     segs = [s for s in re.split(r"[|;&\n\r]+", norm) if re.search(GS, s)]
@@ -220,7 +226,7 @@ def state_write_reason(command):
         t = s.strip()
         if (re.search(r"\bcodex\s+exec\b", t)
                 and not re.search(r"Project/(loop/|audits/(verdicts|auto/|"
-                                  r"verdict_schema)|tools/)", t)):
+                                  r"packets/|verdict_schema)|tools/)", t)):
             continue  # critic consultations may write ONLY strategy receipts
         if (re.match(r"(python3?\s+)?\S*run_gate\.py\s+(research|plan|delta|"
                      r"reconcile|screen-judge|verdict-clear|reopen|status|"
@@ -286,6 +292,7 @@ bash). Paste inside the existing `"deny": [ ... ]` list:
       "Edit(Project/audits/verdict_schema.json)", "Write(Project/audits/verdict_schema.json)",
       "Edit(Project/audits/auto/**)", "Write(Project/audits/auto/**)",
       "Edit(Project/loop/.gate.lock)", "Write(Project/loop/.gate.lock)",
+      "Edit(Project/audits/packets/**)", "Write(Project/audits/packets/**)",
       "Edit(Project/tools/.champion_cache.json)", "Write(Project/tools/.champion_cache.json)",
 ```
 

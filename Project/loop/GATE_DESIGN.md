@@ -221,6 +221,28 @@ other segments may not carry the bound run-record name OR a --ledger token.
 from the owner patch's own bytes (tests/guard_and_auditor_test.py, 30/30;
 CLI suite 37/37).
 
+## Amendment v4.5 (30 Aug, convergence-loop round 4 folded — 6 items;
+reviewer confirmed round-3 recording path sound, both suites green)
+(1) Mode authority is now structural: screening/correctness REQUIRE scratch
+run-records (primary rows are promotable — "screening can never crown" is
+true by construction); confirmations of bytes never attempted in the group
+are refused (no free non-striking primary runs). (2) The guard denies
+agent-shell `record-verdict` and `packet` invocations outright — a
+self-recorded PASS would suppress the real audit; owner can lift for
+manual records. (3) An ever-crowned audit backlog file
+(Project/audits/audit_backlog.txt, 18 historical entries) feeds the
+watcher until every crowned entry has a durable verdict row; dethroning no
+longer loses audits. The 6 current champions already refired and recorded
+(verdict rows 57 -> 63). (4) Response artifacts are O_EXCL with
+time+pid+nonce names; markers are cleaned only by their owner pid.
+(5) The verdict parser requires EXACTLY ONE balanced JSON verdict document
+(pretty-printed fine, CLI banners tolerated — a bare-stdout requirement
+would JUDGE_ERROR every real run; deviation documented), two documents of
+any kind are JUDGE_ERROR. (6) Evidence packets: the packet store is
+write-protected from the agent, and each receipt binds the audited
+packet's sha256 in its recorded bytes. Accepted residuals: pid-reuse
+against the 300s stale window; suites 31/31 + 37/37.
+
 ## HONESTY LEDGER (binding for the report)
 1. NOT LIVE UNTIL PASTED: this design has zero force until the owner paste
    lands in .claude/hooks/guard_bash.py. The gate's history to date is

@@ -34,30 +34,56 @@ def wait_for_idle_runner() -> None:
         time.sleep(10)
 
 
+def _json_documents(text: str):
+    """Every balanced top-level {...} block in text that parses to a dict
+    (handles pretty-printed, multi-line JSON; ignores surrounding prose)."""
+    docs = []
+    depth, start, in_str, esc = 0, None, False, False
+    for i, ch in enumerate(text):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"' and depth > 0:
+            in_str = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    d = json.loads(text[start:i + 1])
+                    if isinstance(d, dict):
+                        docs.append(d)
+                except Exception:
+                    pass
+                start = None
+    return docs
+
+
 def parse_verdict(stdout: str, returncode: int) -> str:
-    """One complete, parseable JSON document decides — with a
-    token-scan cross-check (reviewer round 3: a bare regex accepted prose,
-    concatenations, and incomplete objects). Anything ambiguous or
-    unfinished is JUDGE_ERROR, never a judgment."""
+    """EXACTLY ONE verdict-bearing JSON document decides (pretty-printed or
+    minified; the CLI's banners/noise around it are tolerated — requiring
+    bare stdout would JUDGE_ERROR every real run). Zero documents, more
+    than one, an unknown value, a token/document mismatch, or an unclean
+    exit is JUDGE_ERROR, never a judgment."""
     allowed = ("PASS", "RETEST", "NEEDS_CONTEXT", "RULE_VIOLATION")
     if returncode != 0:
         return "JUDGE_ERROR"
-    doc_verdict = None
-    for line in reversed(stdout.splitlines()):
-        line = line.strip()
-        if not (line.startswith("{") and line.endswith("}")):
-            continue
-        try:
-            d = json.loads(line)
-        except Exception:
-            continue
-        if isinstance(d, dict) and d.get("verdict") in allowed:
-            doc_verdict = d["verdict"]
-            break
+    vdocs = [d for d in _json_documents(stdout) if "verdict" in d]
+    if len(vdocs) != 1 or vdocs[0].get("verdict") not in allowed:
+        return "JUDGE_ERROR"
+    doc_verdict = vdocs[0]["verdict"]
     tokens = set(re.findall(
         r'"verdict"\s*:\s*"(PASS|RETEST|NEEDS_CONTEXT|RULE_VIOLATION)"',
         stdout))
-    if doc_verdict is None or len(tokens) != 1 or tokens != {doc_verdict}:
+    if tokens != {doc_verdict}:
         return "JUDGE_ERROR"
     return doc_verdict
 
@@ -107,24 +133,33 @@ def record(entry_id: str, verdict: str, source_log: Path) -> bool:
 def main() -> int:
     entry_id = sys.argv[1]
     log = AUDIT_LOG_DIR / f"audit_{entry_id}.log"
+    import os
     marker = AUDIT_LOG_DIR / f"audit_{entry_id}.running"
+    mypid = str(os.getpid())
     try:
-        marker.write_text(str(__import__("os").getpid()))
+        marker.write_text(mypid)
     except Exception:
         pass
     try:
         return _audit(entry_id, log)
     finally:
-        try:
-            marker.unlink()
+        try:  # conditional cleanup: never delete a claim that is not OURS
+            if marker.read_text().strip() == mypid:
+                marker.unlink()
         except Exception:
             pass
 
 
 def _audit(entry_id: str, log: Path) -> int:
-    # One exclusive response artifact per ATTEMPT (unique name): parallel
-    # or repeated attempts can never overwrite a recorded receipt's bytes.
-    response = AUDIT_LOG_DIR / f"audit_{entry_id}.{int(time.time())}.response.txt"
+    import os
+    # One EXCLUSIVE response artifact per attempt (time+pid+nonce, O_EXCL):
+    # parallel or same-second attempts can never truncate or overwrite a
+    # recorded receipt's bytes.
+    response = AUDIT_LOG_DIR / (
+        f"audit_{entry_id}.{int(time.time())}-{os.getpid()}-"
+        f"{os.urandom(4).hex()}.response.txt")
+    fd = os.open(str(response), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    os.close(fd)
     print(f"[auto-audit] {time.strftime('%F %T')} starting for {entry_id}")
 
     packet = subprocess.run(
@@ -132,9 +167,20 @@ def _audit(entry_id: str, log: Path) -> int:
         cwd=str(ROOT), capture_output=True, text=True, timeout=300,
     )
     packet_path = packet.stdout.strip().splitlines()[-1] if packet.returncode == 0 else ""
+    # Bind the exact audited evidence into the recorded receipt: the packet's
+    # hash heads the response artifact, so a post-hoc packet rewrite is
+    # provable against the receipt (reviewer round 4).
+    header = ""
+    if packet_path:
+        import hashlib
+        try:
+            _psha = hashlib.sha256(Path(packet_path).read_bytes()).hexdigest()
+        except Exception:
+            _psha = "UNREADABLE"
+        header = f"PACKET_SHA256: {_psha}\nPACKET_PATH: {packet_path}\n---\n"
     if not packet_path:
         print(f"[auto-audit] packet generation failed:\n{packet.stdout}\n{packet.stderr}")
-        response.write_text("")
+        response.write_text("PACKET-GENERATION-FAILED\n")
         if not record(entry_id, "JUDGE_ERROR", response):
             print(f"[auto-audit] {entry_id} stays PENDING (no verdict row) — "
                   "the watcher will refire it.")
@@ -157,7 +203,7 @@ def _audit(entry_id: str, log: Path) -> int:
         # Full stdout is retained as the immutable response artifact whose
         # bytes are final BEFORE recording, so its recorded hash stays
         # valid; the verdict comes from one complete JSON document.
-        response.write_text(result.stdout)
+        response.write_text(header + result.stdout)
         verdict = parse_verdict(result.stdout, result.returncode)
     except subprocess.TimeoutExpired:
         verdict = "TIMEOUT"
@@ -165,8 +211,8 @@ def _audit(entry_id: str, log: Path) -> int:
         print(f"[auto-audit] launcher error: {exc}")
         verdict = "JUDGE_ERROR"
 
-    if not response.exists():
-        response.write_text("")  # timeout/error path: empty immutable artifact
+    if response.stat().st_size == 0:  # timeout/error path
+        response.write_text(header + "NO-RESPONSE (timeout or launcher error)\n")
     sys.stdout.flush()
     wait_for_idle_runner()
     if not record(entry_id, verdict, response):

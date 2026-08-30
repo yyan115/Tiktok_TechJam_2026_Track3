@@ -361,6 +361,14 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
                               "candidate bytes were already attempted in this "
                               "group — an identical re-run is 'confirmation', "
                               "label it honestly")
+        if mode == "confirmation" and not retest_open:
+            # A confirmation of bytes never attempted in this group would be
+            # a free, non-striking primary run (reviewer round 4).
+            if sha_file(impl_p) not in grp.get("attempted_shas", []):
+                return None, ("confirmation is for previously-attempted "
+                              "bytes in this group — new bytes are an "
+                              "optimization or screening attempt, label it "
+                              "honestly")
         if retest_open and mode == "confirmation":
             if (sha_file(impl_p), shape) not in retest_targets:
                 return None, ("outstanding RETEST: confirmation permits are "
@@ -399,6 +407,15 @@ def issue_permit(st, direction, mode, shape, impl, ledger, prediction, plan_ref,
         return None, ("optimization/confirmation permits must use the PRIMARY "
                       "journal — champion-grade and retest evidence never "
                       "comes from scratch ledgers")
+    if (mode in ("screening", "correctness")
+            and ledger_p.resolve() == DEFAULT_JOURNAL.resolve()):
+        # Reviewer round 4: rows in the primary journal are promotable by
+        # the frozen runner — "screening can never crown" must be true BY
+        # CONSTRUCTION, so screening/correctness live on scratch ledgers.
+        return None, (f"{mode} permits must use a SCRATCH --ledger, never "
+                      "the primary journal (primary rows are promotable; "
+                      "screening evidence must be structurally unable to "
+                      "crown champions)")
     pre_lines = (len([l for l in ledger_p.read_text().splitlines() if l.strip()])
                  if ledger_p.exists() else 0)
     permit = {

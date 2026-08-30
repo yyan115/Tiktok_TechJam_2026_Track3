@@ -102,8 +102,20 @@ def main() -> int:
     # provably live audit process. Everything else refires. The legacy
     # cache file is ignored (kept only as history).
     champions = current_champions()
+    # EVER-CROWNED backlog (reviewer round 4): a champion dethroned before
+    # its audit completed must not escape auditing. The backlog file lists
+    # historical crowned entries without verdicts; it is retried until each
+    # has a durable verdict row.
+    backlog = ROOT / "Project" / "audits" / "audit_backlog.txt"
+    extra = []
+    try:
+        extra = [l.strip() for l in backlog.read_text().splitlines()
+                 if l.strip() and not l.startswith("#")]
+    except Exception:
+        pass
     done = verdict_ids() | running_ids()
-    new = [c for c in champions if c not in done]
+    new = [c for c in list(champions) + extra if c not in done]
+    new = list(dict.fromkeys(new))  # dedupe, keep order
     if not new:
         return 0
     AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
