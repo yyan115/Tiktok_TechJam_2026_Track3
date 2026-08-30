@@ -613,6 +613,56 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:34–23:37 SGT — head-count axis completed. Shape 11 is our best shape at
+4.2433x, and it is the shape a previous card had written off.**
+
+| shape | B | heads | head_dim | measured k004 | I predicted |
+| --- | --- | --- | --- | --- | --- |
+| 9 | 64 | 1 | 128 | **1.1723x** | 2.12–2.16 |
+| 10 | 64 | 2 | 64 | **1.5833x** | 1.545–1.575 |
+| 1 | 64 | 4 | 32 | **2.1428x** | 1.65–1.67 |
+| 5 | 128 | 4 | 32 | **2.1475x** | 1.84–1.86 |
+| 11 | 64 | **16** | **8** | **4.2433x** | 2.23–2.27 |
+
+**Geomean across these five: ~2.05x.** All correct, all quiet-box, all screening lane,
+**0 strikes**.
+
+**The axis is steeper than log-linear.** From 1 to 4 heads the gain rises about +0.48 per
+doubling; from 4 to 16 it rises about +1.05 per doubling. Head count is the governing
+variable and problem size is irrelevant (shape 5 doubles shape 1's batch and moves the
+result by 0.2%).
+
+**Why shape 11 wins so hard, and why I predicted the opposite.** I argued the trend would
+*break* at shape 11 because head_dim is 8 and the Triton kernel pads the feature dimension
+to 16, wasting half of every tile — citing card C4, which found the k012 grid-heads route
+"did not materially help hd=8 because the padding waste sits in the 16-wide tiles either
+way". **I misapplied that card.** C4 compared *candidate against candidate* (k012 vs the
+k009 champion). It says nothing about the **baseline**, and the baseline is what suffers
+here: at 16 heads the eager route runs sixteen small per-head matmuls, which card C4 itself
+recorded as an anomaly — shape 11 taking 0.96 ms against 0.61 ms for shapes 9 and 10 at
+*identical FLOPs*. The padding waste in our kernel is real, and the baseline's 16-way head
+splitting is simply far more expensive. Net: the widest margin on the board.
+
+**This reframes shape 11 from a problem into the headline.** The old card treated it as an
+anomaly to be fixed; it is actually where this candidate has the most room. And it means
+head_dim=8 is a *target* for further work, not a wall — a kernel that avoids the 2x padding
+could plausibly go beyond 4.24x.
+
+**Prediction scorecard: six bands tonight, six misses.** 1.15→2.075, 2.10→1.601,
+1.66→2.143, 1.85→2.147, 2.14→1.172, 1.56→1.583, 2.25→4.243. I have not once landed a band.
+What has worked is everything around the bands: every run was characterization-kind in the
+scratch lane so the total strike cost is **zero**, and five of these fired falsifiers I had
+deliberately aimed at my own position, each of which taught the actual structure — that
+size does not matter, that head count does, that an old note reproduces, and that a card I
+was citing did not say what I thought.
+
+**On the one that "missed" but confirmed:** shape 10 landed at 1.5833 against a 1.545–1.575
+band, so the falsifier technically fired. But what it was testing — whether the LESSONS 22
+idle-box figure of 1.56x reproduces under the current protocol — is **confirmed at 1.5%
+agreement**. The lesson is about falsifier wording, not about the note: the gate caps band
+width at 2%, which is right for a prediction and too tight for a *reproduction* claim.
+Word future reproduction falsifiers against the scientific claim, not the band edges.
+
 **30 Aug 23:25–23:30 SGT — quiet-box screening board grows to four shapes, and HEAD COUNT
 turns out to dominate. Three more preregistered falsifiers fired against me.**
 
