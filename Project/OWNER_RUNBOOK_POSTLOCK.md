@@ -6,6 +6,17 @@ on 30 Aug. Where something refused the first time, the fix is already in.
 Run it top to bottom. Two commands need `sudo` and will ask for your login
 password. Everything else is copy-paste.
 
+**What is setup and what is the grind:**
+
+| Steps | What they are | How often |
+| --- | --- | --- |
+| 1–9 | setup: auditor, keys, lock, unfreeze, campaign, capability | once, ever |
+| 10–12 | per-shape groundwork: calibrate, profile, register a family | once per shape |
+| 13–14 | the loop: plan → run → reconcile → audit → finalize | every attempt |
+
+Step 14 is the one you spend the night in. Steps 1–9 take about ten minutes and
+you never touch them again.
+
 **Passphrase for the signing keys — used in steps 2, 4, 5, 7, 9:**
 
 ```
@@ -362,8 +373,69 @@ With no champion yet the bar is 1.0, so `--predict-min` must be above **1.03**.
 The band also has to be tight against calibrated noise. The gate prints the
 arithmetic when it refuses.
 
-`PLAN accepted` means the loop is live. From here: issue-permit → run →
-reconcile → audit, one at a time.
+`PLAN accepted` means a permit is armed for exactly ONE run. It is not a result.
+Step 14 is what turns it into one.
+
+---
+
+## 14. THE LOOP — repeat this for every attempt
+
+Steps 1–9 are setup and happen once. Steps 10–13 are the first lap for shape 1.
+This step is the lap that repeats, and it is where the grind actually lives.
+
+**Before any of it: commit the candidate bytes.** The permit binds a SHA-256 of
+your file. Editing it after the controller has seen it is evidence corruption,
+and the reconcile will catch it and refuse.
+
+```bash
+git add <your_candidate.py> && git commit -m "candidate: <what changed>"
+```
+
+Then, with a permit armed from step 13:
+
+```bash
+# 1. one GPU run against the armed permit
+REQ=$(ls -t Project/loop/requests/*.json | head -1)
+PID=$(python3 Project/harness/trusted_controller.py issue-permit \
+  --request "$REQ" --capability /tmp/cap_grind.json \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['permit_id'])")
+
+python3 Project/harness/trusted_controller.py run \
+  --permit "$PID" --shape 1 --impl <your_candidate.py>
+
+# 2. fold the measurement into the gate; note the entry id it prints
+python3 Project/tools/run_gate.py reconcile
+
+# 3. the audit — Claude reads the sealed packet, never your session
+python3 Project/tools/champion_watch.py --dry-run     # what is queued
+python3 Project/tools/champion_watch.py               # launches one audit
+
+# 4. once the audit lands, settle it
+python3 Project/tools/run_gate.py audit-finalize --entry-id <entry_id>
+```
+
+`audit-finalize` is the only thing that can make a row a champion. Until it runs
+and the audit came back clean, the number is measured but not promotable — that
+is the whole point of the design, so do not read a good `event_speedup` from
+step 1 as a win.
+
+Then go again: back to step 13 with the next candidate. Same family until three
+strikes close it, then a new family (step 12).
+
+**Per-shape work.** Step 10 (calibrate) is required once per shape before
+anything on that shape can be compared. Step 11 (profile) is per shape and route
+— a card must cite evidence for the bottleneck it claims. Step 12 only for a
+shape with no family yet.
+
+**Between laps, watch for these:**
+
+| What you see | What it means |
+| --- | --- |
+| `a permit is already ARMED` | finish or reconcile the current attempt; one at a time, always |
+| `uncleared RULE_VIOLATION` | an audit found something. Read it. Do not clear it to keep moving |
+| `group … is CLOSED` | three strikes, no improvement. Start a new family, do not reopen |
+| `postmortem debt outstanding` | a closed family needs a written postmortem before new plans |
+| `campaign attempt budget exhausted` | 60 attempts used. That is the campaign, not a bug |
 
 ---
 
