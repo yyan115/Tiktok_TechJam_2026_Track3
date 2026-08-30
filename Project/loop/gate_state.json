@@ -210,7 +210,8 @@
     "F-shape10-graph",
     "F-shape11-graph",
     "F-shape13-graph",
-    "F-shape3-graph"
+    "F-shape3-graph",
+    "F-shape12-graph"
    ],
    "max_calibrations_per_shape": 3,
    "max_total_attempts": 60,
@@ -219,7 +220,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 9,
+   "scientific_attempts": 10,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -253,7 +254,8 @@
   "10422abec19a2d58c1c4272251c6f748340786e850539f676b63e45a75ada64a",
   "5a14414053c403ef8b75465ce5c81a8de7af0cb514d7a5a0da680788880e098b",
   "6e80785eaf386293ff8d61b540c0e8d8a43ec9e4be85f05fc01a0297417d96b0",
-  "f81532a46d34bb2d4d01241f76b53ed1b5fd81cf7f8d1d24484f9f533e618a6d"
+  "f81532a46d34bb2d4d01241f76b53ed1b5fd81cf7f8d1d24484f9f533e618a6d",
+  "f2908d6e186f7b50b0d079a4c2945066e26de654714b93163383bd2afd0b9f52"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -288,6 +290,14 @@
    "authority_event_id": "evt-20260830T143749.348645Z-4999ba6e4d3e",
    "authority_event_sha256": "20daeda03f1b17379bfa8e4fe5d069e4d9e8d2bfca97db90d80110f1c6171c9a",
    "subject_sha256": "88065d60df11cf23035919f639196a2e0444abea687667e8564b504e38cb5b46"
+  },
+  "F-shape12-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T23:54:02+0800",
+   "admitted_epoch": 1788105242.584414,
+   "authority_event_id": "evt-20260830T155339.356221Z-980f24bf7553",
+   "authority_event_sha256": "64bac464dabea09e8593eca25049e6c72415ff174d68781d309b14f535489ef9",
+   "subject_sha256": "079e7197b6201fa4f55790472be0db7503b467df4c50770e7fafd07aba777f3e"
   },
   "F-shape13-graph": {
    "action": "register_family",
@@ -382,6 +392,21 @@
    "mechanism": "cuda-graph-replay",
    "parent_family_id": null,
    "shape": 11
+  },
+  "F-shape12-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape12-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 12
   },
   "F-shape13-graph": {
    "admission": "controller-authorized",
@@ -509,6 +534,24 @@
     "budget_minutes": 90,
     "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
     "family_id": "F-shape11-graph"
+   },
+   "closed": false,
+   "closure_nonce": null,
+   "exec_failures": 0,
+   "nonstrike_budget": 2,
+   "scientific_attempts": 1,
+   "scratch_attempted_shas": [
+    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
+   ],
+   "strikes": 0
+  },
+  "F-shape12-graph|12": {
+   "best_speedup": null,
+   "budget_snapshot": {
+    "budget_attempts": 8,
+    "budget_minutes": 90,
+    "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+    "family_id": "F-shape12-graph"
    },
    "closed": false,
    "closure_nonce": null,
@@ -747,6 +790,55 @@
    "profile_record_id": "profile-1c6e3b5b015f76066f82eec3",
    "reconciled_state_seq": 55,
    "shape": 5,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
+  },
+  "profile-29115099a34491e2f9260ee0": {
+   "artifact_path": "Project/loop/profile_evidence/profile-29115099a34491e2f9260ee0.json",
+   "artifact_sha256": "5d63a8ce8394d365eb203b0a002a28a5f719f329699564ec23b752c841ac20ea",
+   "created_epoch": 1788105230.5097063,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 12.0,
+    "gpu_busy_ns": 15512079.0,
+    "gpu_idle_fraction": 0.6981763715447067,
+    "gpu_span_ns": 51394515.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "b329f0068dfa5fb490ca17cfa54f2704b622db6d4fa68a50c33dd9cea09c771b",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-29115099a34491e2f9260ee0",
+   "reconciled_state_seq": 92,
+   "shape": 12,
    "supported_bottlenecks": [
     "launch-overhead"
    ],
@@ -1160,7 +1252,9 @@
   "475a39de2d183ea304a93ab28a0b285f133a3d4096965652b70a68166ca2e082",
   "c1a795a17384d893894f1ba447879149b12ae0ead713f85d07482251ee0663e7",
   "aff0dd41d2a29d1ab1bdd1162fe03022ff15f25662a0d6e76d5a23095f62e08a",
-  "0f80813beb3e862b8199ce3561e6fa948cf94d7b9bd55f2d414b1096ec81eae1"
+  "0f80813beb3e862b8199ce3561e6fa948cf94d7b9bd55f2d414b1096ec81eae1",
+  "e2fbe33f3950775f6422528f6e17f5014ee4d4e9b3307cceb9c92241894d41c4",
+  "8b162977dd49ee21b06aca85b228bb5bc8b7e002d29b6164fa6dd3c3745226c8"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -1194,11 +1288,13 @@
   "ac83a9725818a1c8c862b300b726c4475bc1fa9707c9587be9429f905ec66684",
   "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c",
   "50ddb855e16f34a6cc25d2458f889710494c946f7de51cd36918f75b898ea195",
-  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562"
+  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562",
+  "cce546e3d9a0fe7645c872079e2bbd870a94d5ecbcc0cdecc2e2bfffb1a7eaf7",
+  "e06cf4747d1eb89341d1c4b8d599dab6dd8a5cf206d09dacaddda6e66656b46b"
  ],
- "research_cycle": 9,
+ "research_cycle": 10,
  "research_open": false,
- "seq": 90,
+ "seq": 97,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1231,6 +1327,8 @@
   "ac83a9725818a1c8c862b300b726c4475bc1fa9707c9587be9429f905ec66684",
   "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c",
   "50ddb855e16f34a6cc25d2458f889710494c946f7de51cd36918f75b898ea195",
-  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562"
+  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562",
+  "cce546e3d9a0fe7645c872079e2bbd870a94d5ecbcc0cdecc2e2bfffb1a7eaf7",
+  "e06cf4747d1eb89341d1c4b8d599dab6dd8a5cf206d09dacaddda6e66656b46b"
  ]
 }

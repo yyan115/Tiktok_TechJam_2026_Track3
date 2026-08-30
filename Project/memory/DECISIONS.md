@@ -613,6 +613,51 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:53–23:55 SGT — shape 12 measures 3.2334x. Second qualitative hypothesis to
+survive its falsifier, and the board now has a partial explanatory model.**
+
+Shape 12 (S=32) baseline measures `gpu_idle_fraction` **0.6982** — launch-bound, between
+shape 3 and the work-bound cluster. I preregistered an **ordering** hypothesis with a
+refutation line at 2.15: *"if shape 12 at 69.8 percent baseline idle lands no better than
+the work-bound shapes near 2.14, then baseline idle fraction does not order the board."*
+**Measured 3.2334x. The falsifier did not fire.** Idle fraction orders these four:
+
+| baseline `gpu_idle_fraction` | shape | k004 |
+| --- | --- | --- |
+| 0.0104 | 5 | 2.1475x |
+| 0.0336 | 1 | 2.1428x |
+| 0.6982 | 12 | 3.2334x |
+| 0.8256 | 3 | 7.1845x |
+
+**But state the limit of that model honestly: idle fraction does NOT explain the whole
+board.** Shapes 11 (4.2433x) and 13 (5.8096x) both beat shape 12 while being work-bound,
+not launch-bound. So idle fraction captures one of at least three independent baseline
+weaknesses, and it is not a universal predictor. The honest summary is:
+
+- **launch-bound** (small batch or short sequence) — shapes 3, 12
+- **many small per-head matmuls** — shape 11
+- **quadratic score-tensor traffic** — shape 13
+- **none of the above** — shapes 1, 5 at ~2.14x, and shape 9 at 1.17x where the baseline's
+  single-head attention is already one efficient large matmul
+
+### Board after eight shapes — geomean 2.89x
+
+| shape | k004 | dominant baseline weakness |
+| --- | --- | --- |
+| 9 | 1.1723x | none — baseline already efficient |
+| 10 | 1.5833x | mild head splitting |
+| 1 | 2.1428x | reference |
+| 5 | 2.1475x | reference, size irrelevant |
+| 12 | 3.2334x | launch-bound, 69.8% idle |
+| 11 | 4.2433x | 16 small per-head matmuls |
+| 13 | 5.8096x | 1.07 GB score tensor per layer |
+| 3 | 7.1845x | launch-bound, 82.6% idle |
+
+**Scorecard update.** Numeric bands: 0 for 10, unchanged and no longer claimed. Qualitative
+regime hypotheses with preregistered falsifiers: **2 for 2** (shape 3's launch-bound
+reading, shape 12's ordering). That asymmetry is the finding about method — I can reason
+about *which regime a shape is in* and cannot forecast *what number it will produce*.
+
 **30 Aug 23:47–23:50 SGT — shape 3 measures 7.1845x, a new best, and the FIRST falsifier
 tonight that did not fire against me.**
 

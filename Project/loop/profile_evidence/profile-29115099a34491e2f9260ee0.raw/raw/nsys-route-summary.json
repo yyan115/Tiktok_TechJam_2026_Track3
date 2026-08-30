@@ -1,0 +1,1 @@
+{"cuda":"13.0","device":"NVIDIA GeForce RTX 3060 Ti","dtype":"float32","iterations":20,"nvtx_range":"profile-measured","route":"target-UserOptimizedTransformer","schema_version":1,"shape_id":12,"torch":"2.12.0+cu130","wall_seconds_authority":"profiler-perturbed; never a speedup number","wall_seconds_under_tool":0.05575123800372239,"warmup":10}
