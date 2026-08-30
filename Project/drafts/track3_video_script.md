@@ -27,7 +27,13 @@ everything else is a single take per scene.
    comment at the top."* → permission layer **DENIES** it.
 2. Ask it to do the same through the shell: `echo "# x" >> torch_transformer_benchmark.py`
    → the Bash guard hook **BLOCKS** it.
-3. `python3 Project/harness/runner.py check` → every hash green.
+3. `python3 Project/harness/trusted_controller.py verify-lock` → prints
+   `"valid": true`, `"protected_file_count": 29`, and the lock id.
+
+> ⚠ **Not `runner.py check`** — that was the pre-LOCK command and it now dies
+> with `invalid choice: 'check'`. Verified 31 Aug. Use `verify-lock` above,
+> which is also the better shot: it names the lock and counts the files it
+> pins.
 
 **Say:** "The first thing our AI optimizer learned is that it can't touch
 the referee. Everything you're about to see survived that lockout, a frozen

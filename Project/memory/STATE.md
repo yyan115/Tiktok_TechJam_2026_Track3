@@ -36,6 +36,26 @@ the design working, not a defect. None of them blocks reading the results.
    of files from the broken evaluators and were not testable from the agent's command
    allowlist, so their status is genuinely unknown rather than assumed good. See the
    caution block in the video script's Scene 5.
+4. **Mint a fresh capability before you film.** The overnight ones expire around
+   **21:00 on 31 Aug**, inside the recording window, and Scene 3 now shows a real permitted
+   run. Without a live capability you cannot issue a permit and that scene cannot be shot.
+
+**Already fixed for you (31 Aug ~04:30), no action needed** — a hostile read of the three
+drafts found three defects and all are corrected and committed:
+
+- Both the tech report and README claimed shape 8's *baseline* was "already at 64% of the
+  fp16 roofline". That is the **candidate's** number; the baseline is at 0.34 MFU and our
+  kernel takes it to 0.68. The corrected framing is stronger: 2.02x is what **doubling
+  achieved utilisation** looks like.
+- **Three documents told the reader to run commands that have not worked since the LOCK**:
+  `runner.py run …` (the video's live Scene 3 demo, with "beats while it runs" under it),
+  `runner.py check` (Scene 1), and `runner.py leaderboard` (both reproduce blocks). All
+  verified dead by running them. Scene 3 now shows the permit refusal as the point, which
+  is better television and true.
+- Both documents claimed **"every number regenerates from `JOURNAL.jsonl` with one
+  command"**. False: the post-LOCK board is in `Project/authority/events.jsonl` plus the
+  content-addressed packets under `Project/authority/blobs/`; `JOURNAL.jsonl` holds only
+  pre-LOCK history, because screening runs write to the scratch namespace by design.
 
 ## 0000. ✅✅ THE HEADLINE IS 9.45x, MEASURED ON THE FILE THAT SHIPS. Read this first.
 
