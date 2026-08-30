@@ -30,11 +30,13 @@ closely with the pre-gate figures I withdrew three hours ago:
 | 3 | 11.96x | **12.6314x** | +5.6% | 7.1845x |
 | 12 | 11.44x | **10.8141x** | −5.5% | 3.2334x |
 | 4 | 7.30x | **8.8774x** | **+21.6%** | 2.7175x |
+| 1 | 10.73x | **8.3303x** | **−22.4%** | 2.1428x |
 
-**Seven of twelve done.** Deltas scatter **both ways**, −14.1% to +21.6%. So the old board
-was neither systematically inflated nor systematically deflated: it was **approximately
-right with per-shape scatter of roughly ±20%**. That is the honest characterisation and it
-is stronger than either of my earlier readings.
+**Eight of twelve done. Mean delta −3.0%, scatter −22.4% to +21.6%, six below and two
+above.** So the old board was neither systematically inflated nor systematically deflated —
+it was **approximately right on average with per-shape scatter of roughly ±22%**. That is
+the honest characterisation, and it is a more useful claim than either of my earlier
+readings because it is both bounded and two-sided.
 
 The k009-over-k004 ratio ranges **1.76x to 6.31x** — strongly shape-dependent, which is why
 the "constant 1.77x" claim was wrong.
