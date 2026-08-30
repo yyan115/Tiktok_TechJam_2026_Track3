@@ -1,4 +1,56 @@
-# HANDOVER — single source of truth, 30 Aug 2026 ~14:00 SGT (v2, corrected)
+# HANDOVER — single source of truth, 30 Aug 2026 (v3)
+
+## !! STATUS 30 Aug ~19:15 SGT — v2 BELOW IS THE PRE-FIX PICTURE !!
+Eleven commits landed this afternoon (`ed053f2..544676a`). Sections 3.4, 3.5
+and 3.8 below describe defects that are now FIXED; they are kept because the
+history explains why the design is shaped this way, but do not read them as
+current state. What is true now:
+
+- The trust boundary is REAL. Candidate code runs in a bubblewrap jail with no
+  home, no repo, no network and dropped capabilities. A real Triton kernel is
+  proven compiling and running inside it on the 3060 Ti (max_abs_error 0.0).
+  The in-process `exec` path is replaced at LOCK by a shim that redirects to
+  the trusted controller.
+- Owner and critic authority are Ed25519-signed. Prose unlocks nothing.
+- The audit authority is hash-chained; integrity and technical review are
+  separate channels; a missing verdict makes a result ineligible.
+- Twelve test suites exist and pass. champion_watch went from zero tests to
+  278 checks with 47 mutations. The first suite that drives the REAL
+  controller against the REAL gate now exists and was proved red under
+  mutation in both directions.
+- ZERO of 130 historical promoted rows are promotion-eligible under the new
+  audit authority. That is correct fail-closed behaviour and it means the
+  entire board must be re-measured after LOCK. The old ~11x, the LEADERBOARD
+  and SHIP_MANIFEST are not quotable.
+- 16 uncleared RULE_VIOLATION rows will freeze permits the moment the gate
+  opens. That is expected; it needs one deliberate owner reconciliation pass.
+
+LOCK IS NO-GO. Two things block it, both verified by execution:
+1. `Project/harness/profile_worker.py` is not placed, so the diagnostic lane
+   refuses and `build-lock` refuses. It cannot be placed by an agent —
+   `.claude/settings.json` denies writes to `Project/harness/**`.
+2. The scratchpad profile worker does NOT speak the committed controller's
+   protocol. The controller emits a flat request; the worker demands a nested
+   `gate_request` object and fails with
+   `ProfileWorkerError: worker request needs the immutable gate_request object`.
+   Copying it as-is would leave every diagnostic broken and LOCK would freeze
+   the broken contract. Being fixed; do not place the file until the real
+   worker is proven against a real controller request.
+
+Also still open: the timing protocol is consolidated in the gate and in the
+manifest's module constant, but the shape-6 path in ship_manifest.py and the
+parallel copy in trusted_controller.py still hardcode it, so Wedge 1 is not
+fully closed. `candidate_worker.py` emits no driver/triton, so the 12 primary
+shapes would produce unshippable evidence; fixing it requires changing the
+controller's schema at the same time, and both files are behind the deny.
+
+Operating manual: `Project/GRIND_ENTRYPOINT.md` (reconciled with the code).
+First ten seconds: `Project/memory/STATE.md`. Owner ceremony:
+`Project/OWNER_LOCK.md`.
+
+---
+
+# (v2, 30 Aug ~14:00 SGT — retained for history)
 
 You have no memory of the conversation that produced this. You do not need it.
 This file is the working plan. It supersedes v1 of this file (which carried
