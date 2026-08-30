@@ -2241,3 +2241,37 @@ whole time.
 **Two regressions from one wholesale paragraph replacement.** The pattern is confirmed, not
 suspected: when I replace a block I reliably preserve what I am thinking about and silently
 drop everything else it contained. **Diff what you delete, not just what you add.**
+
+---
+
+## 31 Aug ~08:45 SGT — Diffed the rest of my rewrites. No more deletions, but CORRECTION DRIFT.
+
+Diffed `745d07e` (hostile read) against both the tech report and the video script. **No lost
+claims** — every removed line is restated, and the video-script changes are pure addition.
+So the wholesale-deletion problem appears confined to `2512772`, and that hunt is closed.
+
+But diffing surfaced a different and more embarrassing failure: **corrections I made in one
+document never propagated to the other two.**
+
+| claim | corrected in | still stale in |
+|---|---|---|
+| "committed to git before measurement" (pre-LOCK rule the auditor rejected) | report §6 | report §5.3, README tripwires, video Beats |
+| "correctness on five seeds" (it is seven trials) | report §6, README | video Beats |
+| "every new champion auto-fires a blind audit" (present tense, recorder broken) | report §5.4, README | video Beats |
+| "±25% noise" and "median of repeated sweeps" | report §9 | README limitations |
+
+All now fixed in every location.
+
+**Why this is worse than the original error.** Before I corrected anything, the three
+documents were uniformly wrong. After correcting one copy each time, they **contradicted
+each other** — and a reader who finds two versions of the same claim stops trusting both,
+including the version that is right. I spent seven passes hunting defects and spent several
+of them manufacturing a new class of defect.
+
+The structural cause is visible in the table: the drifting claims all live in a *features
+list*, a *limitations list*, and a *demo script* — three places written for three audiences
+and edited on three different passes. Nothing links them, so a fix to one never surfaces the
+others. **LESSONS 48**: when you correct a claim, search for every other instance across all
+documents before committing; diffing your own commits finds drift cheaply, because a removed
+line whose assertion still exists elsewhere is a drift rather than a deletion.
+
