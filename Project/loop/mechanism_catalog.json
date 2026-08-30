@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "catalog_version": "2026-08-30-v1",
+  "prediction_policy": {
+    "minimum_effect_noise_multiples": 3.0,
+    "maximum_win_band_noise_multiples": 4.0,
+    "maximum_characterization_band_noise_multiples": 10.0,
+    "minimum_relative_band": 0.02,
+    "maximum_relative_band": 0.20
+  },
+  "campaign_policy": {
+    "maximum_total_attempts": 200,
+    "maximum_calibrations_per_shape": 3,
+    "maximum_total_calibrations": 42,
+    "stall_window": 6,
+    "maximum_family_attempts": 12
+  },
+  "bottlenecks": {
+    "launch-overhead": {
+      "description": "Host launch count, CPU gaps, graph replay, or dispatch latency dominates.",
+      "evidence_tools": ["nsys", "torch-profiler"],
+      "required_metrics": ["kernel_launches"]
+    },
+    "host-synchronization": {
+      "description": "Host/device synchronization or serialization leaves the GPU idle.",
+      "evidence_tools": ["nsys", "torch-profiler"],
+      "required_metrics": ["gpu_idle_fraction"]
+    },
+    "global-memory-traffic": {
+      "description": "DRAM traffic or redundant intermediate reads/writes limits the route.",
+      "evidence_tools": ["ncu", "microbenchmark", "static-analysis"],
+      "required_metrics": ["dram_bytes"]
+    },
+    "compute-throughput": {
+      "description": "The selected hot kernel is limited by arithmetic throughput.",
+      "evidence_tools": ["ncu", "microbenchmark"],
+      "required_metrics": ["compute_utilization"]
+    },
+    "occupancy-resource-pressure": {
+      "description": "Registers, shared memory, or active-warp limits constrain the hot kernel.",
+      "evidence_tools": ["ncu"],
+      "required_metrics": ["achieved_occupancy"]
+    },
+    "tensor-core-utilization": {
+      "description": "Eligible matrix work is not reaching the intended tensor-core path or utilization.",
+      "evidence_tools": ["ncu", "microbenchmark"],
+      "required_metrics": ["tensor_core_utilization"]
+    },
+    "memory-capacity": {
+      "description": "Peak live storage or growth prevents the full official shape from executing.",
+      "evidence_tools": ["memory-profile", "static-analysis", "microbenchmark"],
+      "required_metrics": ["peak_reserved_bytes"]
+    },
+    "quadratic-materialization": {
+      "description": "An O(sequence squared) intermediate makes the official route infeasible.",
+      "evidence_tools": ["memory-profile", "static-analysis", "microbenchmark"],
+      "required_metrics": ["materialized_bytes"]
+    },
+    "numerical-precision": {
+      "description": "Numerical format or accumulation error blocks a faster route.",
+      "evidence_tools": ["microbenchmark", "correctness-evaluator"],
+      "required_metrics": ["failed_elements"]
+    },
+    "unknown-characterization": {
+      "description": "A bounded characterization experiment is needed before assigning a performance bottleneck.",
+      "evidence_tools": ["nsys", "ncu", "torch-profiler", "microbenchmark", "memory-profile", "static-analysis"],
+      "required_metrics": ["characterization_metric"]
+    }
+  },
+  "mechanisms": {
+    "cuda-graph-replay": {
+      "description": "Capture a fixed-address route and replay it to reduce launch overhead.",
+      "addresses": ["launch-overhead", "host-synchronization"],
+      "changed_resource": "kernel-launches"
+    },
+    "kernel-fusion": {
+      "description": "Fuse adjacent operations to remove launches and intermediate traffic.",
+      "addresses": ["launch-overhead", "global-memory-traffic"],
+      "changed_resource": "launches-and-intermediate-bytes"
+    },
+    "epilogue-fusion": {
+      "description": "Fold pointwise epilogues into a producer kernel.",
+      "addresses": ["global-memory-traffic", "launch-overhead"],
+      "changed_resource": "intermediate-write-volume"
+    },
+    "tiling-data-reuse": {
+      "description": "Change tile geometry or staging to increase useful data reuse.",
+      "addresses": ["global-memory-traffic", "compute-throughput", "occupancy-resource-pressure"],
+      "changed_resource": "reuse-and-working-set"
+    },
+    "persistent-cta": {
+      "description": "Keep work resident to amortize dispatch and reuse state across tiles.",
+      "addresses": ["launch-overhead", "global-memory-traffic", "occupancy-resource-pressure"],
+      "changed_resource": "cta-lifetime-and-reuse"
+    },
+    "work-decomposition": {
+      "description": "Redistribute independent work across the launch grid.",
+      "addresses": ["occupancy-resource-pressure", "compute-throughput"],
+      "changed_resource": "grid-parallelism"
+    },
+    "tensor-core-layout": {
+      "description": "Change layout, precision, or blocking to use tensor-core instructions efficiently.",
+      "addresses": ["tensor-core-utilization", "compute-throughput"],
+      "changed_resource": "mma-instruction-mix"
+    },
+    "precision-narrowing": {
+      "description": "Use a narrower internal representation with explicit error control.",
+      "addresses": ["compute-throughput", "global-memory-traffic", "numerical-precision"],
+      "changed_resource": "bytes-and-arithmetic-format"
+    },
+    "online-softmax-attention": {
+      "description": "Compute causal attention with tiled online softmax and no dense score matrix.",
+      "addresses": ["quadratic-materialization", "memory-capacity", "global-memory-traffic"],
+      "changed_resource": "attention-materialization"
+    },
+    "streamed-block-decomposition": {
+      "description": "Evaluate or execute the full shape as exact bounded-memory blocks.",
+      "addresses": ["memory-capacity", "quadratic-materialization"],
+      "changed_resource": "peak-live-storage"
+    },
+    "numerical-reformulation": {
+      "description": "Reformulate accumulation or normalization to meet tolerance on a faster path.",
+      "addresses": ["numerical-precision", "compute-throughput"],
+      "changed_resource": "rounding-and-accumulation"
+    }
+  },
+  "legacy_families": {
+    "F-shape14-attn": {
+      "family_id": "F-shape14-attn",
+      "shape": 14,
+      "mechanism": "online-softmax-attention",
+      "bottleneck": "quadratic-materialization",
+      "changed_resource": "attention-materialization",
+      "expected_counter_change": {"materialized_bytes": "decrease"},
+      "parent_family_id": null,
+      "budget_attempts": 6,
+      "budget_minutes": 240,
+      "admission": "legacy-history-only",
+      "allow_new_attempts": false
+    },
+    "F-shape6-local": {
+      "family_id": "F-shape6-local",
+      "shape": 6,
+      "mechanism": "streamed-block-decomposition",
+      "bottleneck": "memory-capacity",
+      "changed_resource": "peak-live-storage",
+      "expected_counter_change": {"peak_reserved_bytes": "decrease"},
+      "parent_family_id": null,
+      "budget_attempts": 6,
+      "budget_minutes": 90,
+      "admission": "legacy-history-only",
+      "allow_new_attempts": false
+    },
+    "F-shape8-fp16acc": {
+      "family_id": "F-shape8-fp16acc",
+      "shape": 8,
+      "mechanism": "precision-narrowing",
+      "bottleneck": "compute-throughput",
+      "changed_resource": "bytes-and-arithmetic-format",
+      "expected_counter_change": {"compute_utilization": "increase"},
+      "parent_family_id": null,
+      "budget_attempts": 6,
+      "budget_minutes": 150,
+      "admission": "legacy-history-only",
+      "allow_new_attempts": false
+    },
+    "F-shape11-hd8": {
+      "family_id": "F-shape11-hd8",
+      "shape": 11,
+      "mechanism": "work-decomposition",
+      "bottleneck": "occupancy-resource-pressure",
+      "changed_resource": "grid-parallelism",
+      "expected_counter_change": {"achieved_occupancy": "increase"},
+      "parent_family_id": null,
+      "budget_attempts": 6,
+      "budget_minutes": 60,
+      "admission": "legacy-history-only",
+      "allow_new_attempts": false
+    }
+  }
+}

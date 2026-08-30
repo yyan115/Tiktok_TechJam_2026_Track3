@@ -8,3 +8,13 @@ Project/tools/.champion_cache.json
 Project/audits/auto/
 Project/audits/strategy/*_raw.log
 Project/audits/strategy_review_codex.md
+
+# Session transcripts and third-party audit dumps: private (absolute paths,
+# session IDs, conversation content). Same policy as raw review logs.
+MUSTBEALLADDRESSED.md
+MUSTBEALLADDRESSED2.md
+CODEXWIP.md
+
+# Runtime lock files (never authority; recreated on demand)
+Project/authority/.authority.lock
+Project/loop/.gate.lock

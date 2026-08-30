@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mechanism_catalog.schema.json",
+  "title": "Trusted GPU optimization mechanism catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "catalog_version",
+    "prediction_policy",
+    "campaign_policy",
+    "bottlenecks",
+    "mechanisms",
+    "legacy_families"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "catalog_version": {"type": "string", "minLength": 1},
+    "prediction_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_effect_noise_multiples",
+        "maximum_win_band_noise_multiples",
+        "maximum_characterization_band_noise_multiples",
+        "minimum_relative_band",
+        "maximum_relative_band"
+      ],
+      "properties": {
+        "minimum_effect_noise_multiples": {"type": "number", "exclusiveMinimum": 0},
+        "maximum_win_band_noise_multiples": {"type": "number", "exclusiveMinimum": 0},
+        "maximum_characterization_band_noise_multiples": {"type": "number", "exclusiveMinimum": 0},
+        "minimum_relative_band": {"type": "number", "exclusiveMinimum": 0},
+        "maximum_relative_band": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "campaign_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_total_attempts",
+        "maximum_calibrations_per_shape",
+        "maximum_total_calibrations",
+        "stall_window",
+        "maximum_family_attempts"
+      ],
+      "properties": {
+        "maximum_total_attempts": {"type": "integer", "minimum": 1},
+        "maximum_calibrations_per_shape": {"type": "integer", "minimum": 1},
+        "maximum_total_calibrations": {"type": "integer", "minimum": 1},
+        "stall_window": {"type": "integer", "minimum": 2},
+        "maximum_family_attempts": {"type": "integer", "minimum": 1}
+      }
+    },
+    "bottlenecks": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "evidence_tools", "required_metrics"],
+        "properties": {
+          "description": {"type": "string", "minLength": 1},
+          "evidence_tools": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "required_metrics": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "mechanisms": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "addresses", "changed_resource"],
+        "properties": {
+          "description": {"type": "string", "minLength": 1},
+          "addresses": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "changed_resource": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "legacy_families": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/family"
+      }
+    }
+  },
+  "$defs": {
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family_id",
+        "shape",
+        "mechanism",
+        "bottleneck",
+        "changed_resource",
+        "expected_counter_change",
+        "parent_family_id",
+        "budget_attempts",
+        "budget_minutes",
+        "admission",
+        "allow_new_attempts"
+      ],
+      "properties": {
+        "family_id": {"type": "string", "minLength": 1},
+        "shape": {"type": "integer", "minimum": 1, "maximum": 14},
+        "mechanism": {"type": "string", "minLength": 1},
+        "bottleneck": {"type": "string", "minLength": 1},
+        "changed_resource": {"type": "string", "minLength": 1},
+        "expected_counter_change": {"type": "object", "minProperties": 1},
+        "parent_family_id": {"type": ["string", "null"]},
+        "budget_attempts": {"type": "integer", "minimum": 1},
+        "budget_minutes": {"type": "integer", "minimum": 1},
+        "admission": {"type": "string", "minLength": 1},
+        "allow_new_attempts": {"type": "boolean"}
+      }
+    }
+  }
+}

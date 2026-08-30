@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.track3/final_evidence_map.schema.json",
+  "title": "Track 3 explicit final evidence map",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "submission_sha256",
+    "official_sha256",
+    "shapes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "final-evidence-map-v1"
+    },
+    "submission_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "official_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "shapes": {
+      "type": "object",
+      "required": [
+        "1", "2", "3", "4", "5", "6", "7",
+        "8", "9", "10", "11", "12", "13", "14"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "1": { "$ref": "#/$defs/selector" },
+        "2": { "$ref": "#/$defs/selector" },
+        "3": { "$ref": "#/$defs/selector" },
+        "4": { "$ref": "#/$defs/selector" },
+        "5": { "$ref": "#/$defs/selector" },
+        "6": { "$ref": "#/$defs/selector" },
+        "7": { "$ref": "#/$defs/selector" },
+        "8": { "$ref": "#/$defs/selector" },
+        "9": { "$ref": "#/$defs/selector" },
+        "10": { "$ref": "#/$defs/selector" },
+        "11": { "$ref": "#/$defs/selector" },
+        "12": { "$ref": "#/$defs/selector" },
+        "13": { "$ref": "#/$defs/selector" },
+        "14": { "$ref": "#/$defs/selector" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "selector": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "entry_id",
+            "measurement_event_sha256",
+            "audit_packet"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "controller" },
+            "entry_id": {
+              "type": "string",
+              "pattern": "^run-[0-9a-f]{32}$"
+            },
+            "measurement_event_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "audit_packet": {
+              "$ref": "#/$defs/auditPacket"
+            },
+            "selection_rationale": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "entry_id"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "journal" },
+            "entry_id": {
+              "type": "string",
+              "pattern": "^[0-9]{8}-[0-9]{6}(?:-[0-9a-f]{6})?$"
+            },
+            "selection_rationale": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "entry_id",
+            "measurement_event_sha256",
+            "side_evidence_sha256",
+            "audit_packet"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "side_controller" },
+            "entry_id": {
+              "type": "string",
+              "pattern": "^[0-9]{8}-[0-9]{6}-[0-9a-f]{6}$"
+            },
+            "measurement_event_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "side_evidence_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "audit_packet": {
+              "$ref": "#/$defs/auditPacket"
+            },
+            "selection_rationale": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        }
+      ]
+    },
+    "auditPacket": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^Project/authority/blobs/[0-9a-f]{64}\\.json$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

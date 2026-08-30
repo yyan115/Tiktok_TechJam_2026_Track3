@@ -208,7 +208,61 @@ except Exception:  # pragma: no cover - judge environment without triton
     _TRITON_OK = False
 
 _LN_EPS_C = tl.constexpr(1e-5) if _TRITON_OK else None
-_GRAPH_WARMUP_CALLS = 3
+# The first eager call is also the exact-specialization compile/launch probe.
+# Capture itself still receives the three side-stream warmups recommended for
+# CUDA graphs.  Keeping these as two distinct counters lets the five official
+# correctness trials exercise eager, capture, and replay paths.
+_GRAPH_TRIGGER_CALLS = 1
+_GRAPH_SIDE_STREAM_WARMUPS = 3
+
+
+def _sub_tensor_metadata(tensor):
+    """Metadata which must stay invariant for a captured graph replay."""
+    return (
+        tuple(tensor.shape),
+        tensor.dtype,
+        tensor.device.type,
+        tensor.device.index,
+        tuple(tensor.stride()),
+        tensor.storage_offset(),
+        tensor.layout,
+    )
+
+
+def _sub_config_metadata(config):
+    return (
+        config.batch_size,
+        config.seq_len,
+        config.d_model,
+        config.num_heads,
+        config.ffn_dim,
+        config.num_layers,
+        config.causal,
+    )
+
+
+def _sub_allowed_preflight_fallback(exc):
+    """Return whether a launch probe failed for an allowlisted resource limit.
+
+    Correctness, illegal-memory-access, assertion, and arbitrary RuntimeError
+    failures deliberately do not match this predicate and therefore propagate.
+    """
+    exc_type = type(exc)
+    qualified = f"{exc_type.__module__}.{exc_type.__name__}".lower()
+    message = str(exc).lower()
+    resource_markers = (
+        "out of resources",
+        "outofresources",
+        "too many resources requested for launch",
+        "shared memory",
+        "register spill",
+        "ptxas fatal   : entry function",
+    )
+    triton_origin = "triton" in qualified
+    resource_exception = exc_type.__name__.lower() == "outofresources"
+    return triton_origin and (
+        resource_exception or any(marker in message for marker in resource_markers)
+    )
 
 
 if _TRITON_OK:
@@ -500,9 +554,15 @@ if _TRITON_OK:
         tl.store(X + offs, y.to(tl.float16), mask=mask)
 
     def _sub_gelu_fp16_(h):
+        # The Triton kernel mutates its input storage.  ``reshape`` is allowed
+        # to allocate a copy for non-contiguous tensors, which would silently
+        # leave ``h`` unchanged.  Make the storage contract explicit first.
+        h = h.contiguous()
+        if not h.is_contiguous():  # defensive: never launch on an alias/copy
+            raise RuntimeError("GELU fast path requires contiguous storage")
         n = h.numel()
-        _sub_gelu_fp16[(triton.cdiv(n, 1024),)](h.reshape(-1), n, BLOCK=1024,
-                                                num_warps=4)
+        _sub_gelu_fp16[(triton.cdiv(n, 1024),)](h.view(-1), n, BLOCK=1024,
+                                               num_warps=4)
         return h
 
     @triton.jit
@@ -577,6 +637,128 @@ class UserOptimizedTransformer(BaselineTransformer):
     """Project-authored optimized implementation. Same parameters, same
     forward signature, same outputs within the official tolerance; the
     docstring at the top of this region describes the routing."""
+
+    def _sub_invalidate_runtime(self):
+        """Drop every object derived from weights, device, or input metadata."""
+        epoch = getattr(self, "_sub_weight_epoch", 0) + 1
+        self.__dict__.pop("_sub_bufs", None)
+        self.__dict__.pop("_sub_graph_state", None)
+        self.__dict__.pop("_sub_route_status", None)
+        for layer in getattr(self, "layers", ()):
+            layer.__dict__.pop("_sub_fused_cache", None)
+            layer.__dict__.pop("_sub_fp16_cache", None)
+        object.__setattr__(self, "_sub_weight_epoch", epoch)
+
+    def load_state_dict(self, *args, **kwargs):
+        result = super().load_state_dict(*args, **kwargs)
+        self._sub_invalidate_runtime()
+        return result
+
+    def _apply(self, fn, recurse=True):
+        result = super()._apply(fn, recurse=recurse)
+        self._sub_invalidate_runtime()
+        return result
+
+    def _sub_refresh_weight_state(self):
+        # Official weight copies use load_state_dict(), and device/dtype moves
+        # use _apply(); both increment this epoch and invalidate every derived
+        # cache.  This O(1) check stays on the latency-critical replay path.
+        if not hasattr(self, "_sub_weight_epoch"):
+            object.__setattr__(self, "_sub_weight_epoch", 0)
+        return self._sub_weight_epoch
+
+    def _sub_route_key(self, x):
+        cfg = self.config
+        route = "fused" if (
+            cfg.d_model <= 128 and cfg.ffn_dim <= 128 and cfg.causal
+            and cfg.d_model % cfg.num_heads == 0
+            and (cfg.d_model // cfg.num_heads) <= 128
+            and cfg.seq_len % 32 == 0
+        ) else "fp16"
+        capability = torch.cuda.get_device_capability(x.device)
+        tensor_metadata = _sub_tensor_metadata(x)
+        # Storage offset is a replay invariant, but not a Triton specialization
+        # input. Excluding it avoids recompiling each B=1 view of shape 14.
+        specialization_metadata = tensor_metadata[:5] + tensor_metadata[6:]
+        return (
+            route,
+            _sub_config_metadata(cfg),
+            specialization_metadata,
+            tuple(capability),
+        )
+
+    def _sub_preflight_fast(self, x):
+        """Compile and launch the exact specialization before graph capture.
+
+        Only an explicitly recognized Triton resource-limit failure selects
+        the baseline.  Every unexpected failure propagates and fails the run.
+        The decision is retained so evidence can report the actual route.
+        """
+        key = self._sub_route_key(x)
+        statuses = getattr(self, "_sub_route_status", None)
+        if statuses is None:
+            statuses = {}
+            object.__setattr__(self, "_sub_route_status", statuses)
+        status = statuses.get(key)
+        if status is not None and status["route"] == "baseline":
+            return self._sub_controlled_baseline(x)
+        if status is not None:
+            return self._fast_forward(x)
+        try:
+            output = self._fast_forward(x)
+            torch.cuda.synchronize(x.device)
+        except Exception as exc:
+            if not _sub_allowed_preflight_fallback(exc):
+                raise
+            if x.shape[1] >= 16384:
+                raise RuntimeError(
+                    "Triton resource fallback is unavailable for extreme "
+                    "sequences because the dense baseline is infeasible"
+                ) from exc
+            statuses[key] = {
+                "route": "baseline",
+                "reason": "triton-resource-limit",
+                "fallback": "batch-chunked-official-baseline",
+                "exception_type": f"{type(exc).__module__}.{type(exc).__name__}",
+                "message": str(exc),
+            }
+            return self._sub_controlled_baseline(x)
+        statuses[key] = {"route": "fast", "reason": None}
+        return output
+
+    def _sub_fast_route_available(self, x):
+        status = getattr(self, "_sub_route_status", {}).get(self._sub_route_key(x))
+        return status is None or status["route"] == "fast"
+
+    def _sub_runtime_route_report(self):
+        """JSON-safe record of every exact specialization decision."""
+        statuses = getattr(self, "_sub_route_status", {})
+        return [
+            {"specialization": repr(key), **value}
+            for key, value in sorted(statuses.items(), key=lambda item: repr(item[0]))
+        ]
+
+    def _sub_controlled_baseline(self, x):
+        """Exact batch-chunked fallback where dense attention is feasible.
+
+        Batch rows never interact.  Capping each dense score table prevents a
+        resource-limited fast specialization from turning shape 6 into an OOM.
+        Sequence-dominated shape 14 is rejected earlier because batch chunks
+        cannot make its S x S table feasible.
+        """
+        batch, seq_len, _d_model = x.shape
+        bytes_per_batch_row = self.config.num_heads * seq_len * seq_len * 4
+        score_budget = 512 * 2**20
+        chunk = max(1, min(batch, score_budget // max(1, bytes_per_batch_row)))
+        if chunk >= batch:
+            return BaselineTransformer.forward(self, x, None)
+        output = torch.empty_like(x)
+        for start in range(0, batch, chunk):
+            end = min(start + chunk, batch)
+            output[start:end] = BaselineTransformer.forward(
+                self, x[start:end], None
+            )
+        return output
 
     def _fused_forward(self, x):
         cfg = self.config
@@ -691,15 +873,56 @@ class UserOptimizedTransformer(BaselineTransformer):
         x: torch.Tensor,
         valid_token_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        if (not _TRITON_OK or x.device.type != "cuda"
-                or x.dtype != torch.float32
+        if not _TRITON_OK:
+            if x.device.type == "cuda" and x.ndim == 3 and x.shape[1] >= 16384:
+                raise RuntimeError(
+                    "Triton is unavailable and the dense extreme-sequence "
+                    "baseline is infeasible"
+                )
+            if (x.device.type == "cuda" and x.dtype == torch.float32
+                    and x.ndim == 3 and valid_token_mask is not None
+                    and valid_token_mask.shape == x.shape[:2]
+                    and valid_token_mask.dtype == torch.bool
+                    and valid_token_mask.device == x.device
+                    and bool(valid_token_mask.all())):
+                object.__setattr__(self, "_sub_route_status", {
+                    "triton-unavailable": {
+                        "route": "baseline",
+                        "reason": "triton-unavailable",
+                        "fallback": "batch-chunked-official-baseline",
+                    }
+                })
+                return self._sub_controlled_baseline(x)
+            return BaselineTransformer.forward(self, x, valid_token_mask)
+        if (x.device.type != "cuda" or x.dtype != torch.float32
                 or torch.compiler.is_compiling()):
             # torch.compile tracing: hand dynamo the plain baseline graph
             # (compiling correct math) instead of our capture machinery.
             return BaselineTransformer.forward(self, x, valid_token_mask)
+        if (x.ndim != 3 or x.shape[1] != self.config.seq_len
+                or x.shape[2] != self.config.d_model):
+            raise ValueError(
+                "input must have shape [batch, config.seq_len, config.d_model]"
+            )
+        if valid_token_mask is not None and (
+            valid_token_mask.shape != x.shape[:2]
+            or valid_token_mask.dtype != torch.bool
+            or valid_token_mask.device != x.device
+        ):
+            raise ValueError(
+                "valid_token_mask must be bool, colocated, and shaped [batch, seq_len]"
+            )
         if valid_token_mask is not None and not bool(valid_token_mask.all()):
             # Exact baseline path, including pre-softmax key masking.
             return BaselineTransformer.forward(self, x, valid_token_mask)
+
+        # Fast kernels and graph replay assume a strided, contiguous tensor.
+        # Route uncommon layouts through the exact baseline instead of letting
+        # a view/reshape silently change their storage contract.
+        if x.layout != torch.strided or not x.is_contiguous():
+            return BaselineTransformer.forward(self, x, valid_token_mask)
+
+        self._sub_refresh_weight_state()
 
         B, S = x.shape[0], x.shape[1]
         if S >= 16384:
@@ -709,40 +932,65 @@ class UserOptimizedTransformer(BaselineTransformer):
             # streamed into one preallocated output.
             out = torch.empty_like(x)
             for bs in range(0, B, 1):
-                out[bs:bs + 1] = self._fast_forward(x[bs:bs + 1])
+                out[bs:bs + 1] = self._sub_preflight_fast(x[bs:bs + 1])
             return out
         if B * S >= 262144:
             # Huge token counts (shape-6 class): graph capture memory is
             # unproven at this size and launch savings are negligible when
             # every kernel runs for milliseconds — run eagerly.
-            return self._fast_forward(x)
+            return self._sub_preflight_fast(x)
 
         state = getattr(self, "_sub_graph_state", None)
         if state is None:
-            state = {"calls": 0, "graph": None, "static_x": None, "static_out": None}
+            state = {
+                "calls": 0,
+                "graph": None,
+                "static_x": None,
+                "static_out": None,
+                "input_metadata": None,
+                "config_metadata": None,
+                "weight_epoch": None,
+            }
             object.__setattr__(self, "_sub_graph_state", state)
         if state["graph"] is None:
             state["calls"] += 1
-            if state["calls"] <= _GRAPH_WARMUP_CALLS:
-                return self._fast_forward(x)
+            if state["calls"] <= _GRAPH_TRIGGER_CALLS:
+                return self._sub_preflight_fast(x)
+            if not self._sub_fast_route_available(x):
+                return self._sub_controlled_baseline(x)
             static_x = x.clone()
             side = torch.cuda.Stream()
             side.wait_stream(torch.cuda.current_stream())
             with torch.cuda.stream(side):
-                for _ in range(2):
+                for _ in range(_GRAPH_SIDE_STREAM_WARMUPS):
                     self._fast_forward(static_x)
             torch.cuda.current_stream().wait_stream(side)
             graph = torch.cuda.CUDAGraph()
             torch.cuda.synchronize()
             with torch.cuda.graph(graph):
                 static_out = self._fast_forward(static_x)
-            state.update(graph=graph, static_x=static_x, static_out=static_out)
+            state.update(
+                graph=graph,
+                static_x=static_x,
+                static_out=static_out,
+                input_metadata=_sub_tensor_metadata(x),
+                config_metadata=_sub_config_metadata(self.config),
+                weight_epoch=getattr(self, "_sub_weight_epoch"),
+            )
             graph.replay()
             return static_out.clone()
+        if state["input_metadata"] != _sub_tensor_metadata(x):
+            raise RuntimeError(
+                "CUDA graph replay input metadata changed: exact shape, dtype, "
+                "device, stride, storage offset, and layout must match capture"
+            )
+        if state["config_metadata"] != _sub_config_metadata(self.config):
+            raise RuntimeError("CUDA graph replay configuration changed after capture")
+        if state["weight_epoch"] != getattr(self, "_sub_weight_epoch"):
+            raise RuntimeError("CUDA graph replay weights changed after capture")
         state["static_x"].copy_(x)
         state["graph"].replay()
         return state["static_out"].clone()
-
 
 def copy_model_weights(
     baseline: nn.Module, optimized: nn.Module, strict: bool = True

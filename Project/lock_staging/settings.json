@@ -1,0 +1,87 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(.claude/**)",
+      "Write(.claude/**)",
+      "Edit(.git/**)",
+      "Write(.git/**)",
+      "Edit(CLAUDE.md)",
+      "Write(CLAUDE.md)",
+      "Edit(PLAN.md)",
+      "Write(PLAN.md)",
+      "Edit(RUNBOOK.md)",
+      "Write(RUNBOOK.md)",
+      "Edit(README.md)",
+      "Write(README.md)",
+      "Edit(torch_transformer_benchmark.py)",
+      "Write(torch_transformer_benchmark.py)",
+      "Edit(tensorflow_transformer_benchmark.py)",
+      "Write(tensorflow_transformer_benchmark.py)",
+      "Edit(Project/manifest.json)",
+      "Write(Project/manifest.json)",
+      "Edit(Project/shapes.json)",
+      "Write(Project/shapes.json)",
+      "Edit(Project/harness/**)",
+      "Write(Project/harness/**)",
+      "Edit(Project/tools/**)",
+      "Write(Project/tools/**)",
+      "Edit(Project/authority/**)",
+      "Write(Project/authority/**)",
+      "Edit(Project/audits/**)",
+      "Write(Project/audits/**)",
+      "Edit(Project/results/**)",
+      "Write(Project/results/**)",
+      "Edit(Project/results_side/**)",
+      "Write(Project/results_side/**)",
+      "Edit(Project/loop/**)",
+      "Write(Project/loop/**)",
+      "Edit(Project/memory/**)",
+      "Write(Project/memory/**)",
+      "Edit(Project/lock_staging/**)",
+      "Write(Project/lock_staging/**)",
+      "Edit(Project/submission/torch_transformer_benchmark_submission.py)",
+      "Write(Project/submission/torch_transformer_benchmark_submission.py)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_bash.py\"",
+            "timeout": 10,
+            "statusMessage": "Enforcing owner LOCK allowlist"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/Project/tools/session_bootstrap.py\"",
+            "timeout": 30,
+            "statusMessage": "Verifying LOCK and loading canonical GRIND state"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/Project/tools/champion_watch.py\"",
+            "async": true,
+            "timeout": 30,
+            "statusMessage": "Reconciling authority and independent audits"
+          }
+        ]
+      }
+    ]
+  }
+}
