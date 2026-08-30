@@ -49,9 +49,39 @@ evaluator. We designed for that failure mode first and speed second."
 
 **Screen:** the trust-chain diagram, then a live runner invocation.
 
+> ⚠ **The command in the previous draft does not work, and that is now the
+> scene.** `python3 Project/harness/runner.py run --shape 13 --impl …`
+> fails instantly:
+> `trusted_controller.py run: error: the following arguments are required: --permit`.
+> Since the LOCK, `runner.py` is a 27-line shim that forwards everything to
+> the trusted controller, and the controller will not time anything without
+> a one-use permit. **Verified 31 Aug ~04:20 by running it.** Do not put the
+> old command on camera expecting output.
+
+Show the refusal first — it is the best three seconds in the film:
+
 ```bash
 python3 Project/harness/runner.py run --shape 13 --impl Project/kernels/k009_fused_tuned.py
+# error: the following arguments are required: --permit
 ```
+
+**Say:** "Even I can't start a measurement. The agent asks the gate for
+permission, the gate issues one permit bound to one file hash for one run,
+and the permit is consumed the moment it's used."
+
+Then the real thing — a permitted run, three commands:
+
+```bash
+python3 Project/tools/run_gate.py delta   --campaign CAMP-POSTLOCK ...   # emits a request
+python3 Project/harness/trusted_controller.py issue-permit --request … --capability …
+python3 Project/harness/trusted_controller.py run --permit permit-… --shape 13 \
+        --impl Project/submission/torch_transformer_benchmark_submission.py
+```
+
+> **Check before recording:** the owner capabilities minted for the overnight
+> grind expire roughly **21:00 on 31 Aug**. If you record after that, minting
+> a fresh permit needs the signing key and the ceremony again. Mint a
+> short-lived capability *before* you start filming.
 
 **Beats while it runs:** candidate bytes are committed to git *before* the
 first measurement, so the audited bytes and the measured bytes are provably
@@ -74,13 +104,19 @@ the repo."
 baseline's ~40-launch profile.
 
 **Say:** "The baseline runs a transformer block as about forty separate GPU
-operations. Nine of the fourteen shapes are small enough that the GPU
-finishes each one before the CPU can queue the next — so the wall isn't
-arithmetic, it's launch overhead. We wrote the whole block as two Triton
+operations. On the smallest shapes the GPU sits idle 86% of the time waiting
+for the CPU to queue the next one. So we wrote the whole block as two Triton
 kernels: LayerNorm fused into the QKV projection, then FlashAttention-style
 causal attention over all heads with the output projection folded into the
 head loop and the FFN finished in-register. Then we capture the entire
 four-layer forward pass as a single CUDA graph."
+
+**Then the beat that actually matters:** "But the graph isn't where the win
+comes from. One of these shapes has a baseline that's idle only *one* percent
+of the time — there are no launch gaps left to remove — and we're still nine
+times faster there. Keeping the whole block in registers doesn't recover
+waiting; it deletes memory traffic. We only know that because we measured it,
+and it contradicted what we'd written in our own report."
 
 **Board on screen:** geomean **9.45×** across all twelve locally-runnable
 shapes — every one measured on the submission file itself, under a one-use

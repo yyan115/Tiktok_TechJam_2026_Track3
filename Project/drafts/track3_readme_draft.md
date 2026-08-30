@@ -59,10 +59,11 @@ to rebuild the authority model from scratch.
 
 ### The shipped route, measured under permit
 
-Every figure below was measured on the kernel the dispatcher **actually
-selects** for that shape, under a one-use permit bound to the candidate's
-file hash, on an otherwise-idle machine, with correctness checked on five
-seeds by the official predicate. All twelve pass with zero failing elements.
+Every figure below was measured under a one-use permit bound to the
+candidate's file hash, on an otherwise-idle machine, with correctness
+checked on five seeds by the official predicate. All twelve pass with zero
+failing elements. The top row is the **submission file itself**; the second
+is the kernel modules it routes to.
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -84,23 +85,26 @@ cross-invocation scatter documented below, not a systematic cost. We quote
 the shipped file.
 
 **Read the spread, not just the mean.** The result ranges from 2.02× to
-28.41×. The win is largest where the baseline is launch-bound and smallest
-where it is already near the arithmetic roofline (shape 8 reaches 64% of
-the fp16 roofline before we touch it) or where attention is a single
-well-shaped matmul (shape 9, one head). A geometric mean over that range is
-a summary, not a description, and we present both.
+28.28×. The win is largest where the baseline is launch-bound — on shapes 2
+and 3 the baseline's GPU sits idle 86% and 83% of the time waiting for the
+CPU to queue work — and smallest where the baseline is already doing real
+arithmetic (shape 8, whose baseline reaches 0.34 MFU against 0.03 on shape
+2; our kernel takes it to 0.68, and 2.02× is what doubling utilisation looks
+like) or where attention is a single well-shaped matmul (shape 9, one head).
+A geometric mean over that range is a summary, not a description, and we
+present both.
 
 **How this relates to the earlier 10.32× figure.** An earlier board
 measured 10.32× on the organizers' untouched script. Those runs were
 **procedurally invalid** — no permit, no bound audit verdict, and baselines
 that `HANDOVER.md` §3.1 records as 6–63% slower than their own calibration.
-We withdrew them and re-measured everything under the gate. The two boards
-agree to 6.2% on the geometric mean, with a mean per-shape delta of −5.6%
-and scatter of −22.4% to +21.6% in both directions, uncorrelated with
-baseline device idle. So the old numbers were approximately right and
-improperly obtained; we report the ones that were properly obtained.
-Procedurally invalid and numerically wrong are different failures, and only
-the first one happened.
+We withdrew them and re-measured everything under the gate. The withdrawn
+board sits **8.4% above** our shipped-file geometric mean, and per shape it
+scattered −22.4% to +21.6% **in both directions**, uncorrelated with
+baseline device idle — so it was not systematically inflated. The old
+numbers were approximately right and improperly obtained; we report the ones
+that were properly obtained. Procedurally invalid and numerically wrong are
+different failures, and only the first one happened.
 
 > **Caveats that travel with these numbers.** They are *characterisation*
 > runs in a screening lane: correct on all twelve, but none was promoted to
@@ -139,8 +143,9 @@ CPU can queue the next, so launch overhead, not arithmetic, is the wall.
   residual + norm + GELU-FFN finished in-register. The full four-layer
   forward pass is captured as **one CUDA graph** and replayed.
 - **`k010` — shape 8**: at `d_model` 1024 the block is genuinely
-  compute-bound (0.65 MFU), so the win is epilogue fusion around the GEMM
-  boundaries, not launch elimination.
+  compute-bound — the baseline already achieves 0.34 MFU here — so the win
+  is epilogue fusion around the GEMM boundaries, not launch elimination. It
+  takes utilisation to 0.68.
 - **`k014` / `k015` — shapes 14 and 6**: block-decomposed variants that
   stream the sequence or chunk the batch so nothing oversized is ever
   materialized.
@@ -150,8 +155,8 @@ CPU can queue the next, so launch overhead, not arithmetic, is the wall.
 No external kernel library is wrapped (no FlashAttention, no xFormers) —
 the kernels are authored. `torch.compile` and SDPA appear only as
 correctness fallbacks and as a measured comparison: `max-autotune` reaches
-7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8 dials, against our 12.63× /
-28.41× / 2.02×.
+7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8 dials, against our 12.96× /
+28.28× / 2.02×.
 
 ## Setup and installation
 

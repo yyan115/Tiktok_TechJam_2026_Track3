@@ -1,10 +1,10 @@
 # Track 3 Tech Report — an AI agent that writes GPU kernels, and a referee it cannot bribe
 
-> ## ✅ DOCUMENT-WIDE CORRECTION — RESOLVED 31 Aug ~02:10 SGT
+> ## ✅ DOCUMENT-WIDE CORRECTION — RESOLVED 31 Aug ~04:00 SGT
 >
-> **The headline of this document changed twice in three hours. Both changes, and
-> why, are recorded here rather than silently edited away — the process failure is
-> more interesting than the number it cost us.**
+> **The headline of this document changed three times in five hours. Every change,
+> and why, is recorded here rather than silently edited away — the process failure
+> is more interesting than the 0.87× it cost us.**
 >
 > **What went wrong, in order.**
 >
@@ -19,17 +19,14 @@
 >    same class of error as the original, inverted. Cause: the re-measurement
 >    campaign followed the runbook's worked example, which used k004, and never
 >    checked it against the dispatcher.
-> 3. All twelve shapes were then re-measured on the kernel the dispatcher actually
->    selects, under one-use permits bound to each candidate's file hash, on a
->    verified-quiet box. **Geometric mean 9.68×.**
->
-> **Where that leaves the original number.** 9.68× against 10.32× is an agreement
-> of **6.2%**, with a mean per-shape delta of **−5.6%** and scatter of **−22.4% to
-> +21.6%** in both directions, uncorrelated with baseline device idle. The old
-> board was therefore **procedurally invalid and numerically close** — those are
-> different failures, and only the first one occurred. Withdrawing it was still
-> correct: a number obtained without a permit against an uncalibrated baseline is
-> not defensible merely because it later turns out to be near-right.
+> 3. All twelve shapes were re-measured on the kernel module the dispatcher
+>    actually selects, under one-use permits bound to each candidate's file hash,
+>    on a verified-quiet box. **Geometric mean 9.68×.**
+> 4. Those modules were still chosen because their *headers match the dispatcher's
+>    description* — a documentation match, not a measurement, and the same species
+>    of reasoning as step 2. So all twelve were measured a final time on
+>    `torch_transformer_benchmark_submission.py` itself, the artifact a judge would
+>    run. **Geometric mean 9.45×, and that is the number this report quotes.**
 >
 > | | originally claimed | final, measured on the shipped file |
 > | --- | --- | --- |
@@ -38,16 +35,21 @@
 > | worst shape | 2.04× (shape 8) | **2.02×** (shape 8) |
 > | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* |
 >
-> A fourth step followed: even the corrected board measured *kernel modules*
-> rather than the submission file, so all twelve shapes were measured again on
-> `torch_transformer_benchmark_submission.py` itself, giving **9.45×** against
-> the module board's 9.68×. See §2.1.1.
+> **Where that leaves the original number.** 9.45× against 10.32× means the
+> withdrawn board was **8.4% high** on the geometric mean. Per shape it scattered
+> **−22.4% to +21.6% in both directions** with no correlation to baseline device
+> idle, so it was not systematically inflated — it was **procedurally invalid and
+> numerically close**. Those are different failures and only the first one
+> occurred. Withdrawing it was still correct: a number obtained without a permit
+> against an uncalibrated baseline is undefended, not vindicated, when it later
+> turns out to be near-right.
 >
-> **Scope of this correction.** §2 is rewritten against the measured board. Every
+> **Scope of this correction.** §2 is written against the measured boards. Every
 > other numeric claim in this document should be traced to
 > `Project/loop/gate_log.jsonl`, `Project/loop/gate_state.json`, or a profile
 > artifact under `Project/loop/profile_evidence/` before it ships. Sections still
-> carrying pre-gate figures are labelled where they stand.
+> carrying pre-gate figures are labelled where they stand, and one further factual
+> correction — a baseline/candidate mix-up in §3 — is marked inline there.
 
 **Status: DRAFT v3 (31 Aug, §2 re-measured under the enforcement gate).** The
 speedup board is measured, permitted and cited. Values still owed at code freeze
@@ -65,8 +67,9 @@ layer, and — because AI optimizers are documented benchmark cheats — we
 built the referee first and gave the agent no authority over it. On an
 RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
 locally-runnable test shapes at a **geometric-mean 9.45× speedup**, ranging
-from **2.02×** on the one shape already near its arithmetic roofline to
-**28.28×** on the longest sequence, with every shape passing the precision
+from **2.02×** on the one shape whose baseline is already doing real
+arithmetic rather than waiting on kernel launches, to **28.28×** on the
+longest sequence, with every shape passing the precision
 test and every figure measured **on the submission file itself**, under a
 one-use permit bound to its hash. The two shapes that cannot run on this
 hardware in their official form — shape 6 (batch 10,000, baseline OOMs)
@@ -116,29 +119,31 @@ limitations are considered):
 
 ## 2. Results
 
-### 2.1 The shipped route, all 12 runnable shapes, measured under the gate
+**Measurement protocol, identical for every row in §2.1 and §2.1.1.**
+Measured 30–31 Aug on a verified-quiet box with the enforcement gate live:
+idle confirmed via `champion_watch --dry-run` immediately before each run; a
+one-use permit bound to the candidate's sha256 issued per run; campaign
+timing protocol warmup 20 / repeats 100 / rounds 3; baseline and candidate
+paired inside a single invocation so no cross-process clock drift enters the
+ratio; `correct: true` on every seed under the official predicate.
 
-Every row was measured **30–31 Aug on a verified-quiet box** with the
-enforcement gate live: idle confirmed via `champion_watch --dry-run`
-immediately before each run; a one-use permit bound to the candidate's
-sha256 issued per run; campaign timing protocol warmup 20 / repeats 100 /
-rounds 3; baseline and candidate paired inside a single invocation so no
-cross-process clock drift enters the ratio; `correct: true` on every seed
-under the official predicate.
+There are two boards because we measured the problem twice, at two different
+levels of "is this really what ships":
 
-Critically, each shape was measured on **the kernel its dispatcher actually
-selects** — the error that produced the withdrawn 2.94× board was measuring
-one kernel for all twelve.
+- **§2.1** measures the **kernel modules** the dispatcher routes to
+  (`k009_fused_tuned.py`, `k010_fused_ln.py`). Each shape gets the module its
+  dispatcher actually selects — fixing the error that produced the withdrawn
+  2.94× board, which measured one kernel for all twelve. But those modules
+  were chosen because their *headers match the dispatcher's description*, and
+  a documentation match is not a measurement. It is a better grade of
+  evidence than the runbook example that caused the original error, and it is
+  the same species.
+- **§2.1.1** measures
+  `Project/submission/torch_transformer_benchmark_submission.py`
+  (sha256 `4da76db6…`) — the exact artifact a judge would execute — on all
+  twelve shapes. **That is the board we quote.**
 
-**Every row was then re-measured on the shipped file itself.** The table
-below measures the kernel modules the dispatcher routes to
-(`k009_fused_tuned.py`, `k010_fused_ln.py`), selected because their headers
-match the dispatcher's. That is a documentation match, not a measurement —
-the same species of reasoning that produced the wrong-kernel board — so we
-ran all twelve shapes again against
-`Project/submission/torch_transformer_benchmark_submission.py`
-(sha256 `4da76db6…`), the exact artifact a judge would execute. **That board
-is §2.1.1 and it is the one we quote.**
+### 2.1 The kernel-module board (cross-check)
 
 | shape | dials (B · d · heads · seq · layers · ffn) | route | correctness | speedup |
 |---:|---|---|---|---:|
@@ -195,7 +200,8 @@ paired *inside* each one. Shape 9 is an outlier, not a trend. We report this
 because a suggestive four-point pattern that dies on its fifth point is
 worth more in a methods section than a tidy model that was never tested.
 
-**Three caveats that must travel with 9.68× wherever it is quoted:**
+**Three caveats that must travel with 9.45× wherever it is quoted**, and
+they apply to both boards equally:
 
 1. It **excludes shape 6** (dedicated side lane), so it is **not** the
    official `geomean-shapes-1-13` scenario figure.
@@ -206,7 +212,7 @@ worth more in a methods section than a tidy model that was never tested.
    repair it. The measurements are permitted and reproducible; they are not
    independently adjudicated.
 
-**Read the spread, not just the mean.** 2.02× to 28.41× is a 14-fold range,
+**Read the spread, not just the mean.** 2.02× to 28.28× is a 14-fold range,
 and the mean is a summary rather than a description. §2.3 explains what
 separates the ends.
 
@@ -236,8 +242,12 @@ near-right; it is undefended and happened to be lucky. The distinction
 between *procedurally invalid* and *numerically wrong* is the one this
 project exists to make, and we got to test it on ourselves.
 
-Where §2.1 and the old boards disagree we quote §2.1, because it is the one
-with a permit behind every row.
+Where the old boards and the new ones disagree we quote **§2.1.1**, because
+it is the only board with a permit behind every row *and* the shipped file
+under test. Against §2.1.1's 9.45× the pre-gate 10.32× is **8.4%** high
+rather than 6.2%; the per-shape comparison in the table above is drawn
+against §2.1 because that is the board measured on the same kernel the
+pre-gate runs were nominally exercising.
 
 ### 2.3 Utilisation, and where the remaining headroom is
 
@@ -332,8 +342,11 @@ our kernel varying in quality.
 obvious culprit is that `head_dim` is 8 there and Triton's `tl.dot` has a 16-wide
 minimum, so attention dots run at double width. **We did the arithmetic before
 crediting it:** attention is 268.4 of 1879 MFLOP per layer, i.e. **14.3%** of the
-block, so doubling it can add at most 14.3%. The measured penalty is 63.7%.
-**Padding explains at most a fifth of it and the rest is genuinely unexplained.**
+block, so doubling it can add at most 14.3% of *extra arithmetic*. The measured
+penalty is 63.7%. At this point in the analysis, padding looked able to account
+for only about a fifth of the penalty — which is what sent us looking for a second
+mechanism. (The diagnostic below resolves it: padding is the right locus, and the
+FLOP count was simply the wrong way to size its cost.)
 
 We hypothesised that at `head_dim` 8 the per-head tiles fall below the tensor-core
 tile shape, so the fused kernel's inner loop runs 16 iterations of badly-shaped
@@ -442,7 +455,7 @@ entire transformer block in two authored Triton kernels:
 
 The whole forward pass — all four layers — is then captured as **one CUDA
 graph** and replayed, which removes per-launch CPU cost entirely. This is
-where the 4.8–28.4× on the small shapes comes from — and the fusion story is
+where the 4.4–28.3× on the small shapes comes from — and the fusion story is
 the *load-bearing* one, not the launch-overhead story. The evidence is shape
 5: its baseline is idle only 1.0% of the time, so there is almost no launch
 cost there to remove, and the megakernel still returns **9.15×**. Holding
@@ -456,13 +469,24 @@ block fusion) spans 1.17× → 4.24× and nearly vanishes at a single head. Its
 advantage over that route ranges **1.76× to 6.31×** depending on shape.
 
 **Shape 8 (`k010`) is the exception**: at `d_model` 1024 the block is
-genuinely compute-bound (0.65 MFU) and already at 64% of the fp16
-FP32-accumulate roofline before we touch it, so graph replay buys little.
-The win comes from fusing the LayerNorm and GELU epilogues into the GEMM
+genuinely compute-bound, so graph replay buys little. The baseline here
+already reaches **10.95 TF/s (MFU 0.34)** — it is doing real arithmetic
+rather than waiting on launches, unlike shapes 2 and 3 where the baseline
+sits 82–86% idle. Our kernel takes it to **22.08 TF/s (MFU 0.68)**, and
+**2.02× is precisely what doubling achieved utilisation looks like.** The
+win comes from fusing the LayerNorm and GELU epilogues into the GEMM
 boundaries around cuBLAS fp16 calls, which took the shape from 1.79× to
-2.13× on the referee (+14%, quiet box) during development. **Measured under
-the gate it is 2.02×** — the lowest figure on the board, and the honest one:
-this is a shape where there is little left to take.
+2.13× on the referee (+14%, quiet box) during development. **Measured on the
+shipped file it is 2.02×** — the lowest figure on the board, and the honest
+one: this is a shape where there is little left to take.
+
+> **Correction to an earlier draft of this section**, kept because it was
+> also written into a gate plan and is therefore in the immutable log: it
+> claimed the shape-8 *baseline* was "already at 64% of the fp16 roofline".
+> That 64% is our **candidate's** figure, read off the roofline table's
+> `cand ms` column. The baseline is at 34%. The conclusion — that shape 8 is
+> arithmetic-bound and has the least headroom on the board — is unchanged,
+> but the number supporting it was the wrong side of the comparison.
 
 **Shapes 6 and 14 (`k015`, `k014`)** are block-decomposed variants of the
 same kernels: shape 6 chunks the batch; shape 14 streams the sequence in
@@ -479,7 +503,7 @@ task is to author kernels. `torch.compile` and SDPA exist in the tree only
 as correctness fallbacks and as a measured comparison: on the official
 script, `torch.compile(mode="max-autotune")` reaches 7.00× on shape-3
 dials, 3.10× on shape-13 dials and 1.23× on shape-8 dials, against our
-12.63× / 28.41× / 2.02×. Our margin is largest exactly where compilation
+12.96× / 28.28× / 2.02×. Our margin is largest exactly where compilation
 stops helping — long sequences, and the launch-bound small shapes.
 
 ---
