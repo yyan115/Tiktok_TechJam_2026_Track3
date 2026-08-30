@@ -202,7 +202,9 @@
     }
    },
    "campaign_id": "CAMP-POSTLOCK",
-   "families_tried": [],
+   "families_tried": [
+    "F-shape1-graph"
+   ],
    "max_calibrations_per_shape": 3,
    "max_total_attempts": 60,
    "max_total_calibrations": 30,
@@ -210,7 +212,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 0,
+   "scientific_attempts": 1,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -269,15 +271,45 @@
  },
  "groups": {
   "F-shape1-graph|1": {
+   "best_speedup": null,
    "budget_snapshot": {
     "budget_attempts": 8,
     "budget_minutes": 90,
     "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
     "family_id": "F-shape1-graph"
-   }
+   },
+   "closed": false,
+   "closure_nonce": null,
+   "exec_failures": 0,
+   "nonstrike_budget": 2,
+   "primary_attempted_shas": [
+    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
+   ],
+   "scientific_attempts": 1,
+   "strikes": 0
   }
  },
- "pending_audit_decisions": {},
+ "pending_audit_decisions": {
+  "run-be8e56a55edd1926a84bf5d1efc0b154": {
+   "campaign_id": "CAMP-POSTLOCK",
+   "candidate_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
+   "clean": false,
+   "controller_performance_eligible": false,
+   "correct": true,
+   "eligibility_scope": "primary_champion",
+   "entry_id": "run-be8e56a55edd1926a84bf5d1efc0b154",
+   "family_id": "F-shape1-graph",
+   "group": "F-shape1-graph|1",
+   "measurement_event_id": "evt-20260830T143108.831548Z-c2f3ff0d9785",
+   "measurement_event_sha256": "257a76a34d4846835e631a5e263c7d70249d1a74f06b35171f3c46fcce74583a",
+   "packet_binding_event_sha256": "5273e1eae81afed47cdd7d75ede8dbe9fc68679430177fc607d3c0ca2e117cf2",
+   "packet_sha256": "78ab0d08ee0f6ee2880a87fa1a93550852c3d42432a592c3352c2c2cecbae08a",
+   "request_id": "11900d18e6b354829df3d37e07be948f",
+   "request_sha256": "c7f59c0b93a29e9eb254024e65af645cc3acbca5c97f0340a872966fef8be939",
+   "shape": 1,
+   "speedup": 2.0748144528897536
+  }
+ },
  "pending_postmortem": [],
  "pending_screen_judgment": null,
  "profiles": {
@@ -476,7 +508,8 @@
   "303385f08748f41ecc6782b35f0c2dbfceaf9d4c7f24f8f876e61b39013ad621",
   "761f0a143824f70057a4637d914289f5bce4ebd9bd1871f1a6decb9d089c0464",
   "ef5a5a7aa1a044c8ac92f1739c10d70f10c23ab9bbc4e3b19392026d32286ba0",
-  "ee24a80e114e912cb30eac0c4cd77433a1ddb872e359b4dc3670efc092f29cc2"
+  "ee24a80e114e912cb30eac0c4cd77433a1ddb872e359b4dc3670efc092f29cc2",
+  "257a76a34d4846835e631a5e263c7d70249d1a74f06b35171f3c46fcce74583a"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -499,7 +532,7 @@
  ],
  "research_cycle": 1,
  "research_open": false,
- "seq": 36,
+ "seq": 37,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -516,6 +549,7 @@
   "991da8fb9ffbbfdfe724137b495774006de8d305b43807c674ca92636d241386",
   "2c360f8b688e554936c1eadf4d060d4cff4c51ada08f5d1a1bdf8c879bfde06d",
   "93417daeed525dbfc433b51b28104c36fe945dbab1ad65f1c9e47b9090f4fb7c",
-  "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8"
+  "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8",
+  "c7f59c0b93a29e9eb254024e65af645cc3acbca5c97f0340a872966fef8be939"
  ]
 }

@@ -371,3 +371,47 @@ illustration of why the cross-check rule exists.
 Next: register `F-shape1-graph` (mechanism `cuda-graph-replay`, bottleneck
 `launch-overhead`, changed_resource `kernel-launches`) citing this profile, then the first
 real attempt — k004 against the baseline on shape 1, bar 1.03.
+
+**30 Aug 22:27–22:31 SGT — ATTEMPT 1 of 60. Shape 1: 2.0748x, correct. And my prediction
+was badly wrong.**
+
+Chain: family `F-shape1-graph` registered under an owner-signed `family:*` capability
+(receipt `evt-20260830T142743.633141Z-7651c4b45cbb`, subject
+`22d58ffe2a5353c3…`) → card C5 opened → research cycle 1 (citing
+`roofline-table.md` and `megakernels-persistent.md`) → PLAN accepted, plan `525a0c6372b3`
+→ permit `permit-b0e9bf4925d6bb17a2021cd6a80db7d1` (`may_promote: true`) → controller run
+→ reconcile. Entry `run-be8e56a55edd1926a84bf5d1efc0b154`, group `F-shape1-graph|1`.
+
+**Result: `event_speedup` 2.0748144528897536, `correct: true`**, against a calibrated
+promotion threshold of 1.03. Status `pending_bound_independent_audit` — measured, NOT
+promotable, and it stays that way until an audit binds to it. That distinction is the
+product; do not quote this number as a champion yet.
+
+**The band miss, stated plainly because the ledger will show it anyway.** I predicted
+1.14–1.16 (`predict_min`/`predict_max` are recorded in the plan row at permit time, so
+this is auditable and not something I can retro-fit). The result is 2.07 — roughly 80%
+above the top of my band. The mechanism was right and the magnitude was not.
+
+**Why I got it wrong, since a miss without a cause is just noise.** I anchored on
+LESSONS 22, which records k004 on an idle box at 1.14x for shape 9 and 1.56x for shape 10,
+and I picked the lower anchor on the reasoning that shape 1's roofline candidate time
+(0.6461 ms) sits nearest shape 9's (0.6113 ms). Two errors in that:
+
+1. **I mixed kernels.** The `cand ms` column in `roofline-table.md` is the then-champion
+   route (k009-class), not k004. So I compared a k004 speedup against a k009 timing and
+   treated them as one series. Different candidate, different number, no valid anchor.
+2. **I reasoned from pre-gate numbers I had myself declared dead.** HANDOVER 3.1 says the
+   whole board is ineligible and its baselines were mismeasured by 6–63%. Using those rows
+   to set a band is exactly the "a progress log is not a source" failure of LESSONS 24,
+   committed by me, four hours after writing about it.
+
+The correct honest move would have been to predict from the mechanism arithmetic — 115
+launches removed per forward against a ~0.65 ms forward — rather than from a dead board.
+**Rule for the remaining shapes: set the band from the counter evidence and the roofline,
+never from a pre-gate speedup row.** The 2 percent width the gate enforces is not the
+problem; the anchor was.
+
+What this does NOT mean: the 2.07x is not "better than expected" in a way that flatters
+us. It is a paired, within-invocation, permit-bound measurement at the campaign timing
+protocol against a baseline measured in the same invocation, which is precisely the
+comparison the old board got wrong. It means the old 11x was measuring something else.
