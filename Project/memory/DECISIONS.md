@@ -1457,3 +1457,85 @@ build where the comparison held. I cannot date that from the record, so I claim 
 is provable: **the packets in the tree cannot be reproduced by the tools now in the tree.**
 An evidence artifact that its own generator can no longer regenerate is a weaker artifact
 than it looks, and the report should not imply otherwise.
+
+---
+
+## 31 Aug ~02:45 SGT — The absolute timings were in the packets all along. Three findings.
+
+Every measurement packet carries `baseline.median_ms` and `candidate.median_ms`, not just
+the ratio. Nobody had read them as a set. Extracting all twelve gives the complete picture
+and it settles three things I had been guessing at.
+
+| shape | GFLOP | baseline ms | candidate ms | speedup | achieved TF/s | MFU vs 32.4 |
+|---|---|---|---|---|---|---|
+| 1 | 7.52 | 4.7514 | 0.5704 | 8.3303 | 13.18 | 0.41 |
+| 2 | 0.12 | 1.7392 | 0.1208 | 14.3939 | 0.99 | 0.03 |
+| 3 | 0.47 | 1.7720 | 0.1403 | 12.6314 | 3.35 | 0.10 |
+| 4 | 1.88 | 1.7363 | 0.1956 | 8.8774 | 9.61 | 0.30 |
+| 5 | 15.03 | 9.3358 | 1.0199 | 9.1536 | 14.74 | 0.45 |
+| 7 | 0.67 | 3.1713 | 0.1444 | 21.9645 | 4.64 | 0.14 |
+| 8 | 420.91 | 38.4379 | 19.0649 | 2.0162 | 22.08 | 0.68 |
+| 9 | 7.52 | 2.7085 | 0.5601 | 4.8355 | 13.43 | 0.41 |
+| 10 | 7.52 | 3.6168 | 0.5509 | 6.5651 | 13.65 | 0.42 |
+| 11 | 7.52 | 11.6337 | 0.9175 | 12.6797 | 8.20 | 0.25 |
+| 12 | 1.68 | 1.7275 | 0.1597 | 10.8141 | 10.52 | 0.32 |
+| 13 | 120.26 | 166.579 | 5.8634 | 28.4098 | 20.51 | 0.63 |
+
+### 1. The withdrawn utilisation table was UNDERSTATED, not inflated — my third directional error tonight
+
+Recomputing achieved throughput from the measured candidate medians makes **all twelve
+rows higher** than the table I withdrew, by **2.5% to 28.2%**. I withdrew it assuming it
+was inflated by the same factor as the speedups. It was wrong the other way: the pre-gate
+`cand ms` came from earlier, slower kernels.
+
+That is now three times in one night that I assumed an error's *direction* instead of
+measuring it — "the board is systematically inflated" (it was within 5.6%), "the k009/k004
+ratio is a constant 1.77" (it spans 1.76–6.31), and now this. LESSONS 37 is the general
+form and it has earned its place.
+
+### 2. The per-shape speedup spread is mostly a property of the BASELINE
+
+Shapes 1, 9, 10, 11 are the same problem four times — identical batch, sequence, d_model,
+ffn, layers, differing only in head count 4/1/2/16. Attention FLOPs are `B·H·S·S·(d/H)·2`
+so `H` cancels: **all four are 7.52 GFLOP**, which the roofline table independently agrees
+with and which I re-derived by hand term by term.
+
+- **Baseline: 2.7085 → 3.6168 → 4.7514 → 11.6337 ms.** A **4.3x** degradation across the
+  range, for arithmetic that never changes. The official implementation reshapes and
+  processes per head, so its op count scales with `H` while its FLOPs do not.
+- **Ours: 0.5601 → 0.5509 → 0.5704 → 0.9175 ms.** Flat within **3.5%** from 1 to 4 heads.
+
+So "4.84x on shape 9, 12.68x on shape 11" is mostly a statement about the baseline. **Shape
+9 is not our weak point; it is the baseline's strong point** — one head is one cleanly
+shaped matmul and there is less waste to remove. I had been treating shapes 9 and 10 as
+this submission's weaknesses in the card hypotheses. That reading was wrong, and the
+falsifier I preregistered on shape 9 ("if it lands below 3x the megakernel also collapses
+at a single head") pointed at the wrong variable even though it did not fire.
+
+### 3. But we DO pay 63.7% at 16 heads, and the documented cause explains at most a fifth
+
+Shape 11's candidate is 0.9175 ms against a 0.5605 ms sibling mean — **+63.7%** on
+identical FLOPs, MFU 0.41 → 0.25.
+
+The obvious explanation is `small-head-dim-padding.md`: head_dim 8 pads to 16 for the
+`tl.dot` minimum. **I did the arithmetic before crediting it** (LESSONS 32, applied
+prospectively for once rather than after an auditor caught me). Per layer: QKV 805.3,
+out-proj 268.4, attention 268.4, FFN 536.9 MFLOP — total 1879, of which attention is
+**14.3%**. Doubling attention adds at most 14.3%. Measured is 63.7%. **Padding accounts for
+at most about a fifth; the remaining ~50% is unexplained.**
+
+Hypothesis, labelled as such: at head_dim 8 the per-head tiles are far under the
+tensor-core tile shape, so K2's inner loop runs 16 iterations of badly-shaped work — a
+loop-length and tile-shape effect, not a FLOP-count one. **Shape 7 discriminates it**: also
+head_dim 8, but only 4 heads, and it is the second-best shape on the board at 21.96x. The
+isolating run is a torch-profiler diagnostic comparing K2 device time on shapes 11 and 1
+with identical bytes — a diagnostic permit, no attempt budget. **Not run.**
+
+This makes **shape 11 the clearest optimization target left**: the only shape measurably
+inefficient against a directly comparable sibling on identical arithmetic. Full closure
+would take it to ~20.8x and the geomean to ~10.1x, **+4.2%**. That assumes the gap closes
+completely, which nothing supports, so it is a bounded target and not a plan, and per
+LESSONS 35 no prediction band is attached.
+
+Written up as `Project/research/head-count-scaling.md`; INDEX updated, so the index hash
+changes and the next research cycle must cite the new one.

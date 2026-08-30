@@ -191,78 +191,112 @@ with a permit behind every row.
 
 ### 2.3 Utilisation, and where the remaining headroom is
 
-> ⚠ **PARTIALLY REINSTATED 31 Aug ~02:10 — the table below is approximately
-> right, and one sentence under it is wrong.**
->
-> The `achieved TF/s` and MFU columns are computed from the `cand ms` column of
-> `Project/research/roofline-table.md`, which holds **pre-gate candidate times**.
-> On 31 Aug ~00:55 we withdrew them on the assumption that they were inflated by
-> the same factor as the withdrawn speedups. That assumption was itself computed
-> from the wrong kernel and was wrong.
->
-> Recompute for shape 1 from the measured board, inputs shown so it can be
-> checked: 7.52 GFLOP (roofline-table) ÷ (5.154 ms baseline ÷ **8.3303×**
-> measured) = 7.52 GFLOP ÷ 0.6187 ms ≈ **12.15 TF/s, MFU ≈ 0.375** against the
-> 32.4 TF/s FP32-accumulate roof — against **11.63 TF/s and 0.36** in the table.
-> Agreement ~4.5%. The table stands as indicative. It still needs a clean
-> recompute from post-LOCK medians on every row before it ships, and the
-> **[PENDING]** label stays until that lands.
->
-> **The sentence that must go** is the last one in the prose below: *"the biggest
-> per-shape speedups (25×, 29×) sit next to the lowest MFUs."* The measured board
-> refutes it. The two biggest speedups are shape 13 (**28.41×**, MFU 0.62 — one of
-> the *highest*) and shape 7 (**21.96×**, MFU 0.11 — one of the lowest). MFU does
-> not order the speedups.
->
-> **Nor does baseline idle.** Idle fraction, nsys, post-LOCK: shape 2 **86.0%**,
-> shape 3 **82.6%**, shape 12 **69.8%**, shape 4 **49.2%**, shape 7 3.2%, shape 1
-> 3.4%, shape 5 **1.0%**, shape 8 0.2%. Shape 5 has essentially **no launch gaps
-> to recover** — and the megakernel still returns **9.15×** there. So the
-> mechanism is not "the baseline wastes time between launches and we stop
-> wasting it." Keeping the whole block resident in registers **deletes memory
-> traffic**; it does less work, rather than doing the same work with fewer gaps.
-> This is why an idle-fraction argument can never bound this mechanism from
-> above, and it is the single most useful thing the re-measurement campaign
-> produced.
+**Recomputed 31 Aug from the measured board.** Every row below is derived from the
+same post-LOCK paired medians as §2.1 — `achieved TF/s = model GFLOP ÷ measured
+candidate median` — replacing an earlier table built on pre-gate candidate times.
+Absolute timings are quoted because they are what the derivation rests on.
 
-Full board: `Project/results_side/SENSITIVITY.md` (regenerate with
-`python3 Project/tools/sensitivity_board.py`).
+| shape | GFLOP | baseline ms | candidate ms | achieved TF/s | MFU vs 32.4 | MFU vs 64.8 | limiter |
+|---:|--:|--:|--:|--:|--:|--:|---|
+| 1 | 7.52 | 4.7514 | 0.5704 | 13.18 | 0.41 | 0.20 | latency / grid |
+| 2 | 0.12 | 1.7392 | 0.1208 | 0.99 | 0.03 | 0.02 | latency / grid |
+| 3 | 0.47 | 1.7720 | 0.1403 | 3.35 | 0.10 | 0.05 | latency / grid |
+| 4 | 1.88 | 1.7363 | 0.1956 | 9.61 | 0.30 | 0.15 | latency / grid |
+| 5 | 15.03 | 9.3358 | 1.0199 | 14.74 | 0.45 | 0.23 | latency / grid |
+| 7 | 0.67 | 3.1713 | 0.1444 | 4.64 | 0.14 | 0.07 | latency / grid |
+| 8 | 420.91 | 38.4379 | 19.0649 | 22.08 | **0.68** | 0.34 | compute |
+| 9 | 7.52 | 2.7085 | 0.5601 | 13.43 | 0.41 | 0.21 | latency / grid |
+| 10 | 7.52 | 3.6168 | 0.5509 | 13.65 | 0.42 | 0.21 | latency / grid |
+| 11 | 7.52 | 11.6337 | 0.9175 | 8.20 | **0.25** | 0.13 | see §2.3.1 |
+| 12 | 1.68 | 1.7275 | 0.1597 | 10.52 | 0.32 | 0.16 | latency / grid |
+| 13 | 120.26 | 166.579 | 5.8634 | 20.51 | 0.63 | 0.32 | compute |
+| 6, 14 | | | | **[PENDING]** | | | no runnable baseline |
 
-| shape | achieved TF/s | MFU vs 32.4 TF/s | MFU vs 64.8 TF/s | limiter |
-|---:|--:|--:|--:|---|
-| 1 | 11.63 | 0.36 | 0.18 | latency / grid |
-| 2 | 0.81 | 0.03 | 0.01 | latency / grid |
-| 3 | 3.27 | 0.10 | 0.05 | latency / grid |
-| 4 | 7.74 | 0.24 | 0.12 | latency / grid |
-| 5 | 13.82 | 0.43 | 0.21 | latency / grid |
-| 6 | 14.01 | 0.43 | 0.22 | compute |
-| 7 | 3.62 | 0.11 | 0.06 | latency / grid |
-| 8 | 20.93 | 0.65 | 0.32 | compute |
-| 9 | 12.29 | 0.38 | 0.19 | latency / grid |
-| 10 | 12.46 | 0.39 | 0.19 | latency / grid |
-| 11 | 7.82 | 0.24 | 0.12 | latency / grid |
-| 12 | 9.39 | 0.29 | 0.15 | latency / grid |
-| 13 | 19.94 | 0.62 | 0.31 | compute |
-| 14 | **[PENDING]** | | | attention-bound |
+**The earlier table was understated, not inflated.** When we withdrew the speedup
+board we also withdrew this one, assuming it was wrong by the same factor. It was
+wrong in the opposite direction: every one of the twelve rows recomputes **higher**
+than the withdrawn figure, by **2.5% to 28%** (shape 3 +2.5%, shape 13 +2.9%,
+shape 11 +4.9%, shape 8 +5.5%, shape 5 +6.7%, shape 9 +9.3%, shape 10 +9.6%,
+shape 12 +12.0%, shape 1 +13.3%, shape 2 +22.6%, shape 4 +24.2%, shape 7 +28.2%).
+The old `cand ms` came from earlier, slower kernels. This is the third time in one
+night that assuming an error's *direction* rather than measuring it produced a new
+error, which is why it is written down rather than quietly fixed.
 
-MFU here counts *model* FLOPs only (projections, attention, FFN; causal
-halved). LayerNorm, GELU and softmax consume real GPU time but are not in
-the numerator, so these figures understate utilisation rather than
-overstate it.
+MFU here counts *model* FLOPs only (projections, attention, FFN; causal halved).
+LayerNorm, GELU and softmax consume real GPU time but are not in the numerator, so
+these figures understate utilisation rather than overstate it.
 
 The reading that matters: **the small shapes are not compute-limited, they
 are launch- and grid-limited.** At ideal fusion every shape's arithmetic
 intensity clears the 72 FLOP/byte balance point of this card, so the
 roofline view collapses onto the compute roof — the low MFU on shapes 2, 3
-and 7 is not wasted bandwidth, it is a grid too small to fill 38 SMs.
-That is a physics wall, not a missing optimization.
+and 7 is not wasted bandwidth, it is a grid too small to fill 38 SMs. That
+is a physics wall, not a missing optimization.
 
-What the measured board adds is that **neither MFU nor baseline idle
-predicts the speedup**: shape 13 pairs the largest win (28.41×) with a high
-MFU (0.62), shape 7 pairs a nearly-as-large win (21.96×) with one of the
-lowest (0.11), and shape 5 returns 9.15× from a baseline that is idle only
-1.0% of the time. What the megakernel removes is memory traffic and
-redundant work, not merely launch gaps — see the note above §2.3.
+### 2.3.1 What orders the speedups — and it is none of the obvious things
+
+**Not MFU.** The two biggest speedups are shape 13 (28.41×) at MFU 0.63, one of
+the *highest*, and shape 7 (21.96×) at MFU 0.14, one of the lowest.
+
+**Not baseline idle.** Idle fraction, nsys, post-LOCK: shape 2 **86.0%**, shape 3
+82.6%, shape 12 69.8%, shape 4 49.2%, shape 7 3.2%, shape 1 3.4%, shape 5
+**1.0%**, shape 8 0.2%. Shape 5 has essentially **no launch gaps to recover** and
+the megakernel still returns **9.15×** there. So the mechanism is not "the baseline
+wastes time between launches and we stop wasting it". Keeping the block resident in
+registers **deletes memory traffic** — it does less work, rather than the same work
+with fewer gaps. This is why an idle-fraction ceiling can never bound this
+mechanism from above, and it is the most useful thing the re-measurement produced.
+
+**What does order them, substantially, is the baseline's own efficiency.** Shapes
+1, 9, 10 and 11 are the same problem four times — identical batch, sequence,
+`d_model`, ffn and layers, differing *only* in head count (4, 1, 2, 16). Attention
+FLOPs are `B·H·S·S·(d/H)·2`, so `H` cancels: **all four are 7.52 GFLOP.**
+
+| heads | head_dim | shape | baseline ms | candidate ms | speedup |
+|---|---|---|---|---|---|
+| 1 | 128 | 9 | 2.7085 | 0.5601 | 4.84× |
+| 2 | 64 | 10 | 3.6168 | 0.5509 | 6.57× |
+| 4 | 32 | 1 | 4.7514 | 0.5704 | 8.33× |
+| 16 | 8 | 11 | 11.6337 | 0.9175 | 12.68× |
+
+**The baseline slows 4.3× across that range for arithmetic that never changes**,
+because it reshapes and processes per head. Our kernel, which fuses all heads into
+one pass, is **flat within 3.5%** from 1 to 4 heads — which is what identical
+arithmetic should look like.
+
+So *"4.84× on shape 9, 12.68× on shape 11"* is mostly a statement about the
+baseline. Shape 9 is not our weak point; it is the baseline's strong point — one
+head is one cleanly-shaped matmul, and there is simply less waste to remove. We
+report the per-shape spread rather than a single mean precisely because the mean
+would hide this, but the spread should be read as a property of the problem, not as
+our kernel varying in quality.
+
+**With one real exception, which is our own.** At 16 heads our candidate jumps to
+0.9175 ms — **+63.7%** on identical FLOPs, dropping MFU from ~0.41 to 0.25. The
+obvious culprit is that `head_dim` is 8 there and Triton's `tl.dot` has a 16-wide
+minimum, so attention dots run at double width. **We did the arithmetic before
+crediting it:** attention is 268.4 of 1879 MFLOP per layer, i.e. **14.3%** of the
+block, so doubling it can add at most 14.3%. The measured penalty is 63.7%.
+**Padding explains at most a fifth of it and the rest is genuinely unexplained.**
+
+Our hypothesis — stated as a hypothesis — is that at `head_dim` 8 the per-head
+tiles fall far below the tensor-core tile shape, so the fused kernel's inner loop
+runs 16 iterations of badly-shaped work. Shape 7 discriminates the two stories: it
+also has `head_dim` 8 but only 4 heads, and it is the *second-best* shape on the
+board. The isolating experiment is a torch-profiler diagnostic comparing K2's
+device time on shapes 11 and 1 with identical bytes; it costs a diagnostic permit
+and no attempt budget, and **we have not run it.** Full working:
+`Project/research/head-count-scaling.md`.
+
+This makes **shape 11 the clearest remaining optimization target on the board** —
+the only shape whose candidate is measurably inefficient against a directly
+comparable sibling running the same code on the same arithmetic. Closing the gap
+entirely would take it to roughly 20.8× and the twelve-shape geometric mean to
+about 10.1×, a **+4.2%** improvement. That assumes the gap closes completely, which
+nothing yet supports, so it is recorded as a bounded target rather than a plan.
+
+Full board: `Project/results_side/SENSITIVITY.md` (regenerate with
+`python3 Project/tools/sensitivity_board.py`).
 
 ### 2.4 The two shapes that do not fit
 
