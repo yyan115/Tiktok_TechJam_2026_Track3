@@ -696,8 +696,11 @@ The submission ships the actual process artifacts, not a reconstruction.
 - **Warmup excluded** (20 calls), compilation and first run excluded, as
   the organizers specified.
 - **CUDA-event timing with a wall-clock cross-check.** If the two disagree
-  beyond a threshold the entry is flagged suspicious. No shipped entry is
-  flagged.
+  beyond a threshold the entry is flagged suspicious. Every packet carries
+  both numbers and the ratio: shape 13 reads event 28.2849× against wall
+  28.1431× (agreement 1.005), shape 8 event 2.0160× against wall 2.0179×
+  (agreement 1.0008). **No row in either board is flagged**; the
+  `suspicious` field is `false` on every packet we inspected.
 - **Correctness on 7 trials per entry** — five fixed seeds (1234–1238) plus
   two drawn at random per run, so a candidate cannot be tuned to the seed
   list — using the official predicate exactly:
@@ -713,9 +716,20 @@ The submission ships the actual process artifacts, not a reconstruction.
 - **Absolute latencies are never compared across runner invocations.** GPU
   clock state differs between processes (a 9% swing on identical work);
   only within-invocation alternating rounds are comparable.
-- **Committed bytes before first contact.** Each candidate is committed to
-  git before it is ever measured, so the audited bytes and the measured
-  bytes are provably the same.
+- **The measured bytes are content-addressed, not merely committed.**
+  Pre-LOCK the rule was "commit the candidate to git before measuring it",
+  which the auditor correctly found insufficient — a packet could still
+  embed the *current* source hash rather than the measured one (§4).
+  Post-LOCK the controller snapshots the candidate into a content-addressed
+  blob at permit issue and binds that sha256 into the permit, the request
+  and the measurement packet. For every row of §2.1.1 that sha is
+  `4da76db6…`, the shipped submission file. The audited bytes and the
+  measured bytes are the same object, not two objects asserted to match.
+- **Warmup 20 / repeats 100 / rounds 3**, identical for calibration and for
+  every measured row — the protocol is recorded in each shape's calibration
+  entry in `gate_state.json` and re-stated in every request, so a reader can
+  check that no row used a friendlier timing config than its own noise floor
+  was derived from.
 
 **Gate labeling (binding honesty note).** The §2.1 speedup board was
 produced **after** the authority-v4 enforcement gate went live: every row
