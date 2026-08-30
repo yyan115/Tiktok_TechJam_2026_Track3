@@ -575,7 +575,7 @@ class Fixture:
         self._set(cw, "load_bound_packet",
                   bound(aa.load_bound_packet, packets_dir=self.packets,
                         authority_blobs=self.blobs))
-        self._set(cw, "resolve_codex_identity",
+        self._set(cw, "resolve_auditor_identity",
                   lambda *args, **kwargs: STUB_IDENTITY)
         self._set(cw, "runner_busy", lambda: False)
         self._set(cw, "run_gate_post", self._reconcile_spy)

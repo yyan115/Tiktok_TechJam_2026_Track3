@@ -291,6 +291,13 @@ def resolve_codex_identity(invoked_path: Path, pinned_sha256: str,
     return CodexIdentity(str(invoked_path), str(resolved), actual)
 
 
+# The check is about the auditor binary, not about whose binary it is: absolute
+# path, outside HOME, and matching a pinned hash. The original name predates
+# there being more than one backend; both names are kept so existing callers
+# and tests are not disturbed by the rename.
+resolve_auditor_identity = resolve_codex_identity
+
+
 def load_bound_packet(
     entry_id: str,
     *,

@@ -37,14 +37,13 @@ from audit_authority import (
     read_events,
     record_attempt_failure,
     record_attempt_started,
-    resolve_codex_identity,
+    resolve_auditor_identity,
     store_content_addressed_json,
 )
 from audit_champion import (
     AUDIT_LOG_DIR,
-    CODEX_EXECUTABLE,
-    PINNED_CODEX_SHA256,
     marker_path,
+    selected_backend,
 )
 
 AUDITOR = Path(__file__).with_name("audit_champion.py")
@@ -390,7 +389,11 @@ def watch_once(*, max_launches: int = 1, dry_run: bool = False,
                reconcile_gate: bool = True) -> dict:
     if reconcile_gate and not dry_run:
         run_gate_post()
-    identity = resolve_codex_identity(CODEX_EXECUTABLE, PINNED_CODEX_SHA256)
+    # Verify the auditor binary before anything is launched: an audit that
+    # cannot name its auditor is not an audit. Which backend is in force is a
+    # property of the run, so it is resolved here rather than assumed.
+    _backend_name, _backend = selected_backend()
+    identity = resolve_auditor_identity(_backend["executable"], _backend["sha256"])
     if not dry_run:
         clean_terminal_markers()
         reap_abandoned_attempts()
