@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788108191.758128,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-30T23:58:11+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-226ba4f3a7cfa423e8ccb4ba.json",
+ "profile_record_id": "profile-226ba4f3a7cfa423e8ccb4ba",
+ "promotion_allowed": false,
+ "question": "Establish the baseline device idle fraction and kernel breakdown on shape 8, whose model dimension of 1024 makes it the most GEMM-dominated shape on the board, to test whether it sits in the work-bound regime alongside shape 9.",
+ "request_id": "82c86d70812dfa1687152b8d2ba95ce6",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/c9358a353c88f642610a7042f1a4d7fd8a62c704bc21048c28cfaa426e267ede.json",
+ "request_sha256": "c9358a353c88f642610a7042f1a4d7fd8a62c704bc21048c28cfaa426e267ede",
+ "route": "k000-baseline eager route on shape 8",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 8,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+ "tool": "nsys",
+ "verdict_lines": 81
+}

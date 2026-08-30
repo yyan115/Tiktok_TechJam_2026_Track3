@@ -613,6 +613,47 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:58 – 31 Aug 00:01 SGT — shape 8 measures 1.1060x, the LOWEST on the board, and
+the regime model passed the falsification test that could have embarrassed it.**
+
+Shape 8 (d=1024) baseline measures `gpu_idle_fraction` **0.00225** — 99.8% device-busy,
+768 ms of device work across 20 iterations, the most work-bound route measured. Its head
+dimension is 256, the largest on the board, so baseline attention matmuls are large and
+well shaped rather than fragmented. Its score tensor stays at 16.8 MB per layer (S and H
+unchanged from shape 1) while its linear layers grow 64-fold in FLOPs, so attention is a
+small slice of a much bigger forward — `roofline-table.md` calls it ~98% linear.
+
+So all three baseline weaknesses that explain every win tonight are simultaneously weak
+here. **I predicted the bottom of the board and set the falsifier at 2.15. Measured
+1.1060x — the falsifier did not fire.**
+
+This one mattered more than the others: **it is the first card that predicted a LOW
+result.** A regime model that only ever predicts large wins is not falsifiable in the
+direction that would discredit it. This one was, and it held.
+
+Note it is still a win, not a loss: 1.1060x clears the calibrated 1.03 threshold. The
+candidate is never *worse* than the baseline on any shape measured tonight.
+
+### Board after nine shapes — geomean 2.60x
+
+| shape | k004 | baseline idle | dominant weakness |
+| --- | --- | --- | --- |
+| 8 | 1.1060x | 0.2% | none — GEMM-dominated, well-shaped |
+| 9 | 1.1723x | — | none — single-head attention already efficient |
+| 10 | 1.5833x | — | mild head splitting |
+| 1 | 2.1428x | 3.4% | reference |
+| 5 | 2.1475x | 1.0% | reference, size irrelevant |
+| 12 | 3.2334x | 69.8% | launch-bound |
+| 11 | 4.2433x | — | 16 small per-head matmuls |
+| 13 | 5.8096x | — | 1.07 GB score tensor per layer |
+| 3 | 7.1845x | 82.6% | launch-bound |
+
+**Method scorecard, and the asymmetry is now stark.** Numeric bands: **0 for 11**.
+Qualitative regime hypotheses with preregistered falsifiers: **3 for 3**, including one
+aimed at the low end. I cannot forecast magnitudes in this system at all; I can classify
+regimes reliably. That distinction is worth putting in the report, because it says which
+kind of claim this project's evidence can carry.
+
 **30 Aug 23:53–23:55 SGT — shape 12 measures 3.2334x. Second qualitative hypothesis to
 survive its falsifier, and the board now has a partial explanatory model.**
 
