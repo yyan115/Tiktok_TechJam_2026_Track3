@@ -1,19 +1,34 @@
 # Track 3 Tech Report — an AI agent that writes GPU kernels, and a referee it cannot bribe
 
-> ## ⛔ DOCUMENT-WIDE CORRECTION — 31 Aug ~00:55 SGT
+> ## ⛔ DOCUMENT-WIDE CORRECTION — 31 Aug ~00:55 SGT, amended 01:05
 >
 > **This draft was written 30 Aug ~11:25, before the LOCK and before the
 > post-LOCK re-measurement campaign. Its headline speedup is withdrawn.**
 >
-> | | claimed in this draft | measured post-LOCK |
-> | --- | --- | --- |
-> | geomean, 12 primary shapes | 10.3× / 10.32× / 10.95× | **2.94×** |
-> | best shape | 28.8× (shape 13) | **8.11×** (shape 2) |
+> **AMENDMENT 01:05 — READ THIS BEFORE USING THE 2.94× FIGURE.**
+> The post-LOCK board measured **`k004_graphed_triton.py`** (fp32 authored Triton
+> attention + whole-forward CUDA graph). **That is NOT the route this submission
+> ships.** The dispatcher in `Project/submission/dispatcher_region.py` routes
+> `d_model ≤ 128` to the **fused-block megakernel** (k009-class) and larger
+> `d_model` to an **fp16 tensor-core stack**. So:
 >
-> Cause: every pre-gate row was measured against a baseline **6–63% slower than
-> its own calibration** (`HANDOVER.md` §3.1), which inflates the ratio. The
-> replacement board was measured on a verified-quiet box, paired inside one
-> invocation, correct on every seed — see the block in §2.
+> - **10.32× is withdrawn** — measured against mismeasured baselines.
+> - **2.94× is a valid controlled measurement of the WRONG KERNEL** for this
+>   submission. It is not a replacement headline and must not be quoted as one.
+> - **The shipped route has no post-LOCK number yet.** It is the more optimised
+>   path, so its figure is plausibly higher than 2.94×, but that is an
+>   expectation, not a measurement, and nothing may be claimed from it.
+>
+> | | claimed in this draft | post-LOCK status |
+> | --- | --- | --- |
+> | geomean, 12 primary shapes | 10.3× / 10.32× / 10.95× | **withdrawn; shipped route unmeasured** |
+> | best shape | 28.8× (shape 13) | **withdrawn; shipped route unmeasured** |
+> | k004 (non-shipping route) | — | 2.94× geomean, range 1.11×–8.11× |
+>
+> Cause of the original error: every pre-gate row was measured against a baseline
+> **6–63% slower than its own calibration** (`HANDOVER.md` §3.1), which inflates
+> the ratio. Cause of the second: the post-LOCK campaign followed the runbook's
+> worked example, which used k004, and never checked it against the dispatcher.
 >
 > **The status claim immediately below ("every number below is measured and
 > cited") was true when written and is not true now.** Treat every numeric claim

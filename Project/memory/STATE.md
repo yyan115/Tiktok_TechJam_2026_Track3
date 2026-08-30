@@ -16,6 +16,48 @@ Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 
 ---
 
+## 00. ⛔⛔ I MEASURED THE WRONG KERNEL. The 2.94x board is NOT the submission.
+
+Found 31 Aug ~01:05 SGT while auditing the tech report. **This is my error and it
+supersedes the framing of every entry below.**
+
+The whole twelve-shape post-LOCK board measured
+**`Project/kernels/k004_graphed_triton.py`** — fp32 authored Triton attention plus a
+whole-forward CUDA graph. **That is not what this submission ships.**
+`Project/submission/dispatcher_region.py` routes:
+
+- `d_model <= 128`, causal, no padding mask → **fused-block megakernel** (k009-class:
+  LayerNorm+QKV fused, flash attention over all heads with the output projection folded
+  into the head loop, residual + norm + GELU FFN in-register), CUDA-graphed. **That is
+  11 of the 12 primary shapes.**
+- larger `d_model` → **fp16 tensor-core stack** with fp32 accumulation. **That is shape 8.**
+
+**How it happened:** runbook step 11's worked example profiles
+`k004_graphed_triton.py`. I followed the example, made k004 the campaign's candidate, and
+never checked it against the dispatcher. 22 attempts characterise a route that does not
+ship.
+
+**What survives, precisely:**
+- The **12 calibrated noise floors and promotion thresholds** — candidate-independent.
+- **Every baseline profile** (launch counts, idle fractions, kernel breakdowns) —
+  measured on `k000_baseline.py`, unaffected.
+- **The whole regime model** — head width, quadratic sequence, launch-bound small batch —
+  because those are *baseline* weaknesses, not properties of k004.
+- The method scorecard and all LESSONS.
+
+**What does not survive:** 2.94x as a claim about this submission. It is a valid
+controlled measurement of the wrong kernel.
+
+**Correction propagated** to all three judge-facing drafts, which briefly carried my
+2.94x as if it replaced the withdrawn 10.32x. They now say plainly that **the shipped
+route has no valid post-LOCK measurement**. The video script's speed lower-third is
+marked "leave blank".
+
+**Next action (highest value, 38 attempts remain):** re-screen the *shipped* route —
+`k009_fused_tuned.py` for `d_model <= 128` shapes and the fp16 stack for shape 8 —
+using the same quiet-box screening protocol. The calibrations and baseline profiles are
+already in place, so this is fast.
+
 ## 0. ⛔ READ FIRST — three judge-facing drafts carried a 3.5x overstatement
 
 Found 31 Aug ~00:30 SGT, **19 hours before freeze**. `Project/drafts/` was written

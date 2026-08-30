@@ -125,16 +125,18 @@ differentiated thirty seconds in the video.
 
 ## Numbers to have on the lower third
 
-> ⛔ **WITHDRAWN 31 Aug ~00:30 SGT — do not read these on camera.** The 10.3× /
-> 10.95× geomean and the 28.8× / 25.6× best-shape figures are pre-gate numbers
-> measured against baselines 6–63% slower than their own calibration
-> (`HANDOVER.md` §3.1). Corrected post-LOCK figures, verified-quiet box:
-> **geomean 2.94×**, best shape **8.11×** (batch 1) then **7.18×** (batch 4) and
-> **5.81×** (sequence 1024). Excludes shape 6, so not the official
-> `geomean-shapes-1-13` figure, and screening-lane so not yet promotable.
+> ⛔ **WITHDRAWN 31 Aug ~00:30, AMENDED 01:05 — do not read any speedup on
+> camera yet.** The 10.3× / 10.95× geomean and the 28.8× / 25.6× best-shape
+> figures are pre-gate numbers measured against baselines 6–63% slower than their
+> own calibration (`HANDOVER.md` §3.1). **The 2.94× post-LOCK board is also not a
+> substitute**: it measured `k004_graphed_triton.py`, which is *not* the route
+> this submission ships (the dispatcher uses the fused-block megakernel for
+> `d_model ≤ 128` and an fp16 stack above that). **The shipped route currently
+> has no valid measured speedup.** Leave the lower third blank on speed until it
+> does; the correctness and control-system claims below are unaffected.
 
-- ~~geomean **10.3×** (organizers' script) / 10.95× (our referee)~~ **WITHDRAWN → 2.94×**
-- ~~best shape **28.8×** (sequence 1024) · **25.6×** (`d_model` 32)~~ **WITHDRAWN → 8.11× (batch 1) · 7.18× (batch 4)**
+- ~~geomean **10.3×** (organizers' script) / 10.95× (our referee)~~ **WITHDRAWN — no valid replacement yet**
+- ~~best shape **28.8×** (sequence 1024) · **25.6×** (`d_model` 32)~~ **WITHDRAWN — no valid replacement yet**
 - shape 14: seq 100,000 causal, **0 violations**, 305 MiB
 - shape 6: batch 10,000, **0 violations**, 3.4 GiB
 - **all 14 shapes pass precision**

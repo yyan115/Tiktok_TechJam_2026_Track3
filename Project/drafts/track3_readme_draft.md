@@ -60,16 +60,18 @@ to rebuild the authority model from scratch.
 > They were measured pre-gate against baselines that `HANDOVER.md` §3.1 records as
 > **6–63% slower than their own calibration**, so the ratios are inflated.
 >
-> **Controlled post-LOCK replacement, verified-quiet box, paired within one
-> invocation, correct on every seed:**
+> **AMENDED 01:05 — there is currently NO valid headline for this submission.**
+>
+> The post-LOCK board below measured `k004_graphed_triton.py`, which is **not the
+> route this submission ships**. The dispatcher sends `d_model ≤ 128` to the
+> fused-block megakernel and larger `d_model` to an fp16 tensor-core stack.
 >
 > | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 > |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-> | **speedup** | **2.14×** | **8.11×** | **7.18×** | **2.72×** | **2.15×** | **3.48×** | **1.11×** | **1.17×** | **1.58×** | **4.24×** | **3.23×** | **5.81×** | **2.94×** |
+> | k004, **not shipped** | 2.14× | 8.11× | 7.18× | 2.72× | 2.15× | 3.48× | 1.11× | 1.17× | 1.58× | 4.24× | 3.23× | 5.81× | **2.94×** |
 >
-> **2.94×, not 10.32×.** Excludes shape 6, so it is not the official
-> `geomean-shapes-1-13` figure, and it is screening-lane so not yet promotable
-> (audit recording is broken — see `Project/memory/STATE.md` §1).
+> So: **10.32× is withdrawn, and 2.94× describes a different kernel.** The shipped
+> route has no post-LOCK measurement yet. Quote neither figure as the result.
 
 ### On the organizers' untouched script
 
