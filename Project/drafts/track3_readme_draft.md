@@ -17,9 +17,12 @@ On an NVIDIA RTX 3060 Ti (consumer, 8 GB), authored Triton/CUDA kernels run
 the track's 14 test shapes with a **geometric-mean 9.45× speedup** across
 the twelve that have a runnable official baseline — ranging from 2.02× on
 the one already near its arithmetic roofline to 28.28× on the longest
-sequence — every shape passing the precision test
-(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`). Every figure was measured **on the
-submission file itself**, under a one-use permit bound to its hash. The two shapes that
+sequence. Every figure was measured **on the submission file itself**, under
+a one-use permit bound to its hash. All 14 shapes pass the precision test
+(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`) — the 12 with a runnable official
+baseline under the official predicate on 7 trials each, and shapes 6 and 14
+against validated oracles on one seed each, since no official baseline for
+those exists on this hardware. The two shapes that
 cannot run in their official form on this hardware are solved by block
 decomposition on the same card and verified against exact references.
 

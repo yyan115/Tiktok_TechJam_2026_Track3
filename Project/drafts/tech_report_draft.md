@@ -84,9 +84,12 @@ RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
 locally-runnable test shapes at a **geometric-mean 9.45× speedup**, ranging
 from **2.02×** on the one shape whose baseline is already doing real
 arithmetic rather than waiting on kernel launches, to **28.28×** on the
-longest sequence, with every shape passing the precision
-test and every figure measured **on the submission file itself**, under a
-one-use permit bound to its hash. The two shapes that cannot run on this
+longest sequence, with every figure measured **on the submission file
+itself** under a one-use permit bound to its hash. All 14 shapes pass the
+precision test, on two different grades of evidence we keep distinct
+throughout: the 12 with a runnable official baseline are verified under the
+official predicate on 7 trials each, post-LOCK; shapes 6 and 14 have no such
+baseline and are verified against validated oracles on one seed each (§2.4). The two shapes that cannot run on this
 hardware in their official form — shape 6 (batch 10,000, baseline OOMs)
 and shape 14 (sequence 100,000, whose naive attention table is multi-
 terabyte) — are solved by block decomposition on the same 8 GB card and
@@ -133,6 +136,20 @@ limitations are considered):
 ---
 
 ## 2. Results
+
+**What is being measured.** Every row below runs the **untouched official
+benchmark** (`torch_transformer_benchmark.py`, sha256 `5529c96a…`) with only
+the sanctioned `UserOptimizedTransformer` region replaced.
+
+**Byte-identity outside that region is owner-verified, and we are precise
+about who verified it.** `python3 Project/tools/build_submission.py --verify`
+proves mechanically that everything outside the sanctioned region matches the
+official script. That command is deliberately **not on the optimizing
+agent's allowlist** — an agent must not be able to certify its own
+submission boundary — so the human owner runs it. What the agent can and did
+confirm is that the reference has not moved: the official script is one of
+the 29 files in the LOCK manifest, and `trusted_controller.py verify-lock`
+reports `valid: true` across all of them.
 
 **Measurement protocol, identical for every row in §2.1 and §2.1.1.**
 Measured 30–31 Aug on a verified-quiet box with the enforcement gate live:
@@ -550,7 +567,12 @@ different shapes by adding shape checks").
 
 **What we did not do.** No external kernel library is wrapped —
 FlashAttention, xFormers and friends are absent by choice, because the
-task is to author kernels. `torch.compile` and SDPA exist in the tree only
+task is to author kernels. **Verified in the shipped file rather than
+asserted:** the sanctioned region's entire import surface is `triton` and
+`triton.language`, wrapped in a `try/except` that sets `_TRITON_OK = False`
+and falls back to the unchanged baseline path. A judge on a machine without
+Triton still gets numerically exact results, including pre-softmax key
+masking — the fast paths are an optimisation, not a dependency. `torch.compile` and SDPA exist in the tree only
 as correctness fallbacks and as a measured comparison: on the official
 script, `torch.compile(mode="max-autotune")` reaches 7.00× on shape-3
 dials, 3.10× on shape-13 dials and 1.23× on shape-8 dials, against our
@@ -880,7 +902,40 @@ write-protected against the agent that they govern.
 This design was itself adversarially reviewed by the cross-family auditor
 over thirteen rounds; the first version was thrown out entirely, roughly
 fifty real holes were found and fixed, and the final round returned
-APPROVE.
+APPROVE. ⚠ **Verify the last clause before shipping.** Our own operating
+notes record that a Codex review round died mid-flight on a provider-side
+content filter having produced **no verdict line**, and that *a missing
+verdict must never be read as an APPROVE*. We did not re-confirm from the
+raw logs that round 13 carries a genuine APPROVE rather than an absent one.
+Check it or drop the clause; the round count and the fixes stand on their
+own.
+
+**What we did re-run, and it is stronger evidence than the review anyway.**
+The controls in the table above are covered by executable tests, not just
+prose:
+
+- `champion_watch_test.py`: **278/278 passed**, covering the mechanisms this
+  section claims. Specifically on the verdict brake — *"RULE_VIOLATION:
+  unauthenticated resolution is refused"*, *"resolution with the wrong
+  capability nonce is refused"*, *"resolution authorized for another event
+  hash is refused"*, *"only the exact authenticated resolution clears it"*,
+  *"the same verdict cannot be resolved twice"*, and *"a legacy
+  RULE_VIOLATION row latches as an unresolved hard verdict"*. Also
+  *"advisory technical verdict never rescues a hard integrity one"* and
+  *"forged response artifacts leave the entry queued"*.
+- The suite even pins a **known defect as a passing test** —
+  *"DEFECT, pinned: an aborted launch leaves a durable open attempt that only
+  the stale reaper can clear"* — which is how we prefer to carry a limitation:
+  executable, named, and impossible to forget.
+- **11 of 12 suites are green.** The twelfth,
+  `integration_authority_test.py`, is **stale, not failing meaningfully**: it
+  asserts `runner.py` still exposes the pre-LOCK internals (`is_primary`,
+  `OFFICIAL_DEFAULTS`), and the LOCK replaced that file with the 27-line
+  shim. Its two completed checks both **passed** — the frozen benchmark
+  publishes a complete timing protocol, and the controller's protocol is
+  that same protocol — then it aborts on the missing symbol. The agent
+  cannot fix it (`Project/tools/` is write-denied), so it is reported rather
+  than repaired. Do not write "12 suites green".
 
 **Residual limits, stated plainly.** On a single machine with a single
 user, critic receipts and owner quotes are forge-*obvious*, not

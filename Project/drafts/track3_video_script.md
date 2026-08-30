@@ -203,7 +203,14 @@ differentiated thirty seconds in the video.
   these out loud if the per-shape board is on screen; the spread is the honest story
 - shape 14: seq 100,000 causal, **0 violations**, 305 MiB
 - shape 6: batch 10,000, **0 violations**, 3.4 GiB
-- **all 14 shapes pass precision**
+- **all 14 shapes pass precision** — but say it precisely if pressed, because
+  the evidence is two different grades: **12 shapes** are verified post-LOCK
+  under the official predicate, 7 trials each (5 fixed seeds + 2 random),
+  `correct: true`, on the shipped file; **shapes 6 and 14** have no runnable
+  official baseline, so they are verified against validated oracles on
+  **one seed each, against a pre-integration file**, and those packets
+  cannot currently be regenerated (owner-only tooling fix). Both grades are
+  real; they are not the same grade.
 
 **Say the caveats or cut the number.** These are screening-lane characterisation runs:
 correct on all twelve, but none is a promoted champion, no audit verdict is bound to any
