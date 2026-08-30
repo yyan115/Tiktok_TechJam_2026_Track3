@@ -245,6 +245,24 @@ KNOWN_ACTIONS: dict[str, str | None] = {
     "audit.resolve": "audit:",
     "verdict.resolve": None,
     "technical.review": None,
+    # --- the gate's own privileged transitions -----------------------------
+    # These are run_gate.py::AUTHORITY_ACTIONS verbatim.  They were missing,
+    # and the two halves of the authority model share no vocabulary at all:
+    # this tool signed dotted names, the gate demands these.  The result was
+    # that EVERY owner action the loop needs -- opening the campaign included
+    # -- refused at mint time unless the owner reached for
+    # --allow-unknown-action, whose whole point is to say "you are on your
+    # own here".  On a frozen board with a deadline that is a trap, so the
+    # names are declared.  Target prefixes are left unconstrained except
+    # where the consuming code actually checks one, because an invented
+    # constraint here blocks a legitimate owner action for no gain.
+    "open_campaign": "campaign:",
+    "resume_stalled_campaign": None,
+    "register_family": None,
+    "resolve_family_novelty": None,
+    "reopen_family": None,
+    "resolve_integrity_verdict": None,
+    "quarantine_request": None,
 }
 
 CRITIC_ONLY_ACTION = "technical.review"
