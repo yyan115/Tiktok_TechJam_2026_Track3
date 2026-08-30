@@ -496,3 +496,88 @@ Write-denied to the agent, so **I cannot fix this. It is owner work.**
 Ledger at stop: **1 of 60 attempts spent**, 0 promoted, 0 strikes recorded, 6 families
 registered (1 planned against, 5 inert and misframed), 12 shapes calibrated, 4 profiles,
 no permit armed, lock valid, campaign not stalled.
+
+**30 Aug 22:45–23:05 SGT — second audit read. It CORRECTS my self-criticism, and it is
+sharper than the first.**
+
+Attempt 2 of the audit also failed to record (`auditor stdout must be exactly one
+duplicate-free JSON object with no banners` — a *different* parse failure from attempt 1's
+schema refusal, which together confirm the recording fault is systematic, not flaky). Its
+verdict document is durable at
+`Project/authority/blobs/92b7c588…audit-response.json`. Same two verdicts: integrity
+**RETEST**, technical **WEAK_DIAGNOSIS**. It adds three things I did not have.
+
+### Correction: I was too hard on my own prediction, and the number is the suspect
+
+I wrote above that my 1.14–1.16 band was "badly wrong". On this evidence that is probably
+backwards. The auditor compared the run against the twelve calibrations taken on this same
+box under the identical protocol:
+
+- **All twelve calibrations: `event_wall_speedup_agreement_ratio` 1.0024 – 1.0391**,
+  `suspicious: false`.
+- **Attempt 1: 1.2552** — roughly 6x outside that observed envelope.
+- The disagreement is **entirely one-sided**: the baseline's wall time runs **+24% above**
+  its own event median (6.3956 vs 5.1543 ms) while the candidate's runs **1% below** its
+  own (2.4558 vs 2.4842 ms). Host-side inflation on the **eager arm only**.
+
+That asymmetry is the exact signature LESSONS 22 records **for this same k004 candidate**:
+CPU contention slows the launch-bound eager baseline much more than the graph-replay
+candidate, so the within-entry ratio rises — k004 read 3.14x/4.09x under load and
+**1.14x/1.56x idle**. My band was derived from those idle readings. So the likeliest
+reading is not "my prediction was wrong" but **"the measurement was contaminated upward
+and my band was near the truth."** Honest position: **shape 1's true speedup is unknown**,
+and the single number we have tripped its own guard. LESSONS 32 stands (the attribution
+error was real and mine); the self-flagellation about the band does not.
+
+### The bottleneck I registered was wrong, and so was the premise I cited
+
+The auditor's re-derivation, which I accept: the shape-1 baseline runs **7.52 GFLOP in
+5.154 ms ≈ 1.46 TF/s against a 16.2 TF fp32 peak — about 9%**, while being GPU-busy 96.6%
+of its span. That is not a launch problem and not an idle problem. It is **low kernel
+efficiency**: 13 kernels per forward dominated by materializing and repeatedly re-reading
+a 16.8 MB `[64,4,128,128]` score tensor (static-analysis models a 50.3 MB softmax peak).
+Device-busy time itself fell **5.73 → 2.61 ms/iter** between baseline and candidate, and
+graph replay *cannot* do that — it changes only how work is submitted, not how much there
+is. The correct family for shape 1 is therefore **`kernel-fusion` against
+`global-memory-traffic`**, which is where my own torch-profiler table pointed hours ago.
+
+It also caught that **the roofline premise I cited is stale**: card C5 leans on "36 percent
+of the fp16 roof", but that row is computed from a *pre-gate* candidate time — the very
+board the same card declares ineligible. Post-lock numbers imply 4.5% (baseline) and 9.3%
+(candidate) of the fp16 roof, 4–8x from the cited figure. I cited a dead number in the
+same card where I warned against citing dead numbers.
+
+### A contention hypothesis I can name and the owner should weigh
+
+Nothing else was using the GPU meaningfully (three desktop residents, ~600 MiB). The
+plausible CPU contender is **this project's own PostToolUse hook**: `.claude/settings.json`
+runs `champion_watch.py` after **every** Bash/Edit/Write with `"async": true`, and that
+watcher walks the durable journals plus the 49 inert pre-gate entries on each firing. An
+async hook launched by the tool call immediately preceding a controller run can still be
+executing while the run times its first rounds — and it would slow the CPU-hungry eager
+arm more than the graphed arm, producing exactly the observed asymmetry. Unproven, and the
+disturbance sits in round 3 rather than round 1, so it is a hypothesis and not a finding.
+`.claude/**` is locked, so testing it means the owner temporarily disabling the hook, or
+me simply not issuing tool calls immediately before a timed run.
+
+### Process gap I created
+
+**No machine-state attestation is bound to the optimization run.** Every calibration and
+every profile carries a `machine_state_sha256`; the optimization measurement carries none.
+The batch snapshot I wrote is explicitly scoped to calibration and its own note says the
+exemption rests on calibration being a baseline-vs-baseline ratio — which does **not**
+extend to a baseline-vs-candidate run, where contention biases the two arms unequally. So
+card C5's preregistered "idle box" regime is **unverifiable from the record**. Every future
+optimization attempt gets a per-run snapshot bound to it.
+
+### The plan that follows, when the box is free
+
+The decisive experiment is the **three-arm split**: baseline / authored Triton attention
+**without** capture / Triton **plus** capture. `Project/kernels/k003_triton_attention.py`
+already exists and is exactly the middle arm. If k003 alone recovers most of the gain, the
+graph mechanism contributes ~nothing and `F-shape1-graph` is simply the wrong family; if it
+does not, something else is going on and both readings are wrong. This runs in
+**`--mode screening`**, which is the scratch lane: it cannot promote, and a characterization
+miss adds no strike — so it answers the attribution question **without depending on the
+broken audit-recording path**. That is the one genuinely unblocked piece of science
+available tonight, and it is what I will run once no audit is in flight.
