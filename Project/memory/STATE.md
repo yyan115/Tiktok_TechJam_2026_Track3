@@ -45,12 +45,18 @@ launches the first entry that has a real packet. Verified by running it, 30 Aug.
 
 **The private keys are inside HOME, and that is a real residual.** The runbook said
 `~/techjam-keys`, so `keygen` needed `--allow-home-key`. Files are `0600`, but that is
-guard-level, not OS isolation: anything running as `admin` can read them, and the
-passphrase is written in `OWNER_RUNBOOK_POSTLOCK.md` in this repo. So "only the owner
-can sign" is **not currently true** and must not be claimed. Fixing it means moving the
-private keys outside HOME (needs `sudo`, and then every mint needs `sudo` too) or
-changing the passphrase to something not committed. Scrub the passphrase from the
-runbook before the repo ships either way.
+guard-level, not OS isolation: anything running as `admin` can read them. So do **not**
+claim the agent cannot reach the signing key. Claim instead: the key is never in the
+repo, never in a prompt, never printed; every privileged transition is a signed,
+one-use, scope- and time-bounded capability; every use is a separate hash-chained
+journal event. Upgrading this means moving the keys outside HOME, after which every
+`mint-capability` needs `sudo` — a five-minute change if the stronger claim is wanted.
+
+The passphrase was scrubbed from `OWNER_RUNBOOK_POSTLOCK.md` (30 Aug) and is **not**
+rotated: it is a generated string, unrelated to any login, and it is half of a two-part
+secret whose other half (the key file in `~/techjam-keys`) is untracked and never ships.
+It remains in git history at `dcb4f25`/`dbcd487`; rewriting history on a locked repo
+before freeze is a larger risk than the leak, so it stays. Keep it out of new commits.
 
 **The documented unlock for those verdicts does not work.** `run_gate.py verdict-clear
 --kind violation` spends a signed owner capability, prints "resolved by

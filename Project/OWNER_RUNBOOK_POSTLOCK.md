@@ -17,23 +17,33 @@ password. Everything else is copy-paste.
 Step 14 is the one you spend the night in. Steps 1–9 take about ten minutes and
 you never touch them again.
 
-**Passphrase for the signing keys — used in steps 2, 4, 5, 7, 9:**
+**The signing-key passphrase is not written in this file, on purpose** — this repo
+ships publicly (LESSONS #14). It is a made-up string that encrypts
+`owner_private_key.pem`; it is not your login password and it protects nothing on
+its own, since the key file it unlocks never leaves this machine.
 
-```
-Dkkx7pGiVNvp4CyYXtYKd4wBxzpD
-```
-
-It is already piped into every command that needs it, so nothing prompts.
-
-Open one terminal and paste this first. Every later step assumes it:
+Open one terminal and paste this first, substituting the real passphrase. Every
+later step assumes these variables, and each one pipes `$PASS` in so nothing
+prompts:
 
 ```bash
 cd /home/admin/Desktop/Repos/Tiktok_TechJam_2026_Track3
 export KEYS=~/techjam-keys
 export CAMP=CAMP-POSTLOCK
-export PASS=Dkkx7pGiVNvp4CyYXtYKd4wBxzpD
+export PASS='<the signing-key passphrase>'
 mkdir -p "$KEYS" && chmod 700 "$KEYS"
 ```
+
+Keep that terminal for the whole session; `$PASS` lives only in it. If you are
+setting up from scratch, invent the passphrase at step 2 and put it in a password
+manager — do not paste it back into this file or any other tracked one.
+
+> **If you already ran this runbook when it carried the passphrase in plain
+> text:** that string is still in this repo's git history. It is only half of a
+> two-part secret — the key file it decrypts is in `$KEYS`, is not tracked, and
+> does not ship — so a reader of the public repo gains nothing. Rewriting git
+> history is a bigger risk than the leak. Leave it, and read the key-storage
+> residual at the end of this file, which is the part that actually matters.
 
 ---
 
@@ -72,10 +82,19 @@ python3 Project/tools/tests/auditor_backend_test.py     # expect 33/33 ALL GREEN
 
 ```bash
 printf '%s\n%s\n' "$PASS" "$PASS" | \
-  python3 Project/tools/owner_lock_ceremony.py keygen --key-dir "$KEYS"
+  python3 Project/tools/owner_lock_ceremony.py keygen --key-dir "$KEYS" \
+  --allow-home-key
 ```
 
 Prints two fingerprints. Save them somewhere off this machine.
+
+`--allow-home-key` is needed because `$KEYS` is under your home directory, and the
+ceremony refuses that by default for a real reason: anything running as your user —
+including an agent — can read a key kept there. With it there, "only the owner can
+sign" is not literally true, and the report must not claim it. See the residual at
+the end of this file. To avoid the flag entirely, put `$KEYS` somewhere outside
+`$HOME` (a root-owned directory, or removable media); every `mint-capability` then
+needs `sudo` too, which is the point.
 
 ---
 
@@ -449,10 +468,23 @@ python3 Project/harness/trusted_controller.py status
 
 Refusals name the value that was wrong. `REFUSED` is the system working.
 
-## For the report
+## For the report — two residuals, stated plainly
 
-Codex quota ran out, so audits moved to Claude. Codex was a different vendor
-reviewing this repo's work; Claude is the same family reviewing itself. The
-blind packet still holds — the auditor sees a content-addressed packet and the
-candidate bytes, never the session that produced them, and its verdict is bound
-to hashes it cannot choose. Every audit artifact records which backend ran.
+**The auditor is no longer an independent vendor.** Codex quota ran out, so audits
+moved to Claude. Codex was a different vendor reviewing this repo's work; Claude is
+the same family reviewing itself. The blind packet still holds — the auditor sees a
+content-addressed packet and the candidate bytes, never the session that produced
+them, and its verdict is bound to hashes it cannot choose. Every audit artifact
+records which backend ran, so any verdict can be read for what it is.
+
+**The signing keys live inside `$HOME`, so owner authority is guard-level, not
+isolated.** The key files are `0600`, but anything running as this user can read
+them, and `keygen` had to be given `--allow-home-key` to permit it. Say "the owner
+holds the only signing key, stored under OS file permissions on the owner's
+machine" — do **not** say the agent cannot reach it, because it can. What still
+holds without qualification: the private key is never in the repository, never in a
+prompt, and never printed; every privileged transition is a signed, one-use,
+scope- and time-bounded capability; and every use is a separate event in a
+hash-chained journal naming the exact action and subject. Moving the keys outside
+`$HOME` and requiring `sudo` for each mint is what would upgrade this, and it is a
+five-minute change if you want the stronger claim.
