@@ -143,7 +143,10 @@ different failures, and only the first one happened.
 Shape 14's full-batch **timing** is reported as measured slices (B=1:
 1,674 ms; B=2: 3,657 ms) rather than extrapolated — doubling the batch
 costs 2.18×, not 2.00×, so a linear projection would be wrong. The
-full-batch figure is **[PENDING]** the batch-decomposed evaluator run.
+full-batch figure is **[PENDING]** the batch-decomposed evaluator run, and
+that run is **blocked** behind the same one-line tooling bug described
+above: its `eval` step requires a passed validation packet, and the
+`validate` gate aborts before producing one.
 
 ## What the kernels do
 

@@ -51,13 +51,23 @@ on the shipped artifact.
 Each is blocked because the agent is denied write access to the files involved, which is
 the design working, not a defect. None of them blocks reading the results.
 
-1. **Fix the two extreme-shape evaluators (one line each).** Both abort instantly, so the
-   shape 6 / shape 14 evidence packets cannot be regenerated. They compare a mask's device
-   against `torch.device("cuda")` while the official generator returns it on `cuda:0`, and
-   those are unequal in PyTorch. Files: `Project/tools/shape14_eval.py:274` and
-   `Project/tools/shape6_local_eval.py:146`. Compare `mask.device.type != device.type`, or
-   normalise first with `device = torch.zeros(0, device=device).device`. Full diagnosis in
-   DECISIONS, 31 Aug ~02:20.
+1. **⭐ HIGHEST VALUE: fix the two extreme-shape evaluators (one line each).** They compare
+   a mask's device against `torch.device("cuda")` while the official generator returns it on
+   `cuda:0`, and those are unequal in PyTorch. Files: `Project/tools/shape14_eval.py:274`
+   and `Project/tools/shape6_local_eval.py:146`. Compare `mask.device.type != device.type`,
+   or normalise first with `device = torch.zeros(0, device=device).device`. Full diagnosis
+   in DECISIONS, 31 Aug ~02:20.
+
+   **This one line gates THREE deliverables, which is why it moved to the top** (found
+   31 Aug ~07:15 by reading the tool instead of the note):
+   - the shape 6 and shape 14 evidence packets cannot be regenerated (they stay
+     PROVISIONAL: one seed, pre-integration sha);
+   - **shape 14's full-batch timing — a judge-facing `[PENDING]` in both drafts — cannot be
+     produced at all.** `shape14_eval.py eval` requires `--validation-packet` ("a *passed*
+     shape14-oracle-validation-v2 packet"), and the `validate` subcommand that mints it is
+     labelled `(gate)` in its own help and dies on this bug. The drafts previously called
+     that run "queued"; it is blocked, and both now say so.
+   - so the only path to filling that `[PENDING]` before freeze runs through this fix.
 2. **Fix audit recording.** `audit_champion.py`, inside the LOCK. Three attempts, three
    distinct failures, retry cap exhausted; `run-be8e56a55edd1926a84bf5d1efc0b154` is stuck
    in `owner_attention`. Until this is fixed **nothing can be promoted to champion and no

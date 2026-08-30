@@ -2074,3 +2074,40 @@ so the morning log looks busy is its own species of dishonesty.
 
 Final integrity check before handing back: `verify-lock` valid, 29 protected files, no
 watcher active, reconcile clean, tree clean, 0 strikes, nothing promoted.
+
+---
+
+## 31 Aug ~07:15 SGT — Defect 16, found by testing a claim the report makes about itself.
+
+The report asserts: *"Values still owed at code freeze are marked `[PENDING]` and name the
+run that produces them."* That is a checkable claim about the document, so I checked it, and
+one `[PENDING]` names a run **that cannot execute**.
+
+**Shape 14's full-batch timing.** Both drafts said the figure "comes from the
+batch-decomposed evaluator run, which is **queued**". Reading `shape14_eval.py:753-777`
+instead of the note:
+
+- the `eval` subcommand — the one that produces the timing — requires
+  `--validation-packet`, documented as *"passed shape14-oracle-validation-v2 packet"*;
+- that packet is minted only by the `validate` subcommand, whose own help string labels it
+  **`(gate)`**, and whose docstring says *"Gate for everything else"*;
+- `validate` is exactly what aborts on the `cuda` vs `cuda:0` device-comparison bug at
+  line 274.
+
+So the timing is **blocked, not queued**, and blocked behind the same one-line owner-only
+fix as the extreme-shape packet re-capture. Corrected in both drafts.
+
+**Why this matters beyond the wording.** It re-ranks the owner's morning list. That
+one-liner previously read as "regenerate some provisional evidence" — nice to have. It
+actually gates **three** deliverables: the shape-6 packet, the shape-14 packet, and a
+judge-facing `[PENDING]` number in two documents. It is now item 1 in STATE, marked highest
+value, with the dependency chain written out.
+
+**The method that found it, worth keeping.** I did not re-read the drafts looking for prose
+errors — pass 7 established that vein is exhausted. I took a *self-referential claim* the
+report makes ("every [PENDING] names its producing run") and tested it against the tools.
+When a document asserts a property of itself, that assertion is the cheapest remaining place
+to look for defects, because nobody audits the meta-claims. This is LESSONS 40's rule
+("every command a document tells someone to type is a claim") extended one level: **every
+promise a document makes about its own completeness is also a claim, and decays the same
+way.**

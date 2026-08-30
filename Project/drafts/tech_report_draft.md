@@ -439,7 +439,16 @@ estimated.** We measured B=1 at 1,674 ms and B=2 at 3,657 ms. That is
 **2.18× for 2× the batch, not 2.00×** — so multiplying the B=1 median by 32
 would understate the real cost, and we refuse to publish a number produced
 that way. The full B=32 figure comes from the batch-decomposed evaluator
-run, which is queued.
+run.
+
+**That run is blocked, not queued** — corrected 31 Aug after checking the
+tool rather than the note. `shape14_eval.py`'s `eval` subcommand, which
+produces the timing, requires `--validation-packet` ("a *passed*
+shape14-oracle-validation-v2 packet"). That packet comes from the `validate`
+subcommand, which its own help labels `(gate)` and which aborts on the
+one-line device-comparison bug described below. **So the same owner-only
+one-liner gates both the extreme-shape packet re-capture and this
+[PENDING] number.** Fixing it unblocks both at once.
 
 Both extreme-shape packets are **PROVISIONAL**: they carry one seed each
 and cite the pre-integration submission file.
@@ -932,8 +941,10 @@ repository with their evidence:
   could be adjudicated, it has not been exercised against this campaign's own
   numbers.
 - **Shape 14's full-batch timing is not yet measured** (§2.4). Correctness
-  at full sequence length is proven; the batch-decomposed timing run is
-  queued before freeze.
+  at full sequence length is proven. The timing run is **blocked**, not
+  queued: it needs a passed validation packet from the `validate` gate,
+  which aborts on the same one-line tooling bug that blocks the
+  extreme-shape re-capture. One owner-only fix unblocks both.
 - **The extreme-shape evidence packets are provisional** — one seed,
   pre-integration submission sha — and the re-capture is **blocked on an
   owner-only one-line fix in our own evidence tooling** (§2.4). They cannot
