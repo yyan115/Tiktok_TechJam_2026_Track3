@@ -326,6 +326,55 @@
    "target_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
    "tool": "torch-profiler"
   },
+  "profile-575ff8b9d235cb8378ba8739": {
+   "artifact_path": "Project/loop/profile_evidence/profile-575ff8b9d235cb8378ba8739.json",
+   "artifact_sha256": "bc5f5420fff30d55c43cf86f70a9573c0f2c4229e35efdde239641d64f62585b",
+   "created_epoch": 1788099858.3219273,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 13.0,
+    "gpu_busy_ns": 114578000.0,
+    "gpu_idle_fraction": 0.0336415017618259,
+    "gpu_span_ns": 118566764.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "31a91c112dcd6c08b67fad678f9fea55fb1d9f4daffe47d5723708d1e33db737",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-575ff8b9d235cb8378ba8739",
+   "reconciled_state_seq": 33,
+   "shape": 1,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
+  },
   "profile-cb6cd3c903aacee64a468d63": {
    "artifact_path": "Project/loop/profile_evidence/profile-cb6cd3c903aacee64a468d63.json",
    "artifact_sha256": "c17de8cad64e73528625419265030ae4c4cf29f14b6ffc3412144fbb04f2af68",
@@ -391,7 +440,8 @@
   "c62e3cffed802f5efc1e7cee47cc9654649c42127d14574d79ea3423f4ad02e1",
   "303385f08748f41ecc6782b35f0c2dbfceaf9d4c7f24f8f876e61b39013ad621",
   "761f0a143824f70057a4637d914289f5bce4ebd9bd1871f1a6decb9d089c0464",
-  "ef5a5a7aa1a044c8ac92f1739c10d70f10c23ab9bbc4e3b19392026d32286ba0"
+  "ef5a5a7aa1a044c8ac92f1739c10d70f10c23ab9bbc4e3b19392026d32286ba0",
+  "ee24a80e114e912cb30eac0c4cd77433a1ddb872e359b4dc3670efc092f29cc2"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -408,11 +458,12 @@
   "2ad1a7399220b29bdad1ebfe443c5002f356d47292a5fe8c495e041379d969c8",
   "991da8fb9ffbbfdfe724137b495774006de8d305b43807c674ca92636d241386",
   "2c360f8b688e554936c1eadf4d060d4cff4c51ada08f5d1a1bdf8c879bfde06d",
-  "93417daeed525dbfc433b51b28104c36fe945dbab1ad65f1c9e47b9090f4fb7c"
+  "93417daeed525dbfc433b51b28104c36fe945dbab1ad65f1c9e47b9090f4fb7c",
+  "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8"
  ],
  "research_cycle": 0,
  "research_open": false,
- "seq": 31,
+ "seq": 33,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -428,6 +479,7 @@
   "2ad1a7399220b29bdad1ebfe443c5002f356d47292a5fe8c495e041379d969c8",
   "991da8fb9ffbbfdfe724137b495774006de8d305b43807c674ca92636d241386",
   "2c360f8b688e554936c1eadf4d060d4cff4c51ada08f5d1a1bdf8c879bfde06d",
-  "93417daeed525dbfc433b51b28104c36fe945dbab1ad65f1c9e47b9090f4fb7c"
+  "93417daeed525dbfc433b51b28104c36fe945dbab1ad65f1c9e47b9090f4fb7c",
+  "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8"
  ]
 }

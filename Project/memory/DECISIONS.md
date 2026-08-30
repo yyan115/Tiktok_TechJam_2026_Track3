@@ -337,3 +337,37 @@ Two things worth planning around:
 
 Ledger after this batch: 15 permits issued and consumed, 12 calibration requests, 3
 diagnostics, **still 0 of the 60 attempts spent**, 0 strikes, no permit armed.
+
+**30 Aug 22:24 SGT — baseline profiled on shape 1, and it settles two things at once.**
+
+`profile-575ff8b9d235cb8378ba8739`, nsys, shape 1, target `k000_baseline.py`
+(`2feee730…`), `--supports launch-overhead`. Run because the three earlier profiles all
+targeted k004 — our own code — and a claim that "graph replay removes host launches"
+must be grounded in the launch count of the thing being *replaced*, not the replacement.
+Profiling only the thing you already like is how a direction gets opened on a number that
+was never in dispute.
+
+**The counter, per forward pass on shape 1:**
+
+| route | launch API calls / forward | distinct kernels | gpu_idle_fraction |
+| --- | --- | --- | --- |
+| `k000_baseline` (eager) | **115.0** | 13 | 0.034 |
+| `k004_graphed_triton` | **2.0** | (58 kernel instances) | 0.124 (torch-profiler) |
+
+2300 launch API calls over 20 iterations for the baseline — 1660 `cudaLaunchKernel` +
+640 `cuLaunchKernel` — against 40 for k004. A **57x reduction in host launch calls.**
+That is a clean, direct, defensible mechanism claim, and it is the counter evidence the
+shape-1 graph-replay family gets registered on. It also shows the baseline route carries
+17 `cudaMemcpyAsync` and 24 `cudaMemsetAsync` per forward that the replay removes outright.
+
+**Second thing, unplanned and useful: this independently confirms LESSONS 31.** The very
+same tool, same shape, same NVTX window, on an *un-graphed* route reports
+`gpu_idle_fraction 0.034` and 13 distinct kernels — entirely sensible numbers. So nsys is
+not broken and its idle fraction is not generally wrong; it is specifically blind to work
+inside a CUDA graph. The 0.981 idle reading on k004 was that blindness and nothing else.
+Two routes, one tool, one honest explanation. Worth putting in the report as the concrete
+illustration of why the cross-check rule exists.
+
+Next: register `F-shape1-graph` (mechanism `cuda-graph-replay`, bottleneck
+`launch-overhead`, changed_resource `kernel-launches`) citing this profile, then the first
+real attempt — k004 against the baseline on shape 1, bar 1.03.
