@@ -16,6 +16,33 @@ Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 
 ---
 
+## 000. ⚠ LATEST: the ORIGINAL board is being vindicated. Read this before anything below.
+
+31 Aug ~01:25 SGT. Re-measuring the **actually-shipped** megakernel (k009) now agrees
+closely with the pre-gate figures I withdrew three hours ago:
+
+| shape | pre-gate figure (withdrawn) | **shipped route, measured tonight** | agreement |
+| --- | --- | --- | --- |
+| 2 | 15.26x | **14.3939x** | 5.7% |
+| 3 | 11.96x | **12.6314x** | 5.6% |
+| 13 | 28.82x | **28.4098x** | **1.4%** |
+
+**Two of my own claims are refuted:**
+
+1. *"The pre-gate board was systematically inflated."* **Wrong.** It is procedurally
+   invalid — no permit, no bound verdict, baselines 6–63% off calibration — and
+   numerically close. I conflated those.
+2. *"The shipped route beats k004 by a consistent ~1.77x."* **Wrong** — generalised from
+   two points. Shape 13's ratio is **4.89x**. Shape-dependent, like everything else here.
+
+**The 2.94x figure is the misleading one** and my own WITHDRAWN blocks briefly made it the
+headline, understating by ~3.5x — the same error I accused the drafts of, inverted. The
+tech report block is corrected; README and video script still need the same second
+amendment.
+
+**No geomean is claimed.** 3 of 12 shipped-route shapes measured. The original 10.32x is
+not re-earned, but it is no longer contradicted.
+
 ## 00. ⛔⛔ I MEASURED THE WRONG KERNEL. The 2.94x board is NOT the submission.
 
 Found 31 Aug ~01:05 SGT while auditing the tech report. **This is my error and it

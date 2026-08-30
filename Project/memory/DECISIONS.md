@@ -613,6 +613,61 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 01:20–01:23 SGT — THE PRE-GATE BOARD IS BEING VINDICATED. My falsifier fired
+against me and the original numbers look approximately right. Third correction of the
+night, and the most consequential.**
+
+Shape 13, shipped megakernel k009: **28.4098x**. I preregistered: *"if k009 lands at or
+above 25x then the withdrawn pre-gate figure of 28.82x was approximately correct, the
+assumption that the pre-gate board was systematically inflated is wrong, and the
+withdrawal blocks in the three drafts must be rewritten."* **It fired.** 28.4098 against
+28.82 is agreement to **1.4%**.
+
+### All three shipped-route measurements agree closely with the withdrawn board
+
+| shape | pre-gate (official script) | **k009 measured tonight** | agreement |
+| --- | --- | --- | --- |
+| 2 | 15.26x | **14.3939x** | 5.7% |
+| 3 | 11.96x | **12.6314x** | 5.6% |
+| 13 | 28.82x | **28.4098x** | **1.4%** |
+
+**The pre-gate board was measuring the right kernel and getting approximately the right
+answers.** What was wrong with it was *process* — no permits, no bound audit verdicts, and
+`HANDOVER.md` §3.1's finding that its baselines were 6–63% off their own calibration. That
+finding evidently did not move the headline much.
+
+### Two of my own claims are now refuted
+
+1. **"The pre-gate board was systematically inflated."** Wrong. It is procedurally invalid
+   and numerically close. Those are different things and I conflated them.
+2. **"The shipped route beats k004 by a consistent ~1.77x."** Wrong — that was two points
+   and I generalised. Shape 13's ratio is 28.4098 / 5.8096 = **4.89x**. The ratio is
+   strongly shape-dependent, exactly like every other quantity in this system.
+
+### What this means for the drafts, and it is urgent
+
+My WITHDRAWN blocks currently tell a reader that 10.32x is withdrawn and the real figure
+is 2.94x. **That is now the most misleading statement in the deliverables** — it understates
+by roughly 3.5x, which is precisely the error I accused the original drafts of making, in
+the opposite direction. The blocks must be rewritten to say: the old board is
+*procedurally* invalid and unpromotable, its magnitudes are being *confirmed* within about
+6% on the three shapes re-measured so far, and the shipped-route board is incomplete at
+3 of 12 shapes.
+
+**I will not state a geomean until all twelve are measured.** Three points that agree with
+the old board are not a board, and the discipline that has actually worked tonight is
+exactly this: withdraw what cannot be traced, and name no substitute until it is measured.
+
+### Honest scorecard on my own judgement tonight
+
+Numeric bands 0 for 17. Qualitative hypotheses 8 for 9 — the first failure being the
+inflation assumption, which is the one that mattered most. Three separate corrections have
+each required a further correction. The common cause every time was **inferring a
+magnitude from too few points and writing it down as settled**. The controls that kept all
+of this cheap: characterization-kind screening in the scratch lane (0 strikes across 26
+attempts), preregistered falsifiers aimed at my own position, and visible WITHDRAWN blocks
+instead of silent edits, which is why each error was recoverable rather than shipped.
+
 **31 Aug 01:05–01:13 SGT — I MEASURED THE WRONG KERNEL FOR 22 ATTEMPTS. First correction
 run: the shipped megakernel is 1.77x better than what I measured, and it partially
 rehabilitates the board I withdrew an hour ago.**

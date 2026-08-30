@@ -5,6 +5,33 @@
 > **This draft was written 30 Aug ~11:25, before the LOCK and before the
 > post-LOCK re-measurement campaign. Its headline speedup is withdrawn.**
 >
+> ### ⚠ SECOND AMENDMENT 01:25 — the original board is being VINDICATED. Read this first.
+>
+> Re-measuring the **actually-shipped** megakernel against the same baselines, on a quiet
+> box, under permit, now agrees closely with the numbers this document originally
+> reported:
+>
+> | shape | this draft's original figure | shipped route, measured 31 Aug | agreement |
+> | --- | --- | --- | --- |
+> | 2 | 15.26× | **14.3939×** | 5.7% |
+> | 3 | 11.96× | **12.6314×** | 5.6% |
+> | 13 | 28.82× | **28.4098×** | **1.4%** |
+>
+> **So the original magnitudes look approximately right.** What was genuinely wrong with
+> them was *process*: no permit, no bound audit verdict, and baselines 6–63% off their own
+> calibration (`HANDOVER.md` §3.1). Procedurally invalid and numerically close are
+> different things, and the earlier amendment conflated them.
+>
+> **The 2.94× figure below is the misleading one** — it measured `k004`, which this
+> submission does not ship, and understates the shipped route by roughly 3.5×. Do not
+> quote it.
+>
+> **Current honest position:** 3 of 12 shapes re-measured on the shipped route, all
+> agreeing with the original board within ~6%. **No geomean is claimed until all twelve
+> are done.** The original 10.32× is not yet re-earned, but it is no longer contradicted.
+>
+> ---
+>
 > **AMENDMENT 01:05 — READ THIS BEFORE USING THE 2.94× FIGURE.**
 > The post-LOCK board measured **`k004_graphed_triton.py`** (fp32 authored Triton
 > attention + whole-forward CUDA graph). **That is NOT the route this submission
