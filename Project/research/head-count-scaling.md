@@ -81,7 +81,48 @@ and it is the second-best shape on the whole board at 21.96x.
 with identical bytes, comparing per-kernel device time for the K2 attention kernel
 alone. If K2's share on shape 11 is roughly 16/4 of shape 1's, the loop-length
 story holds; if it is roughly 2x, padding holds. This costs a diagnostic permit and
-no attempt budget. **Not yet run.**
+no attempt budget.
+
+### RESOLVED — the discriminator was run, and it refuted the hypothesis above
+
+Two torch-profiler diagnostics, identical k009 bytes, 20 profiled iterations each
+(`profile-1127da61e6696eed99c7d67f` shape 11, `profile-923ddf58435a05b18e66a4ba`
+shape 1). Per-call device time:
+
+| kernel | shape 1 (4 heads) | shape 11 (16 heads) | ratio |
+|---|---|---|---|
+| `_attn_block_tail` (K2: attention + out-proj + residual + norm2 + FFN) | 74.054 us | 157.653 us | **2.129x** |
+| `_norm_qkv` (K1) | 49.046 us | 50.933 us | 1.038x |
+| `_final_norm` | 20.278 us | 20.683 us | 1.020x |
+| DtoD copy | 19.783 us | 19.989 us | 1.010x |
+| **total device time per forward** | **558 us** | **901 us** | **1.614x** |
+
+**The penalty is entirely inside K2. Every other kernel is flat within 4%.**
+
+**K2 is 2.13x, not 4x.** The preregistered discriminator said 16/4 = 4x means
+loop-length, ~2x means padding. It came out at 2.13x, so **the loop-length
+hypothesis above is refuted and the padding mechanism is confirmed as the locus.**
+I wrote that hypothesis and the measurement killed it; it stays on the page rather
+than being edited out.
+
+**But padding's FLOP arithmetic still does not account for the size of it**, and
+that part of the original analysis survives. Within K2 the work is out-proj 268.4 +
+attention 268.4 + FFN 536.9 = 1073 MFLOP per layer. Padding takes attention to
+536.9, so K2's work rises to 1341 MFLOP — **+25%**. K2's *time* rises **+113%**.
+Achieved throughput inside K2 therefore falls from **14.5 TF/s to 8.5 TF/s**, a 41%
+efficiency loss on top of the extra arithmetic.
+
+**Final reading.** The `head_dim`-8 penalty is real, is confined to K2, and is
+roughly half extra arithmetic (the `tl.dot` 16-wide minimum) and half efficiency
+collapse on the padded path — the padded dots do twice the work *and* run at
+lower throughput than the same kernel achieves at `head_dim` 32. It is one
+mechanism with two costs, not two mechanisms.
+
+Note also what this says about the whole-block picture: attention is only 14.3% of
+the block's FLOPs but dominates K2's *time*, since doubling it roughly doubles a
+kernel that also contains the out-projection and the entire FFN. Any future work on
+these shapes should treat attention as the expensive part of the fused block
+despite its small FLOP share.
 
 ## Finding 3 — shape 11 is the clearest remaining optimization target on the board
 

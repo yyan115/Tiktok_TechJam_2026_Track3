@@ -1539,3 +1539,49 @@ LESSONS 35 no prediction band is attached.
 
 Written up as `Project/research/head-count-scaling.md`; INDEX updated, so the index hash
 changes and the next research cycle must cite the new one.
+
+---
+
+## 31 Aug ~03:00 SGT — I ran my own discriminator and it killed my own hypothesis.
+
+Rather than leave the ~50% open, I ran the isolating experiment I had just named. Two
+torch-profiler diagnostics on identical k009 bytes, 20 iterations each, diagnostic lane so
+zero attempt budget: `profile-1127da61e6696eed99c7d67f` (shape 11) and
+`profile-923ddf58435a05b18e66a4ba` (shape 1).
+
+| kernel | shape 1 (4 heads) | shape 11 (16 heads) | ratio |
+|---|---|---|---|
+| `_attn_block_tail` (K2) | 74.054 us | 157.653 us | **2.129x** |
+| `_norm_qkv` (K1) | 49.046 us | 50.933 us | 1.038x |
+| `_final_norm` | 20.278 us | 20.683 us | 1.020x |
+| DtoD copy | 19.783 us | 19.989 us | 1.010x |
+| device time / forward | 558 us | 901 us | 1.614x |
+
+Device-time ratio 1.614 against a wall ratio of 1.637 — the two instruments agree, so the
+profile is describing the kernel and not itself (LESSONS 31's failure mode did not recur).
+
+**The penalty is entirely inside K2. Everything else is flat within 4%.**
+
+**And K2 is 2.13x, not 4x.** I had preregistered the discriminator explicitly — "4x means
+loop-length, ~2x means padding" — precisely so I could not reinterpret the result after
+seeing it. It came out 2.13x. **My loop-length hypothesis is refuted and the head_dim-8
+`tl.dot` padding is confirmed as the locus.** The hypothesis stays written in the research
+note; deleting a killed hypothesis is how a notebook turns into a press release.
+
+**What survives from my earlier arithmetic is the magnitude objection.** Within K2 the work
+is out-proj 268.4 + attention 268.4 + FFN 536.9 = 1073 MFLOP per layer; padding takes it to
+1341, **+25%**, while K2's time rises **+113%**. K2's achieved throughput falls from
+**14.5 TF/s to 8.5 TF/s**. So it is one mechanism with two costs — the padded dots do twice
+the arithmetic *and* run 41% less efficiently — rather than padding alone (too small) or a
+separate loop-length effect (refuted).
+
+**Corollary that matters for any future work here:** attention is 14.3% of the block's
+FLOPs but dominates K2's *time*, since doubling attention roughly doubles a kernel that
+also contains the output projection and the whole FFN. On these shapes attention is the
+expensive part of the fused block despite its small FLOP share. That inverts the intuition
+the roofline table encourages.
+
+This is the first time in the campaign I named a falsifiable discriminator, ran it, and had
+it come back against me *without an auditor having to catch it* — which is what the
+scaffolding was built for. Cost: two diagnostic permits, no attempt budget, about four
+minutes.

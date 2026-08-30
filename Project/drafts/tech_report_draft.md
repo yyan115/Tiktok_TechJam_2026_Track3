@@ -279,13 +279,36 @@ crediting it:** attention is 268.4 of 1879 MFLOP per layer, i.e. **14.3%** of th
 block, so doubling it can add at most 14.3%. The measured penalty is 63.7%.
 **Padding explains at most a fifth of it and the rest is genuinely unexplained.**
 
-Our hypothesis — stated as a hypothesis — is that at `head_dim` 8 the per-head
-tiles fall far below the tensor-core tile shape, so the fused kernel's inner loop
-runs 16 iterations of badly-shaped work. Shape 7 discriminates the two stories: it
-also has `head_dim` 8 but only 4 heads, and it is the *second-best* shape on the
-board. The isolating experiment is a torch-profiler diagnostic comparing K2's
-device time on shapes 11 and 1 with identical bytes; it costs a diagnostic permit
-and no attempt budget, and **we have not run it.** Full working:
+We hypothesised that at `head_dim` 8 the per-head tiles fall below the tensor-core
+tile shape, so the fused kernel's inner loop runs 16 iterations of badly-shaped
+work — a loop-length effect. We preregistered the discriminator: profile K2 on
+shapes 11 and 1 with identical bytes; **4× means loop-length, ~2× means padding.**
+
+**We ran it, and it refuted our own hypothesis.** Two torch-profiler diagnostics,
+identical bytes, 20 iterations each:
+
+| kernel | shape 1 (4 heads) | shape 11 (16 heads) | ratio |
+|---|---|---|---|
+| `_attn_block_tail` (K2) | 74.054 µs | 157.653 µs | **2.13×** |
+| `_norm_qkv` (K1) | 49.046 µs | 50.933 µs | 1.04× |
+| `_final_norm` | 20.278 µs | 20.683 µs | 1.02× |
+| DtoD copy | 19.783 µs | 19.989 µs | 1.01× |
+| **device time / forward** | **558 µs** | **901 µs** | **1.61×** |
+
+**The penalty is entirely inside K2; every other kernel is flat within 4%.** And
+K2 came in at 2.13×, not 4× — the padding signature, not the loop-length one.
+
+The magnitude analysis survives, though. K2 contains out-projection 268.4 +
+attention 268.4 + FFN 536.9 = 1073 MFLOP per layer; padding raises that to 1341,
+**+25%**, while K2's *time* rises **+113%**. Achieved throughput inside K2 falls
+from **14.5 to 8.5 TF/s**. So the `head_dim`-8 penalty is one mechanism with two
+costs: the padded dots do twice the arithmetic *and* run at 41% lower throughput
+than the same kernel reaches at `head_dim` 32.
+
+A corollary worth stating: attention is only 14.3% of the block's FLOPs but
+dominates K2's *time*, since doubling it roughly doubles a kernel that also
+contains the output projection and the entire FFN. On these shapes attention is the
+expensive part of the fused block despite its small FLOP share. Full working:
 `Project/research/head-count-scaling.md`.
 
 This makes **shape 11 the clearest remaining optimization target on the board** —
