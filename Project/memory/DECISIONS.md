@@ -613,6 +613,56 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 00:17–00:21 SGT — head_dim research done, ceiling measured, and the answer is
+that de-padding is NOT worth building. A different target is bigger.**
+
+Web research (note: `Project/research/small-head-dim-padding.md`, indexed) established
+three things:
+
+1. The `max(16, ...)` in `k003_triton_attention.py:103` is not a mistake — `tl.dot`
+   requires a 16-minimum tile, so `head_dim` 8 must pad to 16. Confirmed against *The
+   Anatomy of a Triton Attention Kernel* (arXiv 2511.11581, Nov 2025) §8.
+2. **Head-packing is arithmetically impossible here**, not merely hard. QK^T contracts
+   *over* the feature dimension, so packing two heads into one 16-wide tile would sum
+   their features and produce wrong scores. In PV the head dim is free but `P` differs per
+   head. There is no valid packing.
+3. The only candidate is replacing `tl.dot` with `tl.sum(q * k)` for QK^T at D=8 — a
+   documented technique for "lean" tensors (Triton issues #793, #1181) but one the
+   literature explicitly does *not* recommend in general, because it trades Tensor Cores
+   for CUDA cores.
+
+**Then I measured the ceiling before building anything — LESSONS 32 applied deliberately
+this time.** torch-profiler on k004 at shape 11 (`profile-68d365297c74f5d15dd9c6a5`):
+
+| kernel | share of k004 forward |
+| --- | --- |
+| `_attn_fwd` (our padded attention) | **36.05%** |
+| cutlass GEMM (linear projections) | 24.64% |
+| layer norm | 14.13% |
+| elementwise, three kernels | **23.45%** |
+| D2D memcpy | 1.53% |
+
+**De-padding ceiling:** even a *perfect* 2x on `_attn_fwd` removes 18% of the forward,
+giving **1.22x** on shape 11 — real, but it applies to only two of thirteen shapes (7 and
+11). Geomean effect if both gained the full 1.22x: about **1.03x**. And the realistic gain
+is far below the ceiling because the CUDA-core path is slower per FLOP than the Tensor-Core
+path it replaces. **Conclusion: not worth building. Recorded as closed rather than left as
+an open temptation.**
+
+**The bigger target, and it was in my very first profile.** Elementwise plus layer norm is
+**37.6%** of the shape-11 forward — *more than our attention kernel*. The first
+torch-profiler read of the night (shape 1, 23:16) said the same thing: 49% of device time
+in 44 elementwise and normalization kernels. Halving that share yields a ceiling of about
+**1.23x**, comparable to de-padding on shape 11 but applying to **every shape** rather than
+two. That is the correct next kernel direction if one is built.
+
+**But state the strategic position honestly.** Promotion is blocked, so no new kernel can
+become a champion until the owner fixes audit recording. Building a fused
+layernorm-plus-residual-plus-activation kernel is a multi-hour job with real correctness
+risk, against a 20:00 freeze. The measured 2.94x board already exists and needs only an
+audit path to become defensible. **Recommendation for the owner: fix audits first and
+promote what is measured; treat the fusion kernel as optional upside, not as the plan.**
+
 **31 Aug 00:09–00:14 SGT — BOARD COMPLETE. All twelve primary shapes measured on a quiet
 box. Geomean 2.94x. The ordering model survived its first two-sided test.**
 

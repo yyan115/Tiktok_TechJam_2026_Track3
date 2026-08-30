@@ -1,0 +1,29 @@
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                              _attn_fwd         0.00%       0.000us         0.00%       0.000us       0.000us      20.625ms        36.05%      20.625ms     257.817us            80  
+void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_...         0.00%       0.000us         0.00%       0.000us       0.000us      14.098ms        24.64%      14.098ms      44.055us           320  
+void at::native::(anonymous namespace)::vectorized_l...         0.00%       0.000us         0.00%       0.000us       0.000us       8.084ms        14.13%       8.084ms      44.911us           180  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us       7.180ms        12.55%       7.180ms      22.438us           320  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us       4.751ms         8.30%       4.751ms      29.691us           160  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us       1.488ms         2.60%       1.488ms      18.606us            80  
+                                            aten::copy_         0.27%     162.737us         0.74%     442.910us      11.073us     873.376us         1.53%     873.376us      21.834us            40  
+                         Memcpy DtoD (Device -> Device)         0.00%       0.000us         0.00%       0.000us       0.000us     873.376us         1.53%     873.376us      21.834us            40  
+                                              aten::all         0.43%     256.961us         4.08%       2.439ms     121.939us      93.440us         0.16%      97.600us       4.880us            20  
+void at::native::reduce_kernel<512, 1, at::native::R...         0.00%       0.000us         0.00%       0.000us       0.000us      93.440us         0.16%      93.440us       4.672us            20  
+                              aten::_local_scalar_dense         0.14%      82.916us        86.62%      51.828ms       2.591ms      24.800us         0.04%      24.800us       1.240us            20  
+                         Memcpy DtoH (Device -> Pinned)         0.00%       0.000us         0.00%       0.000us       0.000us      24.800us         0.04%      24.800us       1.240us            20  
+                                Activity Buffer Request         3.40%       2.033ms         3.40%       2.033ms       2.033ms       4.160us         0.01%       4.160us       4.160us             1  
+                                       aten::as_strided         0.02%      12.843us         0.02%      12.843us       0.642us       0.000us         0.00%       0.000us       0.000us            20  
+                                       cudaLaunchKernel         0.23%     135.705us         0.23%     135.705us       6.785us       0.000us         0.00%       0.000us       0.000us            20  
+                                       aten::is_nonzero         0.03%      16.449us        86.69%      51.872ms       2.594ms       0.000us         0.00%      24.800us       1.240us            20  
+                                             aten::item         0.05%      27.226us        86.67%      51.855ms       2.593ms       0.000us         0.00%      24.800us       1.240us            20  
+                                        cudaMemcpyAsync         0.65%     389.570us         0.65%     389.570us       6.493us       0.000us         0.00%       0.000us       0.000us            60  
+                                  cudaStreamSynchronize        86.30%      51.636ms        86.30%      51.636ms       2.582ms       0.000us         0.00%       0.000us       0.000us            20  
+                                        cudaGraphLaunch         1.30%     774.984us         1.30%     774.984us      38.749us       0.000us         0.00%       0.000us       0.000us            20  
+                                            aten::clone         2.41%       1.442ms         2.88%       1.722ms      86.093us       0.000us         0.00%     441.664us      22.083us            20  
+                                    aten::empty_strided         0.14%      83.137us         0.14%      83.137us       4.157us       0.000us         0.00%       0.000us       0.000us            20  
+                                  cudaDeviceSynchronize         4.64%       2.779ms         4.64%       2.779ms       1.390ms       0.000us         0.00%       0.000us       0.000us             2  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 59.833ms
+Self CUDA time total: 57.218ms
