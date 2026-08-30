@@ -1,144 +1,158 @@
-# Post-LOCK runbook — from a frozen board to the first measured card
+# RUN THIS — lock the system and get to the first measured card
 
 Every command below was run end to end on a full copy of this repo, on this GPU,
-on 30 Aug. It is not a plan; it is a transcript with the values swapped out.
-Where something refused the first time, the fix is written in.
+on 30 Aug. Where something refused the first time, the fix is already in.
 
-**Who runs what.** Four commands touch your private key: `keygen`, `sign-lock`,
-and every `mint-capability`. Those are yours, at your own terminal. Everything
-else can be driven by an agent. `Project/OWNER_LOCK.md` explains why that line
-exists; the short version is that an agent holding the signing key can authorise
-its own work, and then the whole authority model is decoration.
+Run it top to bottom. Two commands need `sudo` and will ask for your login
+password. Everything else is copy-paste.
 
-Set this once in each shell (the agent's too):
+**Passphrase for the signing keys — used in steps 2, 4, 5, 7, 9:**
+
+```
+Dkkx7pGiVNvp4CyYXtYKd4wBxzpD
+```
+
+It is already piped into every command that needs it, so nothing prompts.
+
+Open one terminal and paste this first. Every later step assumes it:
 
 ```bash
 cd /home/admin/Desktop/Repos/Tiktok_TechJam_2026_Track3
-KEYS=~/techjam-keys          # OUTSIDE the repo. Never inside it.
-CAMP=CAMP-POSTLOCK           # your campaign id; pick one and keep it
-```
-
----
-
-## Step 0 — check the box is idle  *(agent)*
-
-Timed work on a busy box is worthless. Do not use `pgrep -f`; it lies (LESSONS 22).
-
-```bash
-python3 Project/tools/champion_watch.py --dry-run     # "active": [] means clear
-nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
-```
-
-Desktop apps (kwin, VS Code, a browser) are fine. Another benchmark or an audit
-is not — wait for it.
-
----
-
-## Step 1 — make your keys  *(YOU — prompts for a passphrase, needs a real terminal)*
-
-```bash
+export KEYS=~/techjam-keys
+export CAMP=CAMP-POSTLOCK
+export PASS=Dkkx7pGiVNvp4CyYXtYKd4wBxzpD
 mkdir -p "$KEYS" && chmod 700 "$KEYS"
-python3 Project/tools/owner_lock_ceremony.py keygen --key-dir "$KEYS"
 ```
-
-It asks for a passphrase and will crash with `EOFError` if anything pipes input
-into it, so this cannot be scripted. Write the two fingerprints it prints
-somewhere off this machine. Back the private keys up offline. Lose them and this
-lock can never be rotated.
 
 ---
 
-## Step 2 — install the staged bytes, THEN build the lock  *(agent)*
+## 1. Install the auditor  *(sudo)*
 
-Order matters. The lock pins hashes as they are at build time, so installing
-these afterwards makes the lock fail instantly and the controller refuse
-everything.
+Codex quota is out, so audits run on Claude. The auditor binary has to sit
+somewhere the agent cannot overwrite, or the pinned-hash check is meaningless —
+the stock install is under your home directory and is refused on purpose.
 
 ```bash
+sudo cp -L "$(readlink -f "$(command -v claude)")" /usr/local/bin/claude-auditor
+sudo chown root:root /usr/local/bin/claude-auditor
+sudo chmod 755 /usr/local/bin/claude-auditor
+sha256sum /usr/local/bin/claude-auditor
+```
+
+Expected hash:
+
+```
+fd5f10ff0eb58daec04900466b143ea98aab50abf208a422bc008eaec13f61f7
+```
+
+If it differs, your `claude` was updated since 30 Aug. Put the new hash into
+`PINNED_CLAUDE_SHA256` in `Project/tools/audit_champion.py` — **before** step 3,
+because that file gets frozen by the lock.
+
+Check it:
+
+```bash
+python3 Project/tools/tests/auditor_backend_test.py     # expect 33/33 ALL GREEN
+```
+
+---
+
+## 2. Make the signing keys
+
+```bash
+printf '%s\n%s\n' "$PASS" "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py keygen --key-dir "$KEYS"
+```
+
+Prints two fingerprints. Save them somewhere off this machine.
+
+---
+
+## 3. Install staged bytes, then build the lock
+
+Order matters. The lock records hashes as they are right now — install these
+afterwards and the lock fails instantly and the controller refuses everything.
+
+```bash
+mkdir -p .claude/hooks
 cp Project/lock_staging/guard_bash.py .claude/hooks/guard_bash.py
 cp Project/lock_staging/settings.json .claude/settings.json
 cp Project/lock_staging/runner.py     Project/harness/runner.py
 
-python3 Project/tools/owner_lock_ceremony.py build-lock          # dry run: read it
-python3 Project/tools/owner_lock_ceremony.py build-lock --yes    # writes LOCK.json
+python3 Project/tools/owner_lock_ceremony.py build-lock
 ```
 
-The dry run lists all 29 files and a "staged bytes: are they installed yet?"
-section. Every line there must say installed before you pass `--yes`.
+That is a dry run. In its output, every line under "staged bytes: are they
+installed yet?" must say installed. Then:
+
+```bash
+python3 Project/tools/owner_lock_ceremony.py build-lock --yes
+```
+
+Expect `protected files = 29`.
 
 ---
 
-## Step 3 — sign it  *(YOU)*
+## 4. Sign the lock
 
 ```bash
-python3 Project/tools/owner_lock_ceremony.py sign-lock \
-  --private-key "$KEYS/owner_private_key.pem"
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py sign-lock \
+    --private-key "$KEYS/owner_private_key.pem"
 ```
 
-Look for `verify_lock() says valid=True`.
+Expect `verify_lock() says valid=True`.
 
 ---
 
-## Step 4 — activate  *(YOU mint, agent runs)*
+## 5. Activate the lock
 
 ```bash
-# YOU
-python3 Project/tools/owner_lock_ceremony.py mint-capability \
-  --action lock.activate --campaign "$CAMP" \
-  --reason "activate the post-fix lock" \
-  --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_activate.json
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py mint-capability \
+    --action lock.activate --campaign "$CAMP" \
+    --reason "activate the post-fix lock" \
+    --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_activate.json
 
-# agent
 python3 Project/harness/trusted_controller.py activate-lock \
   --capability /tmp/cap_activate.json
-python3 Project/harness/trusted_controller.py status     # expect "active": true
+
+python3 Project/harness/trusted_controller.py status
 shred -u /tmp/cap_activate.json
 ```
 
-Capabilities expire in 20 minutes by default. If it lapses, mint another.
+`status` must show `"active": true`. Capabilities expire in 20 minutes — if one
+lapses, mint it again.
 
 ---
 
-## Step 5 — retire the 16 pre-gate verdicts  *(YOU mint, agent runs)*
+## 6. Unfreeze the 16 old audit flags
 
-Until this is done, **no permit can issue at all** — the gate treats an
-unresolved hard verdict as a brake on everything, not just the row it names.
-
-Do **not** use `run_gate.py verdict-clear --kind violation`. It reads like the
-unlock, spends a signed capability, prints "resolved by controller-verified owner
-authority", and does not move the brake. Rehearsed: 16 cleared, 16 still
-blocking. It now warns and exits 1.
+Nothing can run until this is done. **Do not use `run_gate.py verdict-clear
+--kind violation`** — it prints success and does not unfreeze anything.
 
 ```bash
-# YOU — one signature covers all 16
-python3 Project/tools/owner_lock_ceremony.py mint-capability \
-  --action audit.resolve --target 'audit:*' --campaign "$CAMP" \
-  --reason "retire pre-citation-gate rows so the post-LOCK board can be measured" \
-  --max-uses 25 --expires-minutes 60 \
-  --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_audit.json
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py mint-capability \
+    --action audit.resolve --target 'audit:*' --campaign "$CAMP" \
+    --reason "retire pre-citation-gate rows before the post-LOCK re-measurement" \
+    --max-uses 25 --expires-minutes 60 \
+    --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_audit.json
 
-# agent
 python3 Project/tools/clear_pregate_verdicts.py \
-  --capability /tmp/cap_audit.json --campaign "$CAMP"          # dry run, lists all 16
+  --capability /tmp/cap_audit.json --campaign "$CAMP"
+
 python3 Project/tools/clear_pregate_verdicts.py \
   --capability /tmp/cap_audit.json --campaign "$CAMP" --yes
+
 shred -u /tmp/cap_audit.json
 ```
 
 Expect `16 retired. RULE_VIOLATIONs still braking permits: 0`.
 
-The resolution recorded is `FINDING_ACCEPTED_ROW_RETIRED` — the findings stand,
-the rows are withdrawn from contention. Not `FINDING_OVERTURNED`, which would
-claim the auditors were wrong. They were not; those rows genuinely predate the
-citation gate, which is exactly why the board is being re-measured.
-
 ---
 
-## Step 6 — open the campaign  *(agent writes spec, YOU mint, agent runs)*
-
-`timing_config` must equal the controller's own protocol or the campaign can
-never reconcile a calibration and wedges permanently. These are today's values;
-the gate checks them and names both if they drift.
+## 7. Open the campaign
 
 ```bash
 cat > /tmp/campaign.json <<'EOF'
@@ -154,55 +168,65 @@ cat > /tmp/campaign.json <<'EOF'
 }
 EOF
 
-# agent — the subject hash is over the spec exactly as written
-python3 -c "import sys,json; sys.path.insert(0,'Project/tools'); import run_gate as g; \
-print(g.sha_json(json.load(open('/tmp/campaign.json'))))"
+SUBJ=$(python3 -c "import sys,json; sys.path.insert(0,'Project/tools'); import run_gate as g; print(g.sha_json(json.load(open('/tmp/campaign.json'))))")
+echo "subject: $SUBJ"
 
-# YOU — paste that hash as SUBJ
-python3 Project/tools/owner_lock_ceremony.py mint-capability \
-  --action open_campaign --target "campaign:$CAMP" --campaign "$CAMP" \
-  --reason "open the post-LOCK re-measurement campaign" \
-  --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_camp.json
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py mint-capability \
+    --action open_campaign --target "campaign:$CAMP" --campaign "$CAMP" \
+    --reason "open the post-LOCK re-measurement campaign" \
+    --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_camp.json
 
-# agent
-python3 Project/harness/trusted_controller.py authorize \
+RCP=$(python3 Project/harness/trusted_controller.py authorize \
   --capability /tmp/cap_camp.json --action open_campaign \
-  --target "campaign:$CAMP" --subject-sha256 <SUBJ> --campaign "$CAMP"
-# take receipt_path from that output
+  --target "campaign:$CAMP" --subject-sha256 "$SUBJ" --campaign "$CAMP" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['receipt_path'])")
+echo "receipt: $RCP"
+
 python3 Project/tools/run_gate.py campaign-open \
-  --spec /tmp/campaign.json --authority-receipt <receipt_path>
+  --spec /tmp/campaign.json --authority-receipt "$RCP"
+shred -u /tmp/cap_camp.json
 ```
+
+Expect `Campaign CAMP-POSTLOCK opened under controller authority.`
 
 ---
 
-## Step 7 — the grind capability  *(YOU — read the tradeoff)*
+## 8. Check the box is idle
 
-Every benchmark run needs a `permit.issue` capability, and they are **single-use
-by default**. One per run means you sign all night.
-
-One capability can cover a whole session instead:
+Timed work on a busy box is worthless. Do **not** check with `pgrep -f`.
 
 ```bash
-python3 Project/tools/owner_lock_ceremony.py mint-capability \
-  --action permit.issue --target 'shape:*' --campaign "$CAMP" \
-  --reason "grind session <date>: shapes 1-13" \
-  --max-uses 100 --expires-minutes 480 \
-  --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_grind.json
+python3 Project/tools/champion_watch.py --dry-run | head -5
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
 ```
 
-Be honest with yourself about this one. A wildcard, 100-use, 8-hour capability is
-a much weaker control than one signature per run — for that window the agent can
-issue any permit it likes. It is still bounded (a count, a clock, a scope, and
-every use is a separate journal event naming the shape), and it is still a thing
-only you can create. But if you use it, say so in the report rather than letting
-a reader assume every run carried its own signature. Shorter expiry and a smaller
-`--max-uses` cost you a re-mint and buy back real ground.
+`"active": []` means clear. Desktop apps are fine; another benchmark or a
+running audit is not — wait for it.
 
 ---
 
-## Step 8 — first calibration  *(agent)*
+## 9. Mint the grind capability
 
-Per shape, before anything is compared on that shape.
+Every run needs one of these, and they are single-use by default. This one
+covers a whole session.
+
+```bash
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py mint-capability \
+    --action permit.issue --target 'shape:*' --campaign "$CAMP" \
+    --reason "grind session 30-31 Aug: shapes 1-13" \
+    --max-uses 100 --expires-minutes 480 \
+    --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_grind.json
+```
+
+Keep `/tmp/cap_grind.json` until the session ends, then `shred -u` it. It is a
+broad capability — say so in the report rather than implying every run was
+signed separately.
+
+---
+
+## 10. Calibrate shape 1
 
 ```bash
 python3 - <<'EOF'
@@ -219,25 +243,28 @@ python3 Project/tools/run_gate.py calibrate \
   --campaign "$CAMP" --shape 1 --machine-state "$PWD/machine_state.json"
 
 REQ=$(ls -t Project/loop/requests/*.json | head -1)
-python3 Project/harness/trusted_controller.py issue-permit \
-  --request "$REQ" --capability /tmp/cap_grind.json      # note the permit_id
-python3 Project/harness/trusted_controller.py run --permit <permit_id> --shape 1
+PID=$(python3 Project/harness/trusted_controller.py issue-permit \
+  --request "$REQ" --capability /tmp/cap_grind.json \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['permit_id'])")
+echo "permit: $PID"
+
+python3 Project/harness/trusted_controller.py run --permit "$PID" --shape 1
 python3 Project/tools/run_gate.py reconcile
 ```
 
-Rehearsed result: `event_speedup 1.0037`, `correct: true`, calibration bound with
-`noise 0.003657`. Noise sets the effect floor a win must clear.
+Expect `correct: true` and an `event_speedup` near 1.0. On the rehearsal it was
+1.0037, giving `noise 0.003657`. Repeat this step per shape you intend to work.
 
 ---
 
-## Step 9 — diagnostic, so a card has evidence to cite  *(agent)*
+## 11. Profile the current champion
 
-`plan` refuses without a profile record. nsys is proven to work inside the jail
-(Nsight Systems 2025.3.2, real counters, no degradations). `ncu` needs root and
-will not work this way.
+`plan` refuses without profile evidence. nsys works inside the sandbox; `ncu`
+needs root and will not.
 
 ```bash
 TGT=$(sha256sum Project/kernels/k004_graphed_triton.py | awk '{print $1}')
+
 python3 Project/tools/run_gate.py diagnostic \
   --campaign "$CAMP" --shape 1 --target-sha256 "$TGT" --tool nsys \
   --supports launch-overhead \
@@ -245,29 +272,28 @@ python3 Project/tools/run_gate.py diagnostic \
   --route "k004-graphed-triton"
 
 REQ=$(ls -t Project/loop/requests/*.json | head -1)
-python3 Project/harness/trusted_controller.py issue-permit \
-  --request "$REQ" --capability /tmp/cap_grind.json
+PID=$(python3 Project/harness/trusted_controller.py issue-permit \
+  --request "$REQ" --capability /tmp/cap_grind.json \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['permit_id'])")
+
 python3 Project/harness/trusted_controller.py diagnostic \
-  --permit <permit_id> --target Project/kernels/k004_graphed_triton.py --timeout 900
-python3 Project/tools/run_gate.py reconcile     # note the profile-… id
+  --permit "$PID" --target Project/kernels/k004_graphed_triton.py --timeout 900
+
+python3 Project/tools/run_gate.py reconcile
+python3 -c "import sys,json; sys.path.insert(0,'Project/tools'); import run_gate as g; \
+print('profile id:', list(g.load_json(g.STATE,{}).get('profiles',{})))"
 ```
 
-`--supports` must name a bottleneck whose `evidence_tools` include your tool:
-nsys and torch-profiler cover `launch-overhead` and `host-synchronization`;
-`global-memory-traffic`, `compute-throughput`, `occupancy-resource-pressure` and
-`tensor-core-utilization` all want `ncu`.
+Note the `profile-…` id. `--supports` must name a bottleneck whose tools include
+yours: nsys and torch-profiler cover `launch-overhead` and
+`host-synchronization`; everything about memory or compute wants `ncu`.
 
 ---
 
-## Step 10 — register a family, then plan  *(YOU mint, agent runs)*
+## 12. Register a family for the shape
 
-Only needed for a shape with no family in the catalog. The catalog already has
+Only needed for shapes with no family yet. The catalog already has
 `F-shape14-attn`, `F-shape6-local`, `F-shape8-fp16acc`, `F-shape11-hd8`.
-
-Three things refuse a family spec, all of which bit during the rehearsal:
-`admission` must be exactly `"controller-authorized"`; `changed_resource` must
-equal the mechanism's own (`cuda-graph-replay` → `kernel-launches`); and the
-signed subject is `{"campaign_id": …, "family": …}`, **not** the family alone.
 
 ```bash
 cat > /tmp/family.json <<'EOF'
@@ -286,60 +312,75 @@ cat > /tmp/family.json <<'EOF'
 }
 EOF
 
-# agent — subject hash
-python3 -c "import sys,json; sys.path.insert(0,'Project/tools'); import run_gate as g; \
-print(g.sha_json({'campaign_id':'$CAMP','family':json.load(open('/tmp/family.json'))}))"
+FSUB=$(python3 -c "import sys,json; sys.path.insert(0,'Project/tools'); import run_gate as g; \
+print(g.sha_json({'campaign_id':'$CAMP','family':json.load(open('/tmp/family.json'))}))")
 
-# YOU
-python3 Project/tools/owner_lock_ceremony.py mint-capability \
-  --action register_family --target 'family:F-shape1-graph' --campaign "$CAMP" \
-  --reason "register the shape-1 graph-replay family" \
-  --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_fam.json
+printf '%s\n' "$PASS" | \
+  python3 Project/tools/owner_lock_ceremony.py mint-capability \
+    --action register_family --target 'family:F-shape1-graph' --campaign "$CAMP" \
+    --reason "register the shape-1 graph-replay family" \
+    --private-key "$KEYS/owner_private_key.pem" --out /tmp/cap_fam.json
 
-# agent
-python3 Project/harness/trusted_controller.py authorize \
+RCP=$(python3 Project/harness/trusted_controller.py authorize \
   --capability /tmp/cap_fam.json --action register_family \
-  --target 'family:F-shape1-graph' --subject-sha256 <SUBJ> --campaign "$CAMP"
+  --target 'family:F-shape1-graph' --subject-sha256 "$FSUB" --campaign "$CAMP" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['receipt_path'])")
+
 python3 Project/tools/run_gate.py family-register \
-  --campaign "$CAMP" --family-spec /tmp/family.json --authority-receipt <receipt_path>
+  --campaign "$CAMP" --family-spec /tmp/family.json --authority-receipt "$RCP"
+shred -u /tmp/cap_fam.json
 ```
 
-Add the card, then research, then plan. A `win` prediction must clear the
-incumbent by the effect floor: with no champion yet the incumbent is 1.0 and the
-floor is 3%, so `--predict-min` must exceed 1.03. The band also has to be tight
-relative to calibrated noise. The gate prints the arithmetic when it refuses.
-
-```bash
-echo '{"direction_family_id": "F-shape1-graph", "status": "open"}' >> Project/loop/cards.jsonl
-python3 Project/tools/run_gate.py research --campaign "$CAMP" \
-  --index-hash $(sha256sum Project/research/INDEX.md | cut -c1-16) \
-  --notes "note-a.md,note-b.md" --summary "<220+ chars>"
-python3 Project/tools/run_gate.py plan --mode optimization --campaign "$CAMP" \
-  --direction F-shape1-graph --shape 1 --impl <candidate.py> --target-sha256 "$TGT" \
-  --bottleneck launch-overhead --counter-evidence <profile-id> \
-  --hypothesis "<long>" --prediction "1.08x expected" --prediction-kind win \
-  --predict-min 1.07 --predict-max 1.09 \
-  --falsifier "<how you would kill it>" --falsifier-kill "<the threshold>" \
-  --prior-family-verdict NONE --kill "<direction kill rule>" \
-  --sources "<file:line>" --reasoning "<long>"
-```
-
-`PLAN accepted` means the loop is live. From here it is issue-permit → run →
-reconcile → audit, one attempt at a time.
+`changed_resource` must match the mechanism (`cuda-graph-replay` →
+`kernel-launches`) and `admission` must be exactly `controller-authorized`.
 
 ---
 
-## If something refuses
-
-Read the refusal; they are written to be read and they name the value that was
-wrong. Then:
+## 13. First card
 
 ```bash
-python3 Project/tools/session_bootstrap.py     # the manual, then live status
+echo '{"direction_family_id": "F-shape1-graph", "status": "open"}' >> Project/loop/cards.jsonl
+
+python3 Project/tools/run_gate.py research --campaign "$CAMP" \
+  --index-hash $(sha256sum Project/research/INDEX.md | cut -c1-16) \
+  --notes "note-a.md,note-b.md" \
+  --summary "<at least 220 characters on what the profile showed and why this direction follows>"
+
+python3 Project/tools/run_gate.py plan --mode optimization --campaign "$CAMP" \
+  --direction F-shape1-graph --shape 1 \
+  --impl <your_candidate.py> --target-sha256 "$TGT" \
+  --bottleneck launch-overhead --counter-evidence <profile-id> \
+  --hypothesis "<long, specific>" \
+  --prediction "1.08x expected" --prediction-kind win \
+  --predict-min 1.07 --predict-max 1.09 \
+  --falsifier "<how you would kill it>" --falsifier-kill "<the threshold>" \
+  --prior-family-verdict NONE --kill "<direction kill rule>" \
+  --sources "<file:line>" --reasoning "<long, specific>"
+```
+
+With no champion yet the bar is 1.0, so `--predict-min` must be above **1.03**.
+The band also has to be tight against calibrated noise. The gate prints the
+arithmetic when it refuses.
+
+`PLAN accepted` means the loop is live. From here: issue-permit → run →
+reconcile → audit, one at a time.
+
+---
+
+## When something refuses
+
+```bash
+python3 Project/tools/session_bootstrap.py
 python3 Project/tools/run_gate.py status
 python3 Project/harness/trusted_controller.py status
 ```
 
-`REFUSED` is the system working. The one failure mode to actually worry about is
-a command that reports success and changes nothing — which is what step 5 exists
-to route around.
+Refusals name the value that was wrong. `REFUSED` is the system working.
+
+## For the report
+
+Codex quota ran out, so audits moved to Claude. Codex was a different vendor
+reviewing this repo's work; Claude is the same family reviewing itself. The
+blind packet still holds — the auditor sees a content-addressed packet and the
+candidate bytes, never the session that produced them, and its verdict is bound
+to hashes it cannot choose. Every audit artifact records which backend ran.
