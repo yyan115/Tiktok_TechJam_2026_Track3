@@ -47,6 +47,8 @@ files have no authority.
 from __future__ import annotations
 
 import argparse
+import ast
+import copy
 import datetime as _datetime
 import hashlib
 import json
@@ -89,7 +91,9 @@ HEX64 = re.compile(r"[0-9a-f]{64}")
 AUTHORITY_ACTIONS = {
     "open_campaign", "register_family", "resolve_family_novelty",
     "resume_stalled_campaign", "reopen_family", "resolve_integrity_verdict",
+    "quarantine_request",
 }
+_MISSING = object()
 
 
 def now() -> str:
@@ -289,6 +293,7 @@ def _ensure_state_schema(st: dict) -> None:
         "reconciled_authority_event_shas": [],
         "settled_request_shas": [],
         "groups": {}, "pending_postmortem": [], "cleared_verdicts": [],
+        "quarantined_requests": [],
     }
     for key, default in defaults.items():
         if key not in st:
@@ -302,6 +307,7 @@ def _ensure_state_schema(st: dict) -> None:
         "reconciled_authority_event_shas": list,
         "settled_request_shas": list,
         "cleared_verdicts": list,
+        "quarantined_requests": list,
     }
     for key, typ in typed.items():
         if not isinstance(st.get(key), typ):
@@ -328,7 +334,13 @@ def save_state(st: dict) -> None:
 def commit(st: dict, entry: dict) -> None:
     """Crash-safe transition: the log row carrying the NEW seq is durably
     appended BEFORE state is saved. A crash in between leaves state BEHIND
-    the log, which the strict loader refuses — fail closed, never laundered."""
+    the log, which the strict loader refuses — fail closed, never laundered.
+
+    ``_dry_run`` marks a throwaway copy of state used by
+    ``_reconcile_probe_reason`` to reproduce a reconciler's refusal text. A
+    probe must never write the log or the state file, so it stops here."""
+    if st.get("_dry_run"):
+        return
     seq = st.get("seq", 0) + 1
     st.pop("_verdict_lines_snapshot", None)  # transient, never persisted
     entry["state_seq"] = seq
@@ -352,6 +364,73 @@ def index_hash() -> str:
 
 def sha_file(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def controller_timing_protocol() -> tuple[dict | None, str]:
+    """Read the trusted controller's timing protocol from the controller.
+
+    ONE source of truth for the benchmark timing protocol.  The controller
+    stamps its module-level ``TIMING`` constant into both the worker request
+    and the ``measurement_recorded`` payload, and
+    ``_reconcile_authority_calibration`` demands
+    ``payload["timing_args"] == request["timing_config"]``.  A campaign whose
+    ``timing_config`` differs from that constant therefore can NEVER
+    reconcile its calibration; and since a campaign-bound calibration is a
+    hard prerequisite for ``plan``, the entire gate wedges permanently with
+    no recovery.  The cheap, recoverable place to catch that is campaign
+    open, before any GPU time is spent.
+
+    The constant is READ, never copied.  A second literal in this file would
+    drift out of step with the controller and recreate exactly the class of
+    bug it is meant to close.  The controller is parsed with ``ast`` instead
+    of imported because importing it drags in the whole sandbox/worker stack
+    (and its module-level side effects) for the sake of one dict.
+
+    Returns ``(protocol, source)``.  ``protocol`` is ``None`` only in the one
+    case where the controller source parses cleanly but publishes no
+    module-level ``TIMING`` at all -- a controller that stamps no protocol
+    cannot wedge a campaign on one, and the caller records that the binding
+    was unverified.  Every other failure raises: those are cases where a
+    protocol exists and the gate cannot read it, and guessing is what caused
+    the defect.
+    """
+    keys = {"warmup", "repeats", "rounds"}
+    try:
+        source = CONTROLLER.read_text()
+    except OSError as exc:
+        raise GateRefusal(
+            "trusted controller source is unreadable, so its timing protocol "
+            f"cannot be bound; authority fails closed ({exc})")
+    try:
+        tree = ast.parse(source, filename=str(CONTROLLER))
+    except SyntaxError as exc:
+        raise GateRefusal(
+            f"trusted controller source does not parse ({exc}); its timing "
+            "protocol cannot be bound")
+    found = _MISSING
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names = [node.target.id]
+        else:
+            continue
+        if "TIMING" not in names or getattr(node, "value", None) is None:
+            continue
+        try:
+            found = ast.literal_eval(node.value)
+        except Exception as exc:
+            raise GateRefusal(
+                "trusted controller TIMING is not a literal constant, so the "
+                f"gate cannot bind the timing protocol ({exc})")
+    if found is _MISSING:
+        return None, f"{CONTROLLER.name}: no module-level TIMING constant"
+    if (not isinstance(found, dict) or set(found) != keys
+            or any(type(found[k]) is not int or found[k] <= 0 for k in keys)):
+        raise GateRefusal(
+            "trusted controller TIMING is malformed (expected positive int "
+            f"warmup/repeats/rounds, found {found!r})")
+    return dict(found), f"{CONTROLLER.name}::TIMING"
 
 
 def open_cards() -> dict:
@@ -1712,6 +1791,25 @@ def cmd_campaign_open(args) -> int:
                 or any(type(timing.get(k)) is not int or timing[k] <= 0
                        for k in timing)):
             raise GateRefusal("campaign timing_config must bind positive warmup/repeats/rounds")
+        # A campaign's timing_config is not a free dial. The trusted
+        # controller stamps its OWN protocol constant into every measurement
+        # it records, and reconcile requires
+        # measurement.timing_args == campaign.timing_config. Any other value
+        # opens a campaign that can never reconcile a calibration, and a
+        # campaign-bound calibration is a hard prerequisite for `plan` -- so
+        # the mismatch wedges the gate permanently. Refuse here, where it is
+        # free and recoverable, and name both values.
+        protocol, protocol_source = controller_timing_protocol()
+        controller_sha = sha_file(CONTROLLER)
+        if protocol is not None and timing != protocol:
+            raise GateRefusal(
+                "campaign timing_config does not match the trusted "
+                "controller's timing protocol -- this campaign could never "
+                "reconcile a calibration and `plan` would refuse forever.\n"
+                f"          spec timing_config: {json.dumps(timing, sort_keys=True)}\n"
+                f"  controller protocol ({protocol_source}): "
+                f"{json.dumps(protocol, sort_keys=True)}\n"
+                "  Re-open the spec with the controller's values.")
         if (not isinstance(spec.get("score_scenarios"), list)
                 or not spec["score_scenarios"]
                 or any(not isinstance(x, str) or not x for x in spec["score_scenarios"])):
@@ -1736,14 +1834,32 @@ def cmd_campaign_open(args) -> int:
         "side_evaluation_requests": 0, "side_evaluations": [],
         "stalled": False, "stall_nonce": None, "stalled_epoch": None,
         "stall_research_cycle": st.get("research_cycle", 0),
+        "timing_protocol_binding": {
+            "verified_against_controller": protocol is not None,
+            "source": protocol_source,
+            "controller_sha256": controller_sha,
+        },
     })
     consume_controller_receipt(st, verified)
     st["campaigns"][cid] = campaign
     st["active_campaign"] = cid
     commit(st, {"ts": now(), "step": "campaign_open", "campaign_id": cid,
                 "spec_sha256": sha_json(spec),
+                "timing_config": timing,
+                "timing_protocol_source": protocol_source,
+                "timing_protocol_verified": protocol is not None,
+                "controller_sha256": campaign["timing_protocol_binding"]["controller_sha256"],
                 "authority_event_id": verified["authority_event_id"],
                 "authority_event_sha256": verified["authority_event_sha256"]})
+    if protocol is None:
+        # Not a silent default: the campaign is opened on the operator's
+        # value, but the state and the log both record that no controller
+        # protocol was available to check it against.
+        print(f"WARNING: {protocol_source} — timing_config "
+              f"{json.dumps(timing, sort_keys=True)} could NOT be verified "
+              "against a controller protocol constant. If the controller "
+              "records different timing_args, reconcile will refuse and the "
+              "chain will need `quarantine`.")
     print(f"Campaign {cid} opened under controller authority.")
     return 0
 
@@ -1840,6 +1956,19 @@ def cmd_diagnostic(args) -> int:
             raise GateRefusal("diagnostic tool is inappropriate for a declared bottleneck")
         if len(args.question.strip()) < 40 or len(args.route.strip()) < 3:
             raise GateRefusal("diagnostic needs a concrete question and route")
+        # Snapshot the catalog terms this diagnostic is being authorized
+        # against, into the content-addressed (and controller-bound) request.
+        # The scientific path already snapshots catalog_sha256 into the
+        # immutable budget snapshot; the diagnostic path used to re-read the
+        # LIVE catalog at reconcile time, so adding one required_metric after
+        # a profile had already been captured retroactively invalidated it
+        # and wedged the chain forever. Evidence is judged against the
+        # contract that was in force when it was authorized.
+        contract = {
+            b: {"required_metrics": sorted(catalog["bottlenecks"][b]["required_metrics"]),
+                "evidence_tools": sorted(catalog["bottlenecks"][b]["evidence_tools"])}
+            for b in bottlenecks
+        }
     except (GateRefusal, TypeError, ValueError) as exc:
         print(f"REFUSED: {exc}")
         return 1
@@ -1856,6 +1985,8 @@ def cmd_diagnostic(args) -> int:
         "target_sha256": args.target_sha256, "tool": args.tool,
         "question": args.question.strip(), "route": args.route.strip(),
         "supported_bottlenecks": bottlenecks,
+        "bottleneck_contract": contract,
+        "catalog_sha256": sha_file(CATALOG),
         "profile_record_id": record_id,
         "profile_output": str(output.relative_to(ROOT)),
         "impl_path": None, "impl_sha256": None, "ledger": None,
@@ -1871,6 +2002,7 @@ def cmd_diagnostic(args) -> int:
                 "campaign_id": campaign["campaign_id"], "shape": shape,
                 "target_sha256": args.target_sha256, "tool": args.tool,
                 "profile_record_id": record_id, "request_id": request["request_id"],
+                "catalog_sha256": request["catalog_sha256"],
                 "request_path": artifact[0], "request_sha256": artifact[1]})
     arm_permit(request, artifact)
     print(f"DIAGNOSTIC request {request['request_id']} emitted; it cannot authorize candidate bytes or promotion.")
@@ -2176,14 +2308,31 @@ def _reconcile_authority_diagnostic(st: dict, chain: dict) -> None:
             raise GateRefusal("diagnostic raw artifact escaped its namespace") from exc
         if not raw_path.is_file() or sha_file(raw_path) != raw["sha256"]:
             raise GateRefusal("diagnostic raw artifact is missing or changed")
-    catalog = load_catalog()
+    # The catalog is mutable. Judge already-collected evidence against the
+    # terms pinned into the immutable request, so a later catalog edit cannot
+    # retroactively invalidate a profile that was correct when captured.
+    # Requests emitted before the snapshot existed fall back to the live
+    # catalog (the old behaviour) rather than becoming unreconcilable.
+    contract = request.get("bottleneck_contract")
+    if isinstance(contract, dict) and contract:
+        contract_source = "the catalog terms pinned in the request"
+    else:
+        live = load_catalog()["bottlenecks"]
+        contract = {b: {"required_metrics": live[b]["required_metrics"],
+                        "evidence_tools": live[b]["evidence_tools"]}
+                    for b in artifact["supported_bottlenecks"] if b in live}
+        contract_source = "the live mechanism catalog (request predates pinning)"
     for bottleneck in artifact["supported_bottlenecks"]:
-        if (bottleneck not in catalog["bottlenecks"]
-                or artifact["tool"] not in
-                    catalog["bottlenecks"][bottleneck]["evidence_tools"]
-                or any(metric not in artifact["metrics"] for metric in
-                       catalog["bottlenecks"][bottleneck]["required_metrics"])):
-            raise GateRefusal(f"diagnostic evidence is insufficient for {bottleneck}")
+        terms = contract.get(bottleneck)
+        if (not isinstance(terms, dict)
+                or not isinstance(terms.get("evidence_tools"), list)
+                or not isinstance(terms.get("required_metrics"), list)
+                or artifact["tool"] not in terms["evidence_tools"]
+                or any(metric not in artifact["metrics"]
+                       for metric in terms["required_metrics"])):
+            raise GateRefusal(
+                f"diagnostic evidence is insufficient for {bottleneck} "
+                f"(checked against {contract_source})")
     record = {
         "profile_record_id": artifact["profile_record_id"],
         "artifact_path": str(path.relative_to(ROOT)), "artifact_sha256": digest,
@@ -2203,6 +2352,8 @@ def _reconcile_authority_diagnostic(st: dict, chain: dict) -> None:
         "profile_record_id": record["profile_record_id"],
         "artifact_sha256": digest, "tool": record["tool"],
         "request_id": request["request_id"],
+        "catalog_sha256": request.get("catalog_sha256"),
+        "bottleneck_contract_source": contract_source,
         "request_sha256": chain["request_sha256"],
         "permit_id": chain["permit"]["permit_id"],
         "measurement_event_sha256": measurement["event_sha256"],
@@ -2218,11 +2369,21 @@ def _reconcile_authority_calibration(st: dict, chain: dict) -> None:
     campaign = active_campaign(st, request["campaign_id"])
     noise = payload.get("calibrated_noise")
     threshold = payload.get("promotion_threshold")
+    if payload.get("timing_args") != request["timing_config"]:
+        # Campaign open now binds timing_config to the controller's protocol,
+        # so this can only mean the CONTROLLER changed after the campaign was
+        # opened. Say so with both values instead of one opaque message: the
+        # campaign is immutable, so the fix is a new campaign (or, for a chain
+        # already measured under the old protocol, `quarantine`).
+        raise GateRefusal(
+            "controller timing protocol drifted away from the campaign after "
+            "it was opened -- this measurement can never bind.\n"
+            f"    campaign timing_config: {json.dumps(request['timing_config'], sort_keys=True)}\n"
+            f"  controller timing_args : {json.dumps(payload.get('timing_args'), sort_keys=True, default=str)}")
     if (not isinstance(noise, (int, float)) or isinstance(noise, bool)
             or not math.isfinite(float(noise)) or noise <= 0
             or not isinstance(threshold, (int, float)) or isinstance(threshold, bool)
             or not math.isfinite(float(threshold)) or threshold <= 1
-            or payload.get("timing_args") != request["timing_config"]
             or payload.get("performance_eligible") is not False):
         raise GateRefusal("controller calibration has invalid noise/timing bindings")
     key = str(request["shape"])
@@ -2378,6 +2539,38 @@ def _reconcile_authority_side(st: dict, chain: dict) -> None:
     })
 
 
+def _dispatch_reconciler(st: dict, chain: dict) -> None:
+    """Route one complete chain to the reconciler that owns its kind."""
+    request = chain["request"]
+    if chain.get("failed") is not None:
+        _reconcile_authority_failure(st, chain)
+    elif request["request_kind"] == "diagnostic":
+        _reconcile_authority_diagnostic(st, chain)
+    elif request["request_kind"] == "calibration":
+        _reconcile_authority_calibration(st, chain)
+    elif request["request_kind"] == "side_evaluation":
+        _reconcile_authority_side(st, chain)
+    else:
+        _reconcile_authority_scientific(st, chain)
+
+
+def _reconcile_probe_reason(st: dict, chain: dict) -> str | None:
+    """The CURRENT refusal text for one chain, or None if it would settle.
+
+    Runs the real reconciler against a deep copy of state marked ``_dry_run``,
+    which turns ``commit`` into a no-op, so the probe cannot write the gate
+    log, the state file, or any artifact. A quarantine record therefore
+    carries the reconciler's own words rather than operator prose.
+    """
+    probe = copy.deepcopy(st)
+    probe["_dry_run"] = True
+    try:
+        _dispatch_reconciler(probe, chain)
+    except GateRefusal as exc:
+        return str(exc)
+    return None
+
+
 def cmd_reconcile(_args) -> int:
     """Crash-safe reconciliation from authority events, never workspace rows."""
     gate_lock()
@@ -2409,16 +2602,29 @@ def cmd_reconcile(_args) -> int:
                     progressed = True
                 continue
             request = chain["request"]
-            if chain.get("failed") is not None:
-                _reconcile_authority_failure(st, chain)
-            elif request["request_kind"] == "diagnostic":
-                _reconcile_authority_diagnostic(st, chain)
-            elif request["request_kind"] == "calibration":
-                _reconcile_authority_calibration(st, chain)
-            elif request["request_kind"] == "side_evaluation":
-                _reconcile_authority_side(st, chain)
-            else:
-                _reconcile_authority_scientific(st, chain)
+            try:
+                _dispatch_reconciler(st, chain)
+            except GateRefusal as exc:
+                # A refusal here is TERMINAL for this chain: it never enters
+                # settled_request_shas, so _pending_authority_reason keeps
+                # reporting it and _request_preconditions refuses every
+                # request kind from now on. Nothing this run mutated is
+                # committed. Say which chain, and name the owner-gated exit
+                # for causes that cannot be repaired (a deleted raw profiler
+                # artifact, a catalog term that moved).
+                print(f"REFUSED: {exc}")
+                print(f"  request_id     : {request.get('request_id')}")
+                print(f"  request_sha256 : {chain['request_sha256']}")
+                print(f"  kind/mode      : {request.get('request_kind')}"
+                      f" / {request.get('mode')}")
+                print(f"  permit_id      : {chain['permit']['permit_id']}")
+                print("  Repair the cause and re-run `reconcile`. If the cause "
+                      "is unrecoverable, the owner can settle this one chain "
+                      "as unreconcilable with a signed capability:")
+                print("    python3 Project/tools/run_gate.py quarantine "
+                      f"--request-sha256 {chain['request_sha256']} "
+                      "--authority-receipt <receipt.json>")
+                return 1
             settled.add(chain["request_sha256"])
             progressed = True
         # Unissued request artifacts become inert at their immutable expiry.
@@ -2443,6 +2649,154 @@ def cmd_reconcile(_args) -> int:
     except GateRefusal as exc:
         print(f"REFUSED: {exc}")
         return 1
+
+
+def cmd_quarantine(args) -> int:
+    """OWNER-ONLY: settle ONE chain the reconciler can never settle itself.
+
+    A GateRefusal raised inside a reconciler is terminal by construction. The
+    chain never enters ``settled_request_shas``, ``_pending_authority_reason``
+    keeps reporting it, and ``_request_preconditions`` then refuses
+    ``diagnostic``, ``calibrate``, ``side-evaluate``, ``plan`` and ``delta``
+    from that moment on. Some causes are genuinely unrepairable in the
+    workspace -- a multi-GB nsys report cleaned up after the fact, a catalog
+    term that moved under an already-collected profile -- so an exit has to
+    exist or a careful operator can lose the gate permanently.
+
+    It is capability-gated exactly like ``reopen``: a controller-verified
+    owner capability bound to this exact subject. The agent cannot self-serve
+    it, and workspace prose has no authority. Sign this object:
+
+        {"request_sha256", "request_id", "terminal_event_sha256",
+         "reason", "resolution"}
+
+    ``reason`` is not operator prose: the gate re-runs the real reconciler
+    against a throwaway copy of state and binds ITS refusal text, so the
+    owner signs the failure that actually happened. Run the command once
+    without a valid receipt and it prints the subject and its SHA-256.
+
+    A quarantine SETTLES and RECORDS. It never records a measurement, never
+    promotes, never satisfies or clears a strike, and never binds a
+    calibration. A quarantined scientific chain still spends its experiment
+    budget, so quarantining cannot launder GPU time back into the campaign.
+    """
+    st = load_state_strict()
+    resolution = (args.resolution or "").strip()
+    try:
+        request_sha = str(args.request_sha256 or "").strip().lower()
+        if not HEX64.fullmatch(request_sha):
+            raise GateRefusal("--request-sha256 must be a 64-hex gate request hash")
+        if request_sha not in st.get("request_shas", []):
+            raise GateRefusal("that request hash is not in the gate's request registry")
+        if request_sha in st.get("settled_request_shas", []):
+            raise GateRefusal("that request is already settled; nothing to quarantine")
+        try:
+            chains = {c["request_sha256"]: c for c in _authority_chains(st)}
+        except GateRefusal as exc:
+            raise GateRefusal(
+                f"the controller authority chain itself fails closed ({exc}). "
+                "Quarantine settles a reconciler refusal, not a broken chain; "
+                "this needs controller/owner recovery of the journal.")
+        chain = chains.get(request_sha)
+        if chain is None:
+            raise GateRefusal(
+                "that request was never issued a controller permit, so there "
+                "is nothing to settle; it goes inert at its own expiry via "
+                "`reconcile`")
+        terminal = chain.get("terminal")
+        if terminal is None:
+            raise GateRefusal(
+                "that request has no terminal controller event (still in "
+                "flight, or consumed without a bound measurement packet). "
+                "Quarantine only settles a chain the reconciler has actually "
+                "refused; an incomplete chain stays open for controller "
+                "recovery.")
+        terminal_sha = terminal.get("event_sha256")
+        if not HEX64.fullmatch(str(terminal_sha or "")):
+            raise GateRefusal("authority terminal event has a malformed SHA-256")
+        reason = _reconcile_probe_reason(st, chain)
+        if reason is None:
+            raise GateRefusal(
+                "that request reconciles cleanly right now — run `reconcile`, "
+                "not `quarantine`")
+        request = chain["request"]
+        subject = {"request_sha256": request_sha,
+                   "request_id": request["request_id"],
+                   "terminal_event_sha256": terminal_sha,
+                   "reason": reason, "resolution": resolution}
+    except GateRefusal as exc:
+        print(f"REFUSED: {exc}")
+        return 1
+    try:
+        verified = verify_controller_receipt(
+            args.authority_receipt, "quarantine_request", subject, st)
+    except GateRefusal as exc:
+        print(f"REFUSED: {exc}")
+        print("The owner capability must be bound to this exact subject:")
+        print(f"  subject        : {json.dumps(subject, sort_keys=True)}")
+        print(f"  subject_sha256 : {sha_json(subject)}")
+        return 1
+    # Charge the experiment budget the way the infrastructure-failure path
+    # does: the run happened, so it is spent -- but nothing scientific is
+    # recorded (no strike, no improvement, no promotion, no calibration).
+    # Quarantining must never become a way to run experiments off-budget.
+    # Diagnostics and calibrations spend no attempt budget either way.
+    kind = request.get("request_kind")
+    budget = {"accounted": False, "group": None,
+              "note": "this request kind spends no attempt budget"}
+    if kind in ("scientific_attempt", "side_evaluation"):
+        try:
+            campaign = active_campaign(st, request.get("campaign_id"))
+            group_key = None
+            if kind == "scientific_attempt":
+                group_key, grp, campaign = _family_group(st, request)
+                grp["scientific_attempts"] = grp.get("scientific_attempts", 0) + 1
+            campaign["scientific_attempts"] = campaign.get("scientific_attempts", 0) + 1
+            budget = {"accounted": True, "group": group_key, "note": None}
+        except GateRefusal as exc:
+            # The chain outlived its campaign/family record. Settle it anyway
+            # -- that is the whole point -- and record that the budget could
+            # not be charged instead of pretending it was.
+            budget = {"accounted": False, "group": None, "note": str(exc)}
+    try:
+        _settle_authority_request(st, chain, terminal)
+    except GateRefusal as exc:
+        print(f"REFUSED: {exc}")
+        return 1
+    consume_controller_receipt(st, verified)
+    record = {
+        "request_sha256": request_sha, "request_id": request["request_id"],
+        "request_kind": kind, "mode": request.get("mode"),
+        "campaign_id": request.get("campaign_id"), "shape": request.get("shape"),
+        "direction_id": request.get("direction_id"),
+        "permit_id": chain["permit"]["permit_id"],
+        "controller_issue_event_id": chain["issued"]["event_id"],
+        "terminal_event_id": terminal.get("event_id"),
+        "terminal_event_sha256": terminal_sha,
+        "reason": reason, "resolution": resolution,
+        "quarantined_at": now(), "quarantined_epoch": time.time(),
+        "budget_accounted": budget["accounted"],
+        "budget_note": budget["note"], "group": budget["group"],
+        "measurement_recorded": False, "champion_eligible": False,
+        "performance_eligible": False, "promotion_eligible": False,
+        "scientific_strike": False, "strike_satisfied": False,
+        "authority_event_id": verified["authority_event_id"],
+        "authority_event_sha256": verified["authority_event_sha256"],
+        "subject_sha256": sha_json(subject),
+    }
+    st.setdefault("quarantined_requests", []).append(record)
+    commit(st, {"ts": now(), "step": "authority_reconcile",
+                "result": "unreconcilable", "quarantined": True, **record})
+    try:
+        _quarantine_settled_transport(st)
+    except GateRefusal as exc:
+        print(f"NOTE: the transport projection was left in place ({exc}); "
+              "`reconcile` will retry it.")
+    print(f"QUARANTINED {request_sha} as unreconcilable on controller-verified "
+          "owner authority.")
+    print(f"  reason recorded : {reason}")
+    print("  No measurement, promotion, calibration or strike was recorded.")
+    return 0
 
 
 def cmd_audit_finalize(args) -> int:
@@ -2883,6 +3237,7 @@ def cmd_init(_args) -> int:
           "reconciled_authority_event_shas": [], "settled_request_shas": [],
           "pending_audit_decisions": {},
           "pending_screen_judgment": None, "seq": 0,
+          "quarantined_requests": [],
           "created": now(), "cleared_verdicts": []}
     commit(st, {"ts": now(), "step": "init"})
     print("Gate state initialized CLOSED (event logged).")
@@ -2979,6 +3334,10 @@ def main() -> int:
     ro.add_argument("--group", required=True)
     ro.add_argument("--resolution", required=True)
     ro.add_argument("--authority-receipt", required=True)
+    qa = sub.add_parser("quarantine")
+    qa.add_argument("--request-sha256", required=True)
+    qa.add_argument("--authority-receipt", required=True)
+    qa.add_argument("--resolution", default=None)
     sub.add_parser("status")
     sub.add_parser("init")
     args = ap.parse_args()
@@ -2990,7 +3349,8 @@ def main() -> int:
             "reconcile": cmd_reconcile, "audit-finalize": cmd_audit_finalize,
             "screen-judge": cmd_screen_judge,
             "verdict-clear": cmd_verdict_clear,
-            "reopen": cmd_reopen, "status": cmd_status,
+            "reopen": cmd_reopen, "quarantine": cmd_quarantine,
+            "status": cmd_status,
             "init": cmd_init}[args.cmd](args)
 
 

@@ -93,6 +93,9 @@ GROUPS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
              "the Bubblewrap boundary that keeps candidate bytes off the repo"),
             ("Project/harness/candidate_worker.py",
              "the isolated worker that actually touches candidate code"),
+            ("Project/harness/profile_worker.py",
+             "the in-jail worker that produces the profile artifact the gate "
+             "accepts as evidence for opening a direction card"),
             ("Project/harness/runner.py",
              "post-LOCK shim: every benchmark must go through the controller"),
         ),
@@ -177,6 +180,13 @@ DEFAULT_GROUPS: tuple[str, ...] = (
     "enforcement",
 )
 
+# Groups whose files ARE the enforcement machinery.  A lock that quietly omits
+# one of these is worse than no lock: it reads as full coverage while the
+# unlisted file can be rewritten without breaking a single hash.  Dropping one
+# is a deliberate owner decision, never a side effect of a missing file or a
+# stray --exclude, so both routes have to be said out loud.
+CRITICAL_GROUPS: frozenset[str] = frozenset({"control-plane", "enforcement"})
+
 # Printed at build time so the owner sees what is deliberately NOT locked.
 DELIBERATE_EXCLUSIONS: tuple[tuple[str, str], ...] = (
     ("Project/results/**, Project/results_side/**",
@@ -191,7 +201,8 @@ DELIBERATE_EXCLUSIONS: tuple[tuple[str, str], ...] = (
      "the journal protects itself by hash chain, and LOCK.json cannot hash itself"),
     ("CLAUDE.md, README.md, Project/PLAN.md, Project/RUNBOOK.md, Project/HANDOVER.md",
      "living rule documents — recorded instead as rules_snapshot_sha256, so "
-     "drift is REPORTED by `verify` without bricking the controller"),
+     "drift is REPORTED by `verify` (which names the document that moved) "
+     "without bricking the controller"),
     ("Project/memory/**",
      "STATE/DECISIONS/LESSONS are written every session by design"),
     ("Project/tools/dashboard.py, Project/tools/sensitivity_board.py",
@@ -213,6 +224,18 @@ RULES_DOCUMENTS: tuple[str, ...] = (
     "Project/RUNBOOK.md",
     "Project/HANDOVER.md",
 )
+
+# Documents in the snapshot that ALSO carry live campaign state, so drift in
+# them is routine rather than suspicious.  They stay hashed — a silent edit to
+# a rules document must remain visible — but `verify` says which advisories are
+# expected so the owner is not trained to ignore all of them.  Whether a
+# perpetually-drifting document belongs in the signed snapshot at all is an
+# OWNER policy call; this table only labels it.
+EXPECTED_TO_DRIFT: dict[str, str] = {
+    "Project/HANDOVER.md":
+        "single source of truth for current state and open defects; it is "
+        "rewritten as the campaign runs, so it drifts by design",
+}
 
 # action -> required target prefix (None = free-form target)
 KNOWN_ACTIONS: dict[str, str | None] = {
@@ -344,14 +367,72 @@ def rules_snapshot(root: Path) -> tuple[str, dict[str, str]]:
     return digest, components
 
 
+def rules_baseline_path(root: Path) -> Path:
+    """Where build-lock records the PER-DOCUMENT hashes behind the digest."""
+    return AuthorityPaths(root).lock_manifest.with_name("rules_snapshot.json")
+
+
+def read_rules_baseline(root: Path, expected_digest: str) -> dict[str, str] | None:
+    """The per-document hashes the lock was built over, or None.
+
+    LOCK.json's shape is fixed by lock_manifest.LOCK_KEYS, so it cannot grow a
+    per-document field and the baseline has to live beside it, unsigned.  That
+    is safe here because it is validated against the SIGNED
+    rules_snapshot_sha256 before it is used: a tampered or stale baseline is
+    discarded, and the drift verdict itself always comes from the signed
+    digest.  The baseline can only NAME which document moved; it can never hide
+    that something did.
+    """
+    path = rules_baseline_path(root)
+    if path.is_symlink() or not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        components = payload["components"]
+    except Exception:
+        return None
+    if not isinstance(components, dict) or not all(
+        isinstance(name, str) and isinstance(value, str)
+        for name, value in components.items()
+    ):
+        return None
+    if sha256_bytes(canonical_json(components)) != expected_digest:
+        return None
+    return components
+
+
+def rules_drift_rows(
+    baseline: dict[str, str], current: dict[str, str]
+) -> list[tuple[str, str]]:
+    """[(document, what happened)] for every document that is not identical."""
+    rows: list[tuple[str, str]] = []
+    for name in sorted(set(baseline) | set(current)):
+        was, now = baseline.get(name), current.get(name)
+        if was == now:
+            continue
+        if was is None:
+            rows.append((name, "added to the snapshot set"))
+        elif now is None:
+            rows.append((name, "removed from the snapshot set"))
+        else:
+            rows.append((name, "CHANGED"))
+    return rows
+
+
 def resolve_protected(
     root: Path,
     *,
     groups: Sequence[str],
     extra: Sequence[str],
     exclude: Sequence[str],
+    allow_unprotected_control_plane: bool = False,
 ) -> list[tuple[str, str, str]]:
-    """Return [(relative_path, group, reason)] sorted, fully validated."""
+    """Return [(relative_path, group, reason)] sorted, fully validated.
+
+    A protected path that is not on disk is a HARD failure that names the file,
+    its group and why it is in the set.  It is never dropped quietly: the lock
+    would then claim a coverage it does not have.
+    """
     unknown = [name for name in groups if name not in GROUPS]
     if unknown:
         fail("unknown --group value(s): " + ", ".join(unknown))
@@ -363,22 +444,61 @@ def resolve_protected(
             chosen[safe_relative_path(relative)] = (name, reason)
     for value in extra:
         chosen[safe_relative_path(value)] = ("extra", "added by the owner on the command line")
+
+    critical_dropped = [
+        (value, *chosen[value]) for value in sorted(dropped)
+        if value in chosen and chosen[value][0] in CRITICAL_GROUPS
+    ]
+    if critical_dropped and not allow_unprotected_control_plane:
+        fail(
+            "--exclude would leave control-plane files OUT of the lock:\n"
+            + "\n".join(
+                f"        {value}   [{group}]\n        {' ' * len(value)}   why it is "
+                f"protected: {reason}"
+                for value, group, reason in critical_dropped
+            )
+            + "\n        A lock that omits these still verifies, so nothing would tell\n"
+            "        you the file is unprotected. If you really mean it, re-run with\n"
+            "        --allow-unprotected-control-plane and read the banner."
+        )
+    if critical_dropped:
+        banner(
+            ["CONTROL-PLANE FILES ARE BEING LEFT OUT OF THIS LOCK:"]
+            + [f"  {value}  [{group}]" for value, group, _ in critical_dropped]
+            + ["", "These files can be edited afterwards without breaking the lock."]
+        )
     for value in dropped:
         chosen.pop(value, None)
+
     resolved: list[tuple[str, str, str]] = []
-    missing: list[str] = []
+    missing: list[tuple[str, str, str]] = []
     for relative in sorted(chosen):
         path = root / relative
-        if path.is_symlink() or not path.is_file():
-            missing.append(relative)
-            continue
         group, reason = chosen[relative]
+        if path.is_symlink() or not path.is_file():
+            missing.append((relative, group, reason))
+            continue
         resolved.append((relative, group, reason))
     if missing:
+        critical = [row for row in missing if row[1] in CRITICAL_GROUPS]
+        detail = "\n".join(
+            f"        {relative}   [{group}]"
+            f"{'   <-- CONTROL PLANE' if group in CRITICAL_GROUPS else ''}\n"
+            f"        {' ' * len(relative)}   why it is protected: {reason}"
+            for relative, group, reason in missing
+        )
+        remedy = (
+            "        Put the file on disk and run build-lock again.\n"
+            "        Do NOT --exclude a control-plane file to get past this: the lock\n"
+            "        would sign cleanly while that file stayed unprotected, and the\n"
+            "        only thing left defending it would be an Edit/Write deny hook,\n"
+            "        which is a hook, not a signature."
+            if critical else
+            "        Fix the tree, or drop them with --exclude, then run again."
+        )
         fail(
-            "these protected files are missing or are not regular files:\n        "
-            + "\n        ".join(missing)
-            + "\n        Fix the tree, or drop them with --exclude, then run again."
+            "these protected files are missing or are not regular files:\n"
+            + detail + "\n" + remedy
         )
     if not resolved:
         fail("the protected file set is empty — refusing to build a meaningless lock")
@@ -631,7 +751,8 @@ def cmd_build_lock(args: argparse.Namespace) -> int:
     paths = AuthorityPaths(root)
     groups = tuple(args.group) if args.group else DEFAULT_GROUPS
     protected = resolve_protected(
-        root, groups=groups, extra=args.extra, exclude=args.exclude
+        root, groups=groups, extra=args.extra, exclude=args.exclude,
+        allow_unprotected_control_plane=args.allow_unprotected_control_plane,
     )
 
     rule("1. protected file set (review this before anything is written)")
@@ -733,10 +854,43 @@ def cmd_build_lock(args: argparse.Namespace) -> int:
             lock_id=lock_id,
         )
     except AuthorityError as exc:
-        fail(f"the lock document would not build: {exc}")
+        # create_lock_document refuses a path that vanished or stopped being a
+        # regular file between the review above and this moment.  Say what it
+        # was in ceremony language and stop; nothing has been written yet.
+        fail(
+            f"the lock document would not build: {exc}\n"
+            "        Nothing was written. The protected set listed in step 1 is what\n"
+            "        the lock must cover; a path that is not a regular file right now\n"
+            "        cannot be covered, so the lock is not built at all."
+        )
+
+    # Belt and braces against ever signing a manifest that quietly covers less
+    # than the reviewed set: compare what was intended with what was hashed.
+    intended = {relative for relative, _, _ in protected}
+    uncovered = sorted(intended - set(document["protected_files"]))
+    if uncovered:
+        fail(
+            "the LOCK document does not cover every reviewed file:\n        "
+            + "\n        ".join(uncovered)
+            + "\n        Refusing to write it. A lock that silently covers less than it\n"
+            "        lists is worse than no lock."
+        )
 
     body = canonical_json(document) + b"\n"
     atomic_write(paths.lock_manifest, body, mode=0o444)
+    # LOCK_KEYS is closed, so the per-document rule hashes cannot live in the
+    # lock itself.  Record them beside it, validated later against the SIGNED
+    # digest, so `verify` can name WHICH document drifted instead of shrugging.
+    atomic_write(
+        rules_baseline_path(root),
+        canonical_json({
+            "artifact_type": "rules_snapshot_baseline",
+            "lock_id": document["lock_id"],
+            "rules_snapshot_sha256": digest,
+            "components": components,
+        }) + b"\n",
+        mode=0o444,
+    )
     # A document change invalidates any signature already on disk.  Removing it
     # is the fail-closed move: a stale signature would look like tampering.
     if paths.lock_signature.exists():
@@ -744,6 +898,8 @@ def cmd_build_lock(args: argparse.Namespace) -> int:
         warn("removed the previous LOCK.sig — it no longer matches this document")
 
     say(f"  wrote {paths.lock_manifest.relative_to(root)}")
+    say(f"  wrote {rules_baseline_path(root).relative_to(root)}  "
+        "(advisory: names which rule document drifts later)")
     say(f"  lock_id             = {document['lock_id']}")
     say(f"  epoch               = {document['epoch']}")
     say(f"  created_at          = {document['created_at']}")
@@ -1169,17 +1325,59 @@ def cmd_verify(args: argparse.Namespace) -> int:
     rule("6. advisories (reported, not enforced by the controller)")
     if isinstance(document, dict):
         digest, components = rules_snapshot(root)
-        if digest == document.get("rules_snapshot_sha256"):
+        signed_digest = document.get("rules_snapshot_sha256")
+        if digest == signed_digest:
             say("  rules snapshot: unchanged since the lock was signed  OK")
         else:
             say("  rules snapshot: DRIFT since the lock was signed")
-            say(f"      lock says: {document.get('rules_snapshot_sha256')}")
+            say(f"      lock says: {signed_digest}")
             say(f"      now:       {digest}")
-            for relative, component in components.items():
-                say(f"      {component[:16]}  {relative}")
-            advise(
-                "one or more rule documents changed; re-sign the lock to re-baseline"
-            )
+            baseline = read_rules_baseline(root, str(signed_digest))
+            if baseline is None:
+                # No usable per-document baseline: say so plainly rather than
+                # implying every listed document moved.
+                say("      which document moved: UNKNOWN — no validated per-document")
+                say("      baseline beside LOCK.json (built before this was recorded,")
+                say("      or the sidecar does not match the signed digest).")
+                say("      Current hashes, for the record:")
+                for relative, component in components.items():
+                    say(f"      {component[:16]}  {relative}")
+                advise(
+                    "one or more rule documents changed, but which one cannot be "
+                    "named; re-run build-lock and sign-lock to re-baseline"
+                )
+            else:
+                rows = rules_drift_rows(baseline, components)
+                routine = [name for name, _ in rows if name in EXPECTED_TO_DRIFT]
+                investigate = [
+                    name for name, _ in rows if name not in EXPECTED_TO_DRIFT
+                ]
+                for relative, state in rows:
+                    tag = ("expected" if relative in EXPECTED_TO_DRIFT
+                           else "INVESTIGATE")
+                    say(f"      {state:<26} {relative}   [{tag}]")
+                    if relative in EXPECTED_TO_DRIFT:
+                        say(f"          {EXPECTED_TO_DRIFT[relative]}")
+                    else:
+                        say(f"          was {baseline.get(relative, '(absent)')[:16]}"
+                            f"  now {components.get(relative, '(absent)')[:16]}")
+                if investigate:
+                    advise(
+                        "rule documents changed that are NOT expected to: "
+                        + ", ".join(investigate)
+                        + " — read the diff before you re-baseline"
+                    )
+                if routine and not investigate:
+                    advise(
+                        "only expected-to-drift rule document(s) changed: "
+                        + ", ".join(routine)
+                        + " — re-sign the lock to re-baseline when convenient"
+                    )
+                if not rows:
+                    advise(
+                        "the snapshot digest moved but no document differs — the "
+                        "snapshot SET itself changed; re-baseline and investigate"
+                    )
     for staged, live, exists, matches in staging_report(root):
         if matches:
             say(f"  staged bytes installed: {live}  OK")
@@ -1247,6 +1445,9 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--lock-id", help="lock id (default: random, 25 chars)")
     build.add_argument("--allow-uninstalled-staging", action="store_true",
                        help="build even though the staged bytes are not installed")
+    build.add_argument("--allow-unprotected-control-plane", action="store_true",
+                       help="permit --exclude to drop a control-plane or "
+                            "enforcement file from the lock (says so loudly)")
     build.add_argument("--yes", action="store_true",
                        help="actually write LOCK.json (without this it is a dry run)")
     build.set_defaults(handler=cmd_build_lock)

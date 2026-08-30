@@ -46,15 +46,27 @@ import audit_champion as ac
 # =====================================================================
 MUTANTS: list[tuple[str, str, str, bool]] = [
     (
-        'runner_busy fails OPEN on pgrep error',
-        '            return True  # inability to establish idleness is not permission',
-        '            return False',
+        'runner_busy fails OPEN when /proc cannot be read',
+        '        return True  # inability to establish idleness is not permission',
+        '        return False',
         False,
     ),
     (
-        'runner_busy ignores the controller pattern',
-        '        "trusted_controller.py (run|calibrate)",\n',
-        '',
+        'runner_busy ignores the controller long-run subcommands',
+        '"trusted_controller.py": frozenset({"run", "side", "diagnostic", "calibrate"}),',
+        '"trusted_controller.py": frozenset({"run", "calibrate"}),',
+        False,
+    ),
+    (
+        'runner_busy matches the joined command line again (pgrep -f behaviour)',
+        '    if len(argv) < 2:\n        return False\n    head = PurePosixPath(argv[0]).name',
+        '    if len(argv) < 2:\n        return False\n    argv = [" ".join(argv)]\n    head = PurePosixPath(argv[0]).name',
+        False,
+    ),
+    (
+        'runner_busy stops exempting its own process tree',
+        '        exempt = _self_and_ancestors()',
+        '        exempt = set()',
         False,
     ),
     (
@@ -2059,40 +2071,70 @@ def case_runner_busy_is_fail_closed() -> None:
         def __init__(self, stdout: str) -> None:
             self.stdout = stdout
 
-    class FakeSubprocess:
-        DEVNULL = -3
-        STDOUT = -2
-
-        def __init__(self, behaviour) -> None:
-            self.behaviour = behaviour
-            self.calls: list[list[str]] = []
-
-        def run(self, command, **kwargs):
-            self.calls.append(command)
-            return self.behaviour(command)
+    # Idleness is established by scanning /proc argv, not by `pgrep -f`.
+    # `pgrep -f` matched the JOINED command line, so this watcher's own
+    # `bash -c` wrapper -- or any command that merely NAMED a benchmark --
+    # made the box look busy and silently skipped the audit launch.  The
+    # table below is the contract; the busy cases must include `side` (6h)
+    # and `diagnostic` (3h), the two longest runs in the project and the
+    # only evidence path for shapes 6 and 14.
+    argv_cases: list[tuple[list[str], bool, str]] = [
+        (["python3", "Project/harness/trusted_controller.py", "run"], True,
+         "controller run is busy"),
+        (["python3", "Project/harness/trusted_controller.py", "side"], True,
+         "controller side (6h) is busy"),
+        (["python3", "Project/harness/trusted_controller.py", "diagnostic"], True,
+         "controller diagnostic (3h) is busy"),
+        (["python3", "Project/harness/trusted_controller.py", "calibrate"], True,
+         "controller calibrate is busy"),
+        (["python3", "-u", "/abs/path/Project/harness/runner.py", "calibrate"], True,
+         "legacy runner still matches through an interpreter flag"),
+        (["./runner.py", "run"], True, "direct script invocation is busy"),
+        (["python3", "Project/harness/trusted_controller.py", "status"], False,
+         "a read-only controller subcommand is not busy"),
+        (["python3", "Project/harness/trusted_controller.py", "issue-permit"], False,
+         "issuing a permit is not busy"),
+        (["bash", "-c", "python3 Project/harness/trusted_controller.py run"], False,
+         "a shell that merely NAMES a run is not a run"),
+        (["rg", "-n", "trusted_controller.py side", "--", "Project"], False,
+         "searching for the string is not a run"),
+        (["python3"], False, "a bare interpreter is not busy"),
+    ]
+    for argv, want, label in argv_cases:
+        check(label, cw._argv_is_busy(argv) is want, str(argv))
 
     with Fixture() as fx:
-        original = cw.subprocess
+        real_listdir = cw.os.listdir
+        real_argv = cw._process_argv
         try:
-            probe = FakeSubprocess(lambda command: FakeCompleted(""))
-            cw.subprocess = probe
             check("an idle box is not busy", REAL_RUNNER_BUSY() is False)
-            check("idleness is probed for runner and controller runs",
-                  [command[2] for command in probe.calls]
-                  == ["runner.py (run|calibrate)",
-                      "trusted_controller.py (run|calibrate)"],
-                  str(probe.calls))
-            cw.subprocess = FakeSubprocess(lambda command: FakeCompleted("4321\n"))
-            check("a live runner marks the box busy", REAL_RUNNER_BUSY() is True)
 
-            def explode(command):
-                raise OSError("pgrep unavailable")
+            # A live controller run anywhere on the box marks it busy.
+            cw._process_argv = lambda pid: (
+                ["python3", "Project/harness/trusted_controller.py", "side"]
+                if pid not in cw._self_and_ancestors() else real_argv(pid))
+            check("a live controller side run marks the box busy",
+                  REAL_RUNNER_BUSY() is True)
+            cw._process_argv = real_argv
 
-            cw.subprocess = FakeSubprocess(explode)
+            # This process and its parents are exempt: the watcher fires from
+            # a hook while its own wrapper shell is still alive.
+            cw._process_argv = lambda pid: (
+                ["python3", "Project/harness/trusted_controller.py", "run"]
+                if pid in cw._self_and_ancestors() else [])
+            check("the watcher's own process tree never marks the box busy",
+                  REAL_RUNNER_BUSY() is False)
+            cw._process_argv = real_argv
+
+            def explode(_path):
+                raise OSError("/proc unavailable")
+
+            cw.os.listdir = explode
             check("inability to establish idleness is not permission",
                   REAL_RUNNER_BUSY() is True)
         finally:
-            cw.subprocess = original
+            cw.os.listdir = real_listdir
+            cw._process_argv = real_argv
 
         enqueue_prospective(fx)
         cw.runner_busy = lambda: True

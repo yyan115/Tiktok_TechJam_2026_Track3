@@ -17,7 +17,8 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import Sequence
 
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -85,21 +86,88 @@ def run_gate_post() -> None:
         pass
 
 
+# Entrypoint -> the subcommands of it that occupy the box.  `side` (6h default
+# timeout) and `diagnostic` (3h) are the longest runs in the project and the
+# side lane is the ONLY evidence path for shapes 6 and 14; omitting them let an
+# auditor be launched into the middle of a shape-14 timing run.  Contention
+# inflates graphed-candidate speedups by up to 3x (LESSONS #19, #22), which is
+# the leading explanation for why the published headline does not reproduce.
+BUSY_SUBCOMMANDS: dict[str, frozenset[str]] = {
+    "runner.py": frozenset({"run", "calibrate"}),
+    "trusted_controller.py": frozenset({"run", "side", "diagnostic", "calibrate"}),
+}
+
+
+def _process_argv(pid: int) -> list[str]:
+    """The argv of one pid, or [] when it is gone, empty, or unreadable."""
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except (OSError, ValueError):
+        return []
+    return [part for part in raw.decode("utf-8", "replace").split("\0") if part]
+
+
+def _self_and_ancestors() -> set[int]:
+    """This process and every parent of it.
+
+    The watcher fires from a hook, so its own wrapper shell is alive while it
+    looks.  A shell that merely NAMES a command is not a run of it.
+    """
+    exempt = {os.getpid()}
+    pid = os.getpid()
+    while pid > 1:
+        parent = 0
+        try:
+            for line in Path(f"/proc/{pid}/status").read_text(
+                    encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("PPid:"):
+                    parent = int(line.split()[1])
+                    break
+        except (OSError, ValueError, IndexError):
+            break
+        if parent <= 0 or parent in exempt:
+            break
+        exempt.add(parent)
+        pid = parent
+    return exempt
+
+
+def _argv_is_busy(argv: Sequence[str]) -> bool:
+    """True only when this argv IS a benchmark/controller invocation.
+
+    Matching is on whole argv elements, never on the joined command line.
+    `pgrep -f` matched any process whose command TEXT contained the pattern —
+    including this watcher's own `bash -c` wrapper — so any shell that merely
+    mentioned `runner.py run` made the box look busy and silently skipped the
+    audit launch.  A `bash -c` string is a single argv element, so an exact
+    element match cannot be fooled by it.
+    """
+    if len(argv) < 2:
+        return False
+    head = PurePosixPath(argv[0]).name
+    if head in BUSY_SUBCOMMANDS:  # ./runner.py run
+        return argv[1] in BUSY_SUBCOMMANDS[head]
+    if not head.startswith("python"):
+        return False
+    for index in range(1, len(argv) - 1):  # python3 [-u] <script> <subcommand>
+        script = PurePosixPath(argv[index]).name
+        if script in BUSY_SUBCOMMANDS:
+            return argv[index + 1] in BUSY_SUBCOMMANDS[script]
+    return False
+
+
 def runner_busy() -> bool:
     """Never add auditor CPU load while a benchmark/controller run is active."""
-    patterns = (
-        "runner.py (run|calibrate)",
-        "trusted_controller.py (run|calibrate)",
-    )
-    for pattern in patterns:
-        try:
-            check = subprocess.run(
-                ["pgrep", "-f", pattern], capture_output=True, text=True,
-                timeout=5, check=False)
-            if check.stdout.strip():
-                return True
-        except Exception:
-            return True  # inability to establish idleness is not permission
+    try:
+        exempt = _self_and_ancestors()
+        candidates = [int(name) for name in os.listdir("/proc") if name.isdigit()]
+    except Exception:
+        return True  # inability to establish idleness is not permission
+    for pid in candidates:
+        if pid in exempt:
+            continue
+        if _argv_is_busy(_process_argv(pid)):
+            return True
     return False
 
 
