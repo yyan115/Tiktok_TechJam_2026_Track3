@@ -23,6 +23,7 @@ import os
 import platform
 import secrets
 import statistics
+import subprocess
 import sys
 import time
 import types
@@ -55,6 +56,9 @@ NUMERICAL_REQUIRED = {
     "matmul_precision": "high",
     "allow_tf32": True,
 }
+WORKER_ENVIRONMENT_KEYS = frozenset({
+    "python", "torch", "cuda", "gpu", "driver", "triton",
+})
 
 
 class WorkerError(RuntimeError):
@@ -170,6 +174,47 @@ def load_official(path: Path):
     return module
 
 
+def capture_environment(torch: Any) -> dict[str, str]:
+    """Capture a shippable runtime fingerprint before candidate code executes."""
+    try:
+        import triton
+    except Exception as exc:
+        raise WorkerError(f"cannot resolve Triton version: {exc}") from exc
+    triton_version = str(getattr(triton, "__version__", "")).strip()
+    try:
+        probe = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=driver_version",
+                "--format=csv,noheader",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise WorkerError(f"cannot resolve NVIDIA driver version: {exc}") from exc
+    driver_rows = [row.strip() for row in probe.stdout.splitlines() if row.strip()]
+    if probe.returncode != 0 or not driver_rows:
+        detail = probe.stderr.strip() or f"nvidia-smi exited {probe.returncode}"
+        raise WorkerError(f"cannot resolve NVIDIA driver version: {detail}")
+    cuda_version = torch.version.cuda
+    environment = {
+        "python": platform.python_version(),
+        "torch": str(torch.__version__).strip(),
+        "cuda": str(cuda_version).strip() if cuda_version is not None else "",
+        "gpu": str(torch.cuda.get_device_name(0)).strip(),
+        "driver": driver_rows[0],
+        "triton": triton_version,
+    }
+    if set(environment) != WORKER_ENVIRONMENT_KEYS or any(
+        not value or value.lower() == "unknown" for value in environment.values()
+    ):
+        raise WorkerError("runtime environment fingerprint is incomplete")
+    return environment
+
+
 def accuracy_dict(result: Any) -> dict[str, Any]:
     return {
         "passed": bool(result.passed),
@@ -265,6 +310,7 @@ def evaluate(request: dict[str, Any], candidate_path: Path, official_path: Path,
 
     if not torch.cuda.is_available():
         raise WorkerError("CUDA is unavailable inside the candidate namespace")
+    environment = capture_environment(torch)
     official = load_official(official_path)
     trusted = {
         name: getattr(official, name)
@@ -437,12 +483,7 @@ def evaluate(request: dict[str, Any], candidate_path: Path, official_path: Path,
             "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": os.environ.get("TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"),
             "NVIDIA_TF32_OVERRIDE": os.environ.get("NVIDIA_TF32_OVERRIDE"),
         },
-        "environment": {
-            "python": platform.python_version(),
-            "torch": torch.__version__,
-            "cuda": torch.version.cuda,
-            "gpu": torch.cuda.get_device_name(0),
-        },
+        "environment": environment,
     }
 
 

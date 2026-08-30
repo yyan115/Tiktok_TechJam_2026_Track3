@@ -272,7 +272,8 @@ response = {
         "NVIDIA_TF32_OVERRIDE": None,
     },
     "environment": {"python": "stub", "torch": "stub", "cuda": "stub",
-                    "gpu": "integration-test-stub-device"},
+                    "gpu": "integration-test-stub-device", "driver": "stub",
+                    "triton": "stub"},
 }
 (out / "response.json").write_text(json.dumps(response))
 print("stub candidate worker: %d retained samples per side" % count)
@@ -580,6 +581,7 @@ def patch_gpu_seam(controller_module) -> None:
 
     def without_cuda(*, response, request, output_dir):
         module._response_schema(response)
+        module.validate_worker_environment(response.get("environment"))
         for field in ("request_id", "challenge_nonce", "candidate_sha256",
                       "official_sha256", "shapes_sha256", "shape_id"):
             if response.get(field) != request[field]:

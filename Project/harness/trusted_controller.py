@@ -148,6 +148,9 @@ RECEIPT_KEYS = {
     "capability_nonce",
     "role",
 }
+WORKER_ENVIRONMENT_KEYS = frozenset({
+    "python", "torch", "cuda", "gpu", "driver", "triton",
+})
 
 
 class ControllerRefusal(RuntimeError):
@@ -326,6 +329,21 @@ def _response_schema(response: dict[str, Any]) -> None:
     }
     if set(response) != required or response.get("schema_version") != 1:
         raise ControllerRefusal("worker response failed exact schema validation")
+
+
+def validate_worker_environment(environment: Any) -> dict[str, str]:
+    if (
+        not isinstance(environment, dict)
+        or set(environment) != WORKER_ENVIRONMENT_KEYS
+        or any(
+            not isinstance(value, str)
+            or not value.strip()
+            or value.strip().lower() == "unknown"
+            for value in environment.values()
+        )
+    ):
+        raise ControllerRefusal("worker environment schema mismatch")
+    return {key: environment[key].strip() for key in WORKER_ENVIRONMENT_KEYS}
 
 
 def _finite_number(value: Any, label: str, *, positive: bool = False) -> float:
@@ -843,11 +861,7 @@ def validate_challenge_outputs(
         for field in ("passed", "baseline_invariant", "anti_cache_passed")
     ) or not isinstance(worker_correctness["trials"], list):
         raise ControllerRefusal("worker correctness fields are malformed")
-    environment = response.get("environment")
-    if not isinstance(environment, dict) or set(environment) != {
-        "python", "torch", "cuda", "gpu"
-    } or not all(isinstance(value, str) and value for value in environment.values()):
-        raise ControllerRefusal("worker environment schema mismatch")
+    validate_worker_environment(response.get("environment"))
     effective = response.get("effective_numerical_state")
     if not isinstance(effective, dict) or set(effective) != {
         "float32_matmul_precision", "cuda_matmul_allow_tf32",

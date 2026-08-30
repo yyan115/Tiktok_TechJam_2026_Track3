@@ -12,8 +12,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "Project" / "harness"))
+sys.path.insert(0, str(REPO / "Project" / "tools"))
 
 from authority import AuthorityStore  # noqa: E402
+from candidate_worker import (  # noqa: E402
+    WORKER_ENVIRONMENT_KEYS as PRODUCER_ENVIRONMENT_KEYS,
+)
+from ship_manifest import REQUIRED_ENV_KEYS  # noqa: E402
 from trusted_controller import (  # noqa: E402
     ControllerRefusal,
     MANIFEST,
@@ -21,10 +26,12 @@ from trusted_controller import (  # noqa: E402
     SHAPE6_EVALUATOR,
     SHAPES,
     SUBMISSION,
+    WORKER_ENVIRONMENT_KEYS,
     sha256_file,
     terminalize_consumed_run,
     validate_shape6_packet,
     validate_supporting_timing,
+    validate_worker_environment,
 )
 
 
@@ -174,6 +181,37 @@ def main() -> int:
     else:
         sample_denied = False
     check("dropped raw timing sample is denied", sample_denied)
+
+    check(
+        "worker and controller environment key sets match",
+        PRODUCER_ENVIRONMENT_KEYS == WORKER_ENVIRONMENT_KEYS,
+    )
+    check(
+        "controller environment covers every shipping requirement",
+        set(REQUIRED_ENV_KEYS) <= WORKER_ENVIRONMENT_KEYS,
+    )
+    valid_environment = {
+        "python": "3.14.7",
+        "torch": "2.12.0+cu130",
+        "cuda": "13.0",
+        "gpu": "NVIDIA GeForce RTX 3060 Ti",
+        "driver": "610.57.04",
+        "triton": "3.7.0",
+    }
+    check(
+        "complete worker environment validates",
+        validate_worker_environment(valid_environment) == valid_environment,
+    )
+    for bad_field in ("driver", "triton"):
+        malformed = dict(valid_environment)
+        malformed[bad_field] = "unknown"
+        try:
+            validate_worker_environment(malformed)
+        except ControllerRefusal:
+            refused = True
+        else:
+            refused = False
+        check(f"unknown {bad_field} is denied before evidence is recorded", refused)
 
     shape6 = shape6_fixture()
     shape6_summary = validate_shape6_packet(shape6, sha256_file(SUBMISSION))
