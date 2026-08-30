@@ -39,14 +39,15 @@ the design working, not a defect. None of them blocks reading the results.
 4. **Mint a fresh capability before you film.** The overnight ones expire around
    **21:00 on 31 Aug**, inside the recording window, and Scene 3 now shows a real permitted
    run. Without a live capability you cannot issue a permit and that scene cannot be shot.
-5. **Decide what to do about the verdict freeze.** Probing it on 31 Aug showed that with
-   **28 uncleared RULE_VIOLATION rows** the primary lane still granted a permit with
-   `may_promote: true`. Those verdicts bind to pre-LOCK journal entry ids rather than
-   campaign run ids, which is defensible — but combined with the broken recorder it means
-   **the freeze has never fired since the gate went live**. The report now says
-   "implemented and unexercised" rather than "enforces". If you want it demonstrated before
-   freeze, the cheapest path is fixing audit recording (item 2) and letting one hard verdict
-   land on a campaign row.
+5. **Nothing to do — this one resolved in your favour.** A 31 Aug probe granted a
+   promotion-capable permit despite 28 `RULE_VIOLATION` lines, and I briefly wrote into the
+   report that the brake had failed. **That was my error and it is corrected.**
+   `verdicts.jsonl` is a display ledger; the authority is the hash-chained
+   `Project/audits/audit_events.jsonl`, which shows your **sixteen
+   `FINDING_ACCEPTED_ROW_RETIRED` resolutions at 20:54 on 30 Aug**, each with its own signed
+   capability nonce. The brake fired on 16 findings and cost 16 signatures to lift, exactly
+   as designed. The only honest limit left: it has **never fired on a post-LOCK row**,
+   because the recorder (item 2) broke before any campaign row could be adjudicated.
 
 **Already fixed for you (31 Aug ~04:30), no action needed** — a hostile read of the three
 drafts found three defects and all are corrected and committed:

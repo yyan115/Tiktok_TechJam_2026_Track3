@@ -1892,3 +1892,79 @@ because §6 forbids comparing absolute latencies across processes. And the noise
 conflated: within-invocation calibration noise is 0.03–0.4%, cross-invocation clock drift on
 identical work is ~9%, shipped-versus-module scatter is −10.0% to +2.6%, and the old "±25%"
 came from two uncontrolled pre-gate boards and should not be quoted for these.
+
+---
+
+## 31 Aug ~06:00 SGT — I WAS WRONG ABOUT THE BRAKE. It fired; the owner lifted it properly.
+
+Thirty minutes ago I wrote into the judge-facing report that our headline control "did not
+fire", on the strength of a probe that granted a promotion-capable permit while 28
+RULE_VIOLATION lines sat in `verdicts.jsonl`. **That conclusion was wrong and I have
+corrected it.** The probe result was real; my inference from it was not.
+
+`Project/audits/audit_events.jsonl` is the authority — a hash-chained log where every event
+carries `previous_event_sha256`, starting from all-zeros. `verdicts.jsonl` is a *display*
+ledger. Reading the authority settles it:
+
+- **seq 1–16: sixteen `FINDING_ACCEPTED_ROW_RETIRED` resolutions**, recorded
+  2026-08-30T20:54:23–25, each consuming a **separate signed capability nonce**, each
+  chained to the previous, all carrying the same rationale: *"Finding accepted, not
+  overturned. The 30 Aug audit correctly found this row has no plan, quoted source or
+  reasoning chain, because the run predates the citation gate... **This resolution removes
+  the verdict's brake on NEW permits.** It does not rehabilitate the row and makes no claim
+  about its numbers."*
+
+So the sequence was: 16 hard verdicts braked the gate exactly as HANDOVER predicted → the
+owner did the deliberate reconciliation pass with 16 signatures → the brake released. When I
+probed afterwards there were **no unacked hard verdicts left to fire on**, and the permit was
+correctly granted. **The control worked. I mistook a correctly-released brake for an absent
+one**, because I counted rows in the wrong file.
+
+### Why I got it wrong, and the rule that follows
+
+I counted `verdicts.jsonl` (28 RULE_VIOLATION lines) and treated that as the brake's input.
+It is not — LESSONS 25 already recorded that the brake reads `unacked_hard_verdicts` from
+the audit authority and that `cleared_verdicts` in gate_state is display state. **The
+information needed to interpret my own probe was in my own LESSONS file, written yesterday,
+and I ran the probe before reading it.** That is LESSONS 43 recurring inside a single night:
+the research base already had the answer.
+
+New rule, now LESSONS 45: when probing a control, identify its *authoritative input* before
+running the probe, and state in advance what a pass and a fail each look like. I did neither,
+so a null result looked like a failure.
+
+### What actually goes in the report, and it is better than what I withdrew
+
+The corrected §7 tells the stronger true story: the brake fired on 16 real findings; lifting
+it cost 16 owner signatures; and the **resolution vocabulary was itself an integrity
+decision** — the only label originally accepted against a RULE_VIOLATION was
+`FINDING_OVERTURNED` ("the auditor was wrong"), which would have written a false statement
+into a permanent ledger to buy a brake release, so `FINDING_ACCEPTED_ROW_RETIRED` was added
+instead (LESSONS 26). The honest limit that survives: **the brake has never fired on a
+post-LOCK row**, because the recorder broke before any campaign row could be adjudicated.
+
+### Also confirmed while in the authority log
+
+- seq 17–23 document the audit failure precisely: one `audit_enqueued` for
+  `run-be8e56a55edd1926a84bf5d1efc0b154`, then three `attempt_started`/`attempt_failed`
+  pairs — `AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT`, then *"auditor stdout must be
+  exactly one duplicate-free JSON object with no banners"*, then abandoned again. Three
+  attempts, three distinct failures, exactly as STATE records.
+- The auditor binary for those attempts was **`/usr/local/bin/claude-auditor`**
+  (sha `fd5f10ff…`), i.e. the Claude fallback backend, not Codex — root-owned path per
+  LESSONS 29. The README already says the backend is a choice with a weaker independence
+  claim; the tech report §4 should say which backend ran last.
+
+### §8 negative results: all four verified against sources
+
+- **int8**: report said "~2–3% output error". `quantization-tolerance.md` records the
+  measurement as **max abs err ~3.5e-2 with ~12% violations** at d=1024, L=4. Report now
+  cites the measured figures rather than the rounded recollection.
+- **QKV chunk split**: LESSONS 21 confirms verbatim — k011, 3× occupancy, 3× traffic,
+  ~15% slower everywhere, and the "2.3× off memory floor" was latency not starvation.
+- **single-CTA shape 2**: `megakernels-persistent.md` confirms 117.44 MFLOP → ~137 µs floor
+  vs 144.4 µs champion → ~5% available. Report now quotes the arithmetic.
+- **head-splitting tie**: stated in the report, not yet traced to a source file. Left as is
+  and flagged here as the one §8 claim I could not verify.
+- Fixed a **dead cross-reference**: §8 pointed at "§5.5", which does not exist; §5 is a
+  numbered list. Now points at §5 item 5 and the research note.
