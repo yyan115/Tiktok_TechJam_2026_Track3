@@ -1968,3 +1968,59 @@ post-LOCK row**, because the recorder broke before any campaign row could be adj
   and flagged here as the one §8 claim I could not verify.
 - Fixed a **dead cross-reference**: §8 pointed at "§5.5", which does not exist; §5 is a
   numbered list. Now points at §5 item 5 and the research note.
+
+---
+
+## 31 Aug ~06:30 SGT — Sixth audit pass. Four more, including a board that contradicts §2.3.
+
+**Permit reconciled.** The probe permit is settled on the gate side (reconcile now returns
+clean). `trusted_controller.py status` still shows `open_permits: 1` and always will: that
+counter is `permits_issued - permits_consumed`, and an issued-but-expired permit is never
+consumed, so it never decrements. Not a stuck state — noted so the owner does not read it
+as one.
+
+### 1. SENSITIVITY.md contradicts §2.3 and the report was citing it as "the full board"
+
+`Project/results_side/SENSITIVITY.md` regenerates cleanly, but its own footer says **"Every
+number above is pre-gate (measured before the authority-v4 guard paste)"**. It is built from
+the 29 Aug quiet-box sweep in `JOURNAL.jsonl` and **structurally cannot** show the post-LOCK
+board, because those rows live in the authority log and its packets, not the legacy journal.
+So it disagrees with the §2.3 table I recomputed — shape 1 reads 11.63 TF/s there against
+13.18 here — and its headline `S3 geomean 10.95x` is one of the **withdrawn** figures.
+
+The report was pointing a judge at it with the words "Full board". Now relabelled: read it
+for the **scoring-convention logic** (five weightings that disagree about where the points
+are, plus marginal value of a 20% win per shape), not for the numbers. Regenerating it
+against post-LOCK medians is owed work I did not do.
+
+### 2. The head-splitting negative result is unsourceable
+
+Of §8's four negative results, three verify cleanly (int8 → `quantization-tolerance.md`;
+k011 QKV-chunk → LESSONS 21 verbatim; single-CTA shape 2 → `megakernels-persistent.md`
+arithmetic). **The head-splitting "statistical tie" cannot be traced anywhere**: not in
+LESSONS, not in `Project/research/`, and not in the kernel roster, which
+`LEADERBOARD.md` and `SENSITIVITY.md` between them fix at k000, k001, k003–k011, k014,
+k015 — no head-splitting kernel exists on disk. It may be a mis-remembering of the k011
+QKV-chunk result sitting immediately above it in the same list. Marked in the draft as
+**unsourced, do not ship without checking**, per LESSONS 24 rather than silently deleted.
+
+### 3. §4 now names the backend that actually judged
+
+The table said "OpenAI Codex CLI / GPT-5.6". True for the 81 verdicts, but
+`audit_events.jsonl` seq 18–23 shows the last three attempts ran
+`/usr/local/bin/claude-auditor` (sha `fd5f10ff…`) — the Claude fallback. §4 now says so,
+repeats the weaker-independence caveat the README already carried, and explains why the
+binary lives at a root-owned path (LESSONS 29: a pinned hash is only a control when the
+hashed thing is out of the agent's reach).
+
+### 4. §6 was describing the pre-LOCK provenance mechanism
+
+It claimed "each candidate is committed to git before it is ever measured". That was the
+pre-LOCK rule, and the auditor had already found it insufficient — a packet could still
+embed the current source hash rather than the measured one. Post-LOCK the controller
+snapshots the candidate into a **content-addressed blob at permit issue** and binds that
+sha into permit, request and packet; for every §2.1.1 row it is `4da76db6…`. The audited
+and measured bytes are one object, not two asserted to match. Also added the timing
+protocol (warmup 20 / repeats 100 / rounds 3, identical for calibration and measurement,
+checkable per shape in `gate_state.json`) and quoted the event-versus-wall agreement
+(shape 13 1.005, shape 8 1.0008, `suspicious:false` on every packet inspected).

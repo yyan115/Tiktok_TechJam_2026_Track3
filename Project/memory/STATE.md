@@ -49,8 +49,24 @@ the design working, not a defect. None of them blocks reading the results.
    as designed. The only honest limit left: it has **never fired on a post-LOCK row**,
    because the recorder (item 2) broke before any campaign row could be adjudicated.
 
-**Already fixed for you (31 Aug ~04:30), no action needed** — a hostile read of the three
-drafts found three defects and all are corrected and committed:
+6. **One draft bullet needs your call.** §8's "a head-splitting variant came out a
+   statistical tie" is the only claim in the three drafts I could not trace to any file —
+   it is absent from LESSONS, from `Project/research/`, and from the kernel roster
+   (k000, k001, k003–k011, k014, k015). It may be a mis-remembering of the documented k011
+   QKV-chunk result beside it. It is flagged inline in the draft: **find the evidence or
+   delete the bullet.**
+7. **Optional, owed work:** `SENSITIVITY.md` is pre-gate by construction — it reads
+   `JOURNAL.jsonl`, which the post-LOCK board never touches — so its MFU column disagrees
+   with tech report §2.3 and its `S3 10.95x` is a *withdrawn* figure. The draft now says to
+   read it for scoring-convention logic only. Regenerating it against post-LOCK medians
+   would need the tool to read the authority packets instead.
+
+*(Housekeeping: `trusted_controller.py status` shows `open_permits: 1` and will forever —
+that counter is issued-minus-consumed and a deliberately-unused probe permit never
+consumes. `run_gate.py reconcile` returns clean. Nothing is stuck.)*
+
+**Already fixed for you, no action needed** — six hostile-read passes over the three drafts
+found twelve defects; all are corrected and committed. Highlights:
 
 - Both the tech report and README claimed shape 8's *baseline* was "already at 64% of the
   fp16 roofline". That is the **candidate's** number; the baseline is at 0.34 MFU and our
