@@ -20,9 +20,10 @@ WHAT IS REAL HERE
     would.  Its authority-receipt check re-spawns the real controller.
   * Project/harness/sandbox.py -- the worker really runs inside bubblewrap.
 
-THE ONE SEAM (and it is the only one)
-  There is no GPU in this test, so two things are replaced, both of them the
-  *measurement* rather than the *authority*:
+THE SEAMS, AND WHERE THEY ARE
+  There is no GPU in this test, so the *measurement* is replaced in places.
+  The *authority* never is: no permit, no receipt, no capability, no event, no
+  packet and no gate decision is faked anywhere in this file.
     1. Project/harness/candidate_worker.py is replaced, inside the temporary
        tree only, by a stdlib stub that returns plausible timing numbers in the
        exact schema the real controller demands.  The controller still builds
@@ -33,8 +34,35 @@ THE ONE SEAM (and it is the only one)
        builds the official model on CUDA to recompute reference outputs.  The
        patch still runs the controller's own _response_schema and re-checks the
        same request/response bindings; only the CUDA recomputation is skipped.
-  Nothing in the authority path -- no permit, no receipt, no capability, no
-  event, no packet, no gate decision -- is faked anywhere in this file.
+    3. Project/harness/profile_worker.py is replaced by STUB_PROFILE_WORKER in
+       section 4 (the "live diagnostic" lane) -- and section 6 exists because
+       that stub is exactly what hid a dead diagnostic lane.  See below.
+
+WHY SECTION 6 EXISTS
+  The controller's profiler request and the worker that consumes it were
+  written in parallel by two agents who never ran them against each other.
+  The controller emits a FLAT request; the worker read a nested
+  ``gate_request`` object that no controller ever sent, and refused every real
+  request with "worker request needs the immutable gate_request object".  Both
+  halves reported success against their own assumptions, and THIS SUITE STAYED
+  GREEN, because section 4 drives STUB_PROFILE_WORKER -- a stub written from
+  the controller's schema, which therefore agrees with the controller by
+  construction and can never disagree with it.
+  Section 6 drives the REAL profile_worker.py through the REAL controller.
+  It profiles with ``static-analysis``, the one catalog tool whose evidence is
+  an explicit arithmetic model of the official dense route: it needs no GPU,
+  no nsys, no ncu and no root, so nothing in the worker's request handling or
+  artifact construction has to be faked to make it run.
+  WHAT REMAINS FAKED IN SECTION 6: nothing in the request path, the artifact
+  path, the authority path or the gate path.  What is NOT COVERED is the six
+  collectors that need CUDA (nsys, ncu, torch-profiler, memory-profile,
+  microbenchmark, correctness-evaluator).  They are unreachable here because
+  the controller's mount plan is fixed in trusted_controller.run_diagnostic --
+  it mounts no profiler and the flat request carries no tool-path override --
+  so a stubbed nsys binary cannot be introduced without editing the frozen
+  controller.  Those collectors are covered by profile_worker.py --selftest,
+  which drives every parser against recorded real tool output, and their
+  first live exercise is an owner-run diagnostic on the real box.
 
 THE MUTATION GUARD
   The benchmark timing protocol (warmup/repeats/rounds) is written down in FIVE
@@ -59,6 +87,8 @@ import ast
 import base64
 import hashlib
 import importlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 import shutil
@@ -103,6 +133,7 @@ HARNESS_MODULES = ("trusted_controller", "authority", "lock_manifest",
                    "sandbox", "runner")
 
 CHECKS: list[tuple[str, bool, str]] = []
+SKIPS: list[tuple[str, str]] = []
 SANDBOXES: list[Path] = []
 _HARNESS_PATH: str | None = None
 
@@ -111,6 +142,12 @@ def check(name: str, condition: bool, detail: str = "") -> None:
     CHECKS.append((name, bool(condition), detail))
     print(("PASS " if condition else "FAIL ") + name
           + (f"  [{detail}]" if detail and not condition else ""))
+
+
+def skip(name: str, reason: str) -> None:
+    """Loudly not-run.  A skip is never a pass and is repeated in the summary."""
+    SKIPS.append((name, reason))
+    print(f"SKIP {name}  [{reason}]")
 
 
 def canonical(value) -> bytes:
@@ -411,7 +448,12 @@ def gate_profile_keys(path: Path) -> set:
 # --------------------------------------------------------------------------
 # A temporary tree that is a real repo to the controller and the gate.
 # --------------------------------------------------------------------------
-def build_tree() -> Path:
+def build_tree(profile_worker_source: str | None = None) -> Path:
+    """A temporary repo.  ``profile_worker_source`` defaults to the stub.
+
+    Section 6 passes the REAL worker's source here; every other section gets
+    STUB_PROFILE_WORKER, which is why section 6 has to exist.
+    """
     root = Path(tempfile.mkdtemp(prefix="integration_authority_"))
     SANDBOXES.append(root)
     for relative in COPY_REQUIRED:
@@ -430,7 +472,9 @@ def build_tree() -> Path:
         (root / relative).mkdir(parents=True, exist_ok=True)
     # The seam, written into the tree so the real controller mounts it.
     (root / "Project/harness/candidate_worker.py").write_text(STUB_WORKER)
-    (root / "Project/harness/profile_worker.py").write_text(STUB_PROFILE_WORKER)
+    (root / "Project/harness/profile_worker.py").write_text(
+        profile_worker_source if profile_worker_source is not None
+        else STUB_PROFILE_WORKER)
     (root / "Project/research/INDEX.md").write_text("integration index\n")
     (root / "Project/research/note-a.md").write_text("note a\n")
     (root / "Project/research/note-b.md").write_text("note b\n")
@@ -674,13 +718,13 @@ def section_profile_key_sets() -> None:
 # --------------------------------------------------------------------------
 # Section 3 -- the live lane: real controller, real gate, real permit.
 # --------------------------------------------------------------------------
-def prepare_tree():
+def prepare_tree(profile_worker_source: str | None = None):
     """A fresh tree with a real, activated lock and a working gate CLI.
 
     Each tree is finished before the next is built: load_harness swaps the
     process's harness modules, so two trees are never live at once.
     """
-    root = build_tree()
+    root = build_tree(profile_worker_source)
     controller_module = load_harness(root)
     owner, controller, activation = install_lock(root, controller_module)
     patch_gpu_seam(controller_module)
@@ -930,6 +974,214 @@ def section_protocol_drift() -> None:
           f"rc={code} calibrations={json.dumps(calibrations)} {output[:300]}")
 
 
+# --------------------------------------------------------------------------
+# Section 6 -- the REAL profile worker against the REAL controller.
+#
+# Sections 1-5 all pass with a profile worker that cannot parse a single real
+# request, because section 4 drives STUB_PROFILE_WORKER.  This section is the
+# one that goes red for that.  See "WHY SECTION 6 EXISTS" in the module
+# docstring for what is and is not faked here.
+# --------------------------------------------------------------------------
+def locate_real_profile_worker() -> Path | None:
+    """The real profile_worker.py, or None if it is not on this box yet.
+
+    Order: ``$PROFILE_WORKER_SRC``, then the committed location.  There is no
+    third guess and no fallback to the stub: a suite that quietly profiles a
+    stub while claiming to test the real worker is the exact defect this
+    section exists to prevent.
+    """
+    candidates: list[Path] = []
+    override = os.environ.get("PROFILE_WORKER_SRC", "").strip()
+    if override:
+        candidates.append(Path(override))
+    candidates.append(REPO / "Project" / "harness" / "profile_worker.py")
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink():
+            return candidate.resolve()
+    return None
+
+
+def import_profile_worker(path: Path):
+    """Import the worker as a module so its parser can be called in process."""
+    # An explicit source loader, so a staged copy under any filename (the
+    # owner has not placed this file in Project/harness yet) still imports.
+    spec = importlib.util.spec_from_loader(
+        "real_profile_worker",
+        importlib.machinery.SourceFileLoader("real_profile_worker", str(path)))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["real_profile_worker"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def section_real_profile_worker(protocol: dict) -> None:
+    worker_path = locate_real_profile_worker()
+    if worker_path is None:
+        skip("the real profile worker runs the diagnostic lane end to end",
+             "profile_worker.py is not at Project/harness/profile_worker.py "
+             "and $PROFILE_WORKER_SRC is unset; nothing was tested")
+        return
+    print(f"real profile worker under test: {worker_path}")
+    source = worker_path.read_text()
+
+    try:
+        worker = import_profile_worker(worker_path)
+    except Exception as exc:
+        check("the real profile worker imports", False, f"{type(exc).__name__}: {exc}")
+        return
+    check("the real profile worker imports", True)
+
+    root, controller_module, owner, controller, run, _ = prepare_tree(source)
+    code, output = open_campaign(root, owner, controller, run, "realworker",
+                                 protocol)
+    check("the real-worker lane opens a campaign", code == 0, output[:400])
+    if code != 0:
+        return
+
+    # ---- the contract itself: one producer, one consumer, one key set -----
+    # getattr throughout: a worker that has drifted far enough to be missing
+    # one of these must produce a clean red line, not a traceback that hides
+    # every check after it.
+    producer_artifact_keys = set(controller_module.PROFILE_ARTIFACT_KEYS)
+    consumer_artifact_keys = set(getattr(worker, "ARTIFACT_REQUIRED_KEYS", ()) or ())
+    check("the worker's artifact key set is the controller's",
+          producer_artifact_keys == consumer_artifact_keys,
+          f"controller_only={sorted(producer_artifact_keys - consumer_artifact_keys)} "
+          f"worker_only={sorted(consumer_artifact_keys - producer_artifact_keys)}")
+
+    target = root / "Project/submission/torch_transformer_benchmark_submission.py"
+    target_sha = hashlib.sha256(target.read_bytes()).hexdigest()
+    # static-analysis: the one catalog tool that needs no GPU, no profiler
+    # binary and no root, so the real worker runs with nothing stubbed.
+    code, output = run(
+        "diagnostic", "--campaign", "realworker", "--shape", "3",
+        "--target-sha256", target_sha, "--tool", "static-analysis",
+        "--supports", "quadratic-materialization",
+        "--question", "Does the dense route materialise an O(S^2) score "
+                      "matrix large enough to bound shape 3?",
+        "--route", "official-dense-attention")
+    check("the gate emits a static-analysis diagnostic request", code == 0,
+          output[:400])
+    if code != 0:
+        return
+    request_sha, gate_request = latest_request(root)
+
+    # The REAL producer function, on the REAL gate request.  This is the exact
+    # document run_diagnostic hands the worker, built by the same code.
+    fields = controller_module._diagnostic_request_fields(gate_request)
+    worker_request = controller_module._profile_worker_request(
+        fields=fields, gate_request=gate_request,
+        gate_request_sha256=request_sha, campaign_id="realworker",
+        shape_id=gate_request["shape"], target_sha256=target_sha,
+        target_destination="/work/target.py", target_alias="/work/candidate.py",
+        machine_state_sha256="a" * 64, timeout_seconds=600)
+    declared = set(getattr(worker, "CONTROLLER_REQUEST_KEYS", ()) or ())
+    check("the controller's request key set is the worker's "
+          "CONTROLLER_REQUEST_KEYS",
+          bool(declared) and set(worker_request) == declared,
+          f"controller_only={sorted(set(worker_request) - declared)} "
+          f"worker_only={sorted(declared - set(worker_request))}"
+          if declared else "the worker declares no CONTROLLER_REQUEST_KEYS")
+    parsed = None
+    detail = ""
+    try:
+        parsed = worker.parse_worker_request(worker_request)
+    except Exception as exc:
+        detail = f"{type(exc).__name__}: {exc}"
+    check("the real worker parses a real controller-built request",
+          parsed is not None, detail)
+    if parsed is None:
+        return
+    try:
+        basename = worker.artifact_basename(parsed)
+    except Exception as exc:
+        basename = f"{type(exc).__name__}: {exc}"
+    check("the worker reads the artifact filename the controller named",
+          basename == fields["artifact_name"],
+          f"{basename} != {fields['artifact_name']}")
+    check("the worker takes the artifact's shape from shape_id, not the "
+          "shape record", parsed.get("shape_id") == gate_request["shape"],
+          json.dumps(parsed.get("shape_id"))[:120])
+    check("the worker takes the machine-state hash from the controller",
+          parsed.get("machine_state_sha256") == "a" * 64,
+          json.dumps(parsed.get("machine_state_sha256"))[:120])
+    check("the worker takes its bottleneck terms from the controller's "
+          "pinned required_metrics",
+          parsed.get("required_metrics") == fields["required_metrics"],
+          json.dumps(parsed.get("required_metrics"))[:200])
+
+    # ---- and now the whole lane, for real ---------------------------------
+    permit = controller.issue_permit(
+        root / "Project/loop/requests" / f"{request_sha}.json",
+        capability(root, owner, ["permit.issue"], "realworker", "permit-real"))
+    check("the controller issues a diagnostic permit for the real worker",
+          permit.get("mode") == "diagnostic", json.dumps(permit)[:300])
+    refusal = ""
+    result = None
+    try:
+        result = controller.run_diagnostic(
+            permit_id=permit["permit_id"], target_path=target,
+            timeout_seconds=900)
+    except Exception as exc:
+        refusal = f"{type(exc).__name__}: {exc}"
+    check("the real worker produced an artifact the real controller accepted",
+          isinstance(result, dict) and bool(result.get("profile_record_id")),
+          refusal)
+    if not isinstance(result, dict):
+        return
+
+    code, output = run("reconcile")
+    check("the gate reconciles the REAL worker's diagnostic", code == 0,
+          output[:600])
+    state = json.loads((root / "Project/loop/gate_state.json").read_text())
+    record = state.get("profiles", {}).get(gate_request["profile_record_id"])
+    check("a profile record from the real worker exists in gate state",
+          record is not None,
+          json.dumps(list(state.get("profiles", {})))[:300])
+    if record is None:
+        return
+    catalog = json.loads(
+        (root / "Project/loop/mechanism_catalog.json").read_text())
+    required = catalog["bottlenecks"]["quadratic-materialization"]["required_metrics"]
+    check("the real worker's record carries the metrics the catalog demands",
+          all(metric in record["metrics"] for metric in required),
+          f"required={required} recorded={sorted(record['metrics'])}")
+
+    artifact = json.loads(
+        (root / result["profile_artifact_path"]).read_text())
+    check("the artifact's shape is the integer shape id",
+          artifact["shape"] == gate_request["shape"],
+          json.dumps(artifact["shape"]))
+
+    # The machine-state conflict, settled the controller's way.
+    raw_by_name = {Path(item["path"]).name: item
+                   for item in artifact["raw_artifacts"]}
+    controller_state = raw_by_name.get(
+        controller_module.CONTROLLER_MACHINE_STATE)
+    check("the controller's own machine-state document is in the evidence",
+          controller_state is not None, json.dumps(sorted(raw_by_name))[:300])
+    check("machine_state_sha256 is the hash of THAT file, not the worker's",
+          controller_state is not None
+          and artifact["machine_state_sha256"] == controller_state["sha256"]
+          and hashlib.sha256(
+              (root / controller_state["path"]).read_bytes()).hexdigest()
+          == artifact["machine_state_sha256"],
+          json.dumps(artifact["machine_state_sha256"]))
+    worker_state = raw_by_name.get(
+        getattr(worker, "WORKER_MACHINE_STATE_NAME", "worker_machine_state.json"))
+    check("the worker's richer capture survives as a separate raw artifact",
+          worker_state is not None, json.dumps(sorted(raw_by_name))[:300])
+    check("and it is not the authoritative hash",
+          worker_state is not None
+          and worker_state["sha256"] != artifact["machine_state_sha256"])
+    check("every raw artifact the record cites is on disk at its stated hash",
+          all((root / item["path"]).is_file()
+              and hashlib.sha256((root / item["path"]).read_bytes()).hexdigest()
+              == item["sha256"]
+              for item in artifact["raw_artifacts"]),
+          json.dumps([item["path"] for item in artifact["raw_artifacts"]])[:300])
+
+
 def main() -> int:
     sys.dont_write_bytecode = True
     print("integration_authority_test — real controller, real gate, "
@@ -950,14 +1202,19 @@ def main() -> int:
     section_live_lane(protocol)
     print("\n-- controller protocol drift after campaign open -----------------")
     section_protocol_drift()
+    print("\n-- the REAL profile worker, end to end --------------------------")
+    section_real_profile_worker(protocol)
 
     for path in SANDBOXES:
         shutil.rmtree(path, ignore_errors=True)
     failed = [(name, detail) for name, ok, detail in CHECKS if not ok]
     print(f"\n{len(CHECKS) - len(failed)}/{len(CHECKS)} passed"
-          + (" — ALL GREEN" if not failed else ""))
+          + (f", {len(SKIPS)} SKIPPED" if SKIPS else "")
+          + (" — ALL GREEN" if not failed and not SKIPS else ""))
     for name, detail in failed:
         print(f"  FAILED: {name}" + (f"\n          {detail}" if detail else ""))
+    for name, reason in SKIPS:
+        print(f"  SKIPPED: {name}\n           {reason}")
     return 1 if failed else 0
 
 
