@@ -16,6 +16,49 @@ Updated: 2026-08-31 ~02:10 SGT. Branch `grind-lastday`.
 
 ---
 
+## 🔴 0. I BROKE `reconcile`. One owner command fixes it. Read this first.
+
+**What I did.** To test whether the verdict brake actually fires (§7 of the report), I issued
+a permit in the primary lane and deliberately **did not run it**, letting it expire. That was
+the right experiment and the wrong way to end it: the gate recorded the request as *settled*
+but there is no authority event saying how it settled, because no run ever happened.
+
+**Symptom.** `run_gate.py reconcile` and `run_gate.py delta` now both refuse with:
+
+```
+REFUSED: settled request lacks its reconciled authority event
+```
+
+**Blast radius, measured rather than assumed:**
+
+| command | state |
+| --- | --- |
+| `reconcile` | ❌ blocked |
+| `delta` | ❌ blocked |
+| `research` | ✅ works |
+| `plan` | ✅ works |
+| `status`, `verify-lock`, `champion_watch --dry-run` | ✅ work |
+| controller `run` | reachable via research+plan, **but its result could not be reconciled or judged** |
+
+So nothing already measured is lost or altered — **the twelve-shape board and every packet
+are untouched and still valid** — but no *new* measurement can be settled until this clears.
+
+**The fix, which only you can run.** The sanctioned path is
+`run_gate.py quarantine --request-sha256 <sha> --authority-receipt <receipt>`, and it needs
+an owner-signed receipt for a quarantine action. My capabilities cover only `permit.issue`
+and `register_family`, so I cannot mint one — correctly, since an agent that can quarantine
+its own inconvenient gate state does not have a gate.
+
+The request to quarantine is:
+
+```
+07d20af31dc8cda7c31631a344b227fd596bf8c1cc01f00a44b709a2fb179583
+```
+
+**If you do not intend to run more measurements before freeze, you can ignore this
+entirely** — the board is complete and the drafts are written. It only matters if you want
+the gate working again.
+
 ## ⓪ WHERE THIS STOPPED, AND WHY — read this before the action list
 
 **The measurement work is finished and the drafts are finished.** Seven adversarial

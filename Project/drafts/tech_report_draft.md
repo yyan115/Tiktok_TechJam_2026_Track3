@@ -212,6 +212,21 @@ Identical protocol, one fresh permit per row, candidate =
 means anything. The module board agrees to 2.4% on the geometric mean and
 serves as a cross-check.
 
+**Correctness, quantified rather than asserted.** "PASS" understates what
+was checked. Each row runs 7 trials, and every trial compares the full
+output tensor element-by-element under the official predicate. Per-trial
+element counts, taken from the measurement packets:
+
+| shape | 2 | 3 | 4 | 7 | 12 | 1 | 9 | 10 | 11 | 5 | 8 | 13 |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| elements/trial | 16,384 | 65,536 | 262,144 | 262,144 | 262,144 | 1,048,576 | 1,048,576 | 1,048,576 | 1,048,576 | 2,097,152 | 8,388,608 | 8,388,608 |
+
+That is **23,937,024 output elements per pass over the twelve shapes, ×7
+trials = 167,559,168 element comparisons, with 0 failures** — and the same
+again on the module board. Max absolute error stays below the 2e-3 criterion
+on every trial; the per-trial maxima and the output hashes are in each
+packet.
+
 **The per-shape deltas are cross-invocation scatter, and we tested that
 rather than asserting it.** The first four shipped-file rows appeared to
 order neatly by candidate time (shape 8 −0.008% at 19.06 ms, shape 13

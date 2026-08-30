@@ -201,6 +201,8 @@ differentiated thirty seconds in the video.
 - best shapes **28.3×** (sequence 1024) · **21.0×** (`d_model` 32)
 - weakest shapes **2.02×** (`d_model` 1024) · **4.35×** (single attention head) — say
   these out loud if the per-shape board is on screen; the spread is the honest story
+- correctness: **167,559,168 element comparisons, 0 failures** across the
+  twelve runnable shapes (23.9M output elements × 7 trials each)
 - shape 14: seq 100,000 causal, **0 violations**, 305 MiB
 - shape 6: batch 10,000, **0 violations**, 3.4 GiB
 - **all 14 shapes pass precision** — but say it precisely if pressed, because

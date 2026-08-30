@@ -2184,3 +2184,60 @@ records a Codex round dying on a provider content filter having produced **no ve
 line**, with the standing rule that *a missing verdict is never an APPROVE*. I did not
 confirm from raw logs that round 13 carries a real APPROVE. Flagged inline: verify or drop
 the clause. The round count and the ~50 fixes stand regardless.
+
+---
+
+## 31 Aug ~08:15 SGT — I jammed `reconcile`, and found a second regression from my rewrite.
+
+### The jam, which is mine and is owner-only to clear
+
+Yesterday's control probe issued a primary-lane permit and deliberately never ran it. I
+treated expiry as a clean exit. It is not. The gate recorded the request as **settled** with
+no authority event explaining how — no run ever produced one — and now:
+
+```
+run_gate.py reconcile  ->  REFUSED: settled request lacks its reconciled authority event
+run_gate.py delta      ->  same refusal
+```
+
+**Blast radius, measured command by command rather than asserted:** `research` and `plan`
+both get through (they fail only on ordinary validation — "summary under 200 chars",
+"research step required first"), and `status`, `verify-lock` and `champion_watch --dry-run`
+all work. **Nothing already measured is altered** — the twelve-shape board, every packet and
+the authority log are untouched. But a *new* run could not be reconciled or judged.
+
+Recovery is `run_gate.py quarantine --request-sha256
+07d20af31dc8cda7c31631a344b227fd596bf8c1cc01f00a44b709a2fb179583 --authority-receipt <…>`,
+which needs an owner-signed receipt. My capabilities are `permit.issue` and
+`register_family` only, so I cannot mint one — and should not be able to. **An agent that
+can quarantine its own inconvenient gate state does not have a gate.** Raised as STATE
+item 0 with the table, and flagged ignorable if no further measurement is wanted before
+freeze.
+
+LESSONS 47 is the general form: design the probe's *exit* before running it; prefer the
+cheapest refusal boundary that answers the question (the plan step already told me most of
+it, and escalating to a real permit bought one bit and cost a jammed gate); and when you do
+jam something, publish the blast radius rather than "it's broken".
+
+### Second regression from the same wholesale rewrite
+
+Diffing commit `2512772` — the one that already cost the byte-identity paragraph — shows it
+also deleted the old §2.1 table's **per-shape failed-element counts**:
+`PASS (0/5,242,880 failed)`, `PASS (0/81,920)`, and so on. My replacement reduced twelve
+quantified correctness results to the bare word "PASS".
+
+Restored with post-LOCK numbers from the packets I had already read, all twelve verified
+individually and each cross-checking against batch × seq × d_model:
+
+| shape | 2 | 3 | 4 | 7 | 12 | 1 | 9 | 10 | 11 | 5 | 8 | 13 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| elements/trial | 16,384 | 65,536 | 262,144 | 262,144 | 262,144 | 1,048,576 | 1,048,576 | 1,048,576 | 1,048,576 | 2,097,152 | 8,388,608 | 8,388,608 |
+
+**23,937,024 elements per pass × 7 trials = 167,559,168 element comparisons, zero
+failures** — and the same again on the module board. In all three drafts now. "0 of 167
+million" is a different class of claim from "PASS", and it was sitting in the packets the
+whole time.
+
+**Two regressions from one wholesale paragraph replacement.** The pattern is confirmed, not
+suspected: when I replace a block I reliably preserve what I am thinking about and silently
+drop everything else it contained. **Diff what you delete, not just what you add.**

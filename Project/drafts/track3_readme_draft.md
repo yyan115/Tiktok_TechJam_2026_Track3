@@ -80,9 +80,11 @@ Every figure below was measured under a one-use permit bound to the
 candidate's file hash, on an otherwise-idle machine, with correctness
 checked on **seven trials** — five fixed seeds plus two drawn at random per
 run, so a candidate cannot be tuned to the seed list — using the official
-predicate. All twelve pass with **zero failing elements on every trial**.
-The top row is the **submission file itself**; the second is the kernel
-modules it routes to.
+predicate. All twelve pass with **zero failing elements on every trial** —
+that is **167,559,168 element comparisons** across the twelve shapes
+(23,937,024 output elements × 7 trials), zero failures, and the same again
+on the module board. The top row is the **submission file itself**; the
+second is the kernel modules it routes to.
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
