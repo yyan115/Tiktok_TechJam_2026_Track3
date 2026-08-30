@@ -16,7 +16,37 @@ Updated: 2026-08-31 ~02:10 SGT. Branch `grind-lastday`.
 
 ---
 
-## ⓞ OWNER ACTIONS — three things only you can do. Everything else is done.
+## ⓪ WHERE THIS STOPPED, AND WHY — read this before the action list
+
+**The measurement work is finished and the drafts are finished.** Seven adversarial
+re-reads of the three judge-facing documents found and fixed **fifteen** defects. Passes 1–5
+each found something substantive; pass 6 found four; pass 7 found only staleness introduced
+by my own earlier edits. **That is the signal to stop**, and I stopped rather than
+manufacture an eighth pass to look busy.
+
+**What I deliberately did NOT do with the remaining budget** (~12 of 60 attempts, freeze at
+20:00), with the honest reason:
+
+- **The shape-11 head-dim-8 de-padding kernel.** Measured ceiling is **+4.2% on the
+  geometric mean** *if the gap closes completely*, which nothing supports; the technique
+  (`tl.sum` reduce instead of `tl.dot`) trades tensor cores for CUDA cores and the research
+  note calls it "not recommended in general". It also cannot be promoted while audit
+  recording is broken, and cannot ship without your decision. Bad odds, real correctness
+  risk, asleep owner.
+- **Sequence-persistent CTAs for the launch-bound family (2, 3, 7, 12).** Arithmetically the
+  *better* target — four shapes at ~1.2x each is about **+6.3%** geomean — but it is new
+  Triton work that must hold 2e-3 tolerance, and the same promotion and approval blocks
+  apply. The research note already ranks it "timeboxed, after everything else".
+- **Regenerating `SENSITIVITY.md` against post-LOCK medians.** Needs `sensitivity_board.py`
+  to read the authority packets instead of `JOURNAL.jsonl`, and `Project/tools/` is
+  write-denied to me. Owner-only; low value since the draft now says to read that board for
+  its scoring logic, not its numbers.
+
+**Final state:** lock valid (29 protected files), `verify-lock` green, no watcher active,
+`reconcile` clean, tree clean, **0 strikes**, nothing promoted, headline **9.45x** measured
+on the shipped artifact.
+
+## ⓞ OWNER ACTIONS — the things only you can do. Everything else is done.
 
 Each is blocked because the agent is denied write access to the files involved, which is
 the design working, not a defect. None of them blocks reading the results.
