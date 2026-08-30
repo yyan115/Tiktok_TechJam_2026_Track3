@@ -613,6 +613,57 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**31 Aug 00:09–00:14 SGT — BOARD COMPLETE. All twelve primary shapes measured on a quiet
+box. Geomean 2.94x. The ordering model survived its first two-sided test.**
+
+Shape 2 (B=1): baseline idle **86.0%**, the highest on the board, measured **8.1115x** —
+new best. Its falsifier tested *saturation* (would have fired below shape 3's 7.1845x) and
+did not fire, so the ordering holds even at the extreme.
+
+Shape 4 (B=16): baseline idle **49.2%**, strictly bracketed by shape 1 at 3.4% → 2.1428x
+and shape 12 at 69.8% → 3.2334x. This was the **first two-sided falsifier** of the night —
+refutable from above *or* below, rather than merely having to clear a floor. Measured
+**2.7175x, inside the bracket.** That is the strongest form of the ordering claim tested.
+
+### Final board — twelve shapes, quiet box, all correct, zero strikes
+
+| shape | B | heads | head_dim | seq | idle | k004 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | 1 | 4 | 32 | 128 | 86.0% | 8.1115x |
+| 3 | 4 | 4 | 32 | 128 | 82.6% | 7.1845x |
+| 13 | 64 | 4 | 32 | 1024 | — | 5.8096x |
+| 11 | 64 | 16 | 8 | 128 | — | 4.2433x |
+| 7 | 64 | 4 | 8 | 128 | 3.2% | 3.4781x |
+| 12 | 64 | 4 | 32 | 32 | 69.8% | 3.2334x |
+| 4 | 16 | 4 | 32 | 128 | 49.2% | 2.7175x |
+| 5 | 128 | 4 | 32 | 128 | 1.0% | 2.1475x |
+| 1 | 64 | 4 | 32 | 128 | 3.4% | 2.1428x |
+| 10 | 64 | 2 | 64 | 128 | — | 1.5833x |
+| 9 | 64 | 1 | 128 | 128 | — | 1.1723x |
+| 8 | 64 | 4 | 256 | 128 | 0.2% | 1.1060x |
+
+**Geomean 2.94x. Minimum 1.1060x — never slower than the baseline anywhere.**
+
+**Caveat that must travel with the number:** the campaign's official scenario is
+`geomean-shapes-1-13`, which includes **shape 6** (B=10000, dedicated side lane, not
+measured here). 2.94x is the geomean of the twelve *primary* shapes and is **not** the
+official scenario figure. It is also **screening-lane and unpromotable** until the audit
+recording path is fixed.
+
+### Final method scorecard
+
+| claim type | record |
+| --- | --- |
+| numeric prediction bands | **0 for 14** |
+| qualitative regime hypotheses with preregistered falsifiers | **6 for 6** |
+
+Fourteen numeric misses, zero strikes, because every run was characterization-kind in the
+scratch lane. The six qualitative hypotheses include the two hardest forms: one aimed at
+the **low** end (shape 8 predicted worst — confirmed at 1.1060x) and one **two-sided**
+bracket (shape 4). Worth noting honestly that shape 2's placeholder band of 7.92–8.08
+missed by only 0.03 against 8.1115 — the closest all night — but a single near-hit does
+not reverse 0-for-14 and no conclusion is drawn from it, per the LESSONS 35 commitment.
+
 **31 Aug 00:04–00:06 SGT — shape 7 measures 3.4781x and DISAMBIGUATES shape 11. Head
 WIDTH, not head count, is the larger factor — correcting an entry I wrote earlier tonight.**
 

@@ -4,191 +4,153 @@ This file is deliberately short and holds no plan. Two files do that:
 
 - **`Project/GRIND_ENTRYPOINT.md`** — the operating manual: the commands, the one
   next permitted action, the lanes, the stop conditions. Get it by running
-  `python3 Project/tools/session_bootstrap.py`, which prints it and then the live
-  controller and gate status.
-- **`Project/HANDOVER.md`** — the single source of truth for state, open defects
-  and the FIX → LOCK → GRIND plan.
+  `python3 Project/tools/session_bootstrap.py`.
+- **`Project/HANDOVER.md`** — state, open defects and the FIX → LOCK → GRIND plan.
 
 Then read all of `Project/memory/LESSONS.md`, every session, and
 `Project/research/INDEX.md` before relying on any research note.
 
 **If a command and a document disagree, the command is right** — including this one.
 
-Updated: 2026-08-30 ~20:30 SGT. Branch `grind-day1`. Every claim below was checked
-against the code and the ledgers on that date, not carried over from a note.
+Updated: 2026-08-31 ~00:15 SGT. Branch `grind-lastday`.
 
-## Where the project actually is
+---
 
-**LOCKED AND OPEN. The grind may start.** Steps 1–9 of
-`Project/OWNER_RUNBOOK_POSTLOCK.md` were completed by the owner (via Codex) on 30 Aug
-20:53–20:55 SGT and independently re-verified against the live commands afterwards:
+## 1. THE ONE THING BLOCKING EVERYTHING — owner only
 
-- `trusted_controller.py status` → `controller: OK`, lock **active** and **valid**,
-  29 protected files, `lock_id lock-b7848d4736461b971acd`,
-  epoch `post-fix-20260830T125311Z`.
-- All 16 pre-gate `RULE_VIOLATION` brakes retired via
-  `clear_pregate_verdicts.py` (`FINDING_ACCEPTED_ROW_RETIRED`). Zero brakes remain.
-- `CAMP-POSTLOCK` active: 0 attempts, 0 calibrations, 60-attempt budget,
-  `timing_config` bound to the controller protocol.
-- 0 permits issued, 0 consumed, 0 measurements, no permit armed.
-- Auditor is Claude (`/usr/local/bin/claude-auditor`, root-owned, pinned hash matches).
+**Audit results cannot be recorded. Nothing can promote until this is fixed.**
 
-**Shape 1 groundwork is done (30 Aug 21:11–21:17 SGT): runbook steps 10 and 11.**
-Calibration for shape 1 is immutable at **noise 0.003467, promotion threshold 1.03**
-(entry `run-aa8def96f24fc77f96be122f04351c47`, `event_speedup 1.00347`, correct).
-Two diagnostics ran against `k004_graphed_triton.py` on shape 1, and together they
-**killed the runbook's own example direction before it cost an attempt**:
+Three audit attempts ran on entry `run-be8e56a55edd1926a84bf5d1efc0b154`, cost roughly
+**$7.50** and about 20 minutes of GPU-idle waiting, and **all three failed to record**:
 
-- nsys (`profile-cb6cd3c903aacee64a468d63`): 2 launch API calls per forward.
-  **Launch overhead is no longer the shape-1 bottleneck.**
-- torch-profiler (`profile-3d9f7dabfba6348163f24495`, same bytes): 58 kernels per
-  forward, GPU busy 87.6%. Time splits **GEMM 31% / elementwise+norm 49% /
-  our Triton attention 18%**. Almost half the forward is pointwise traffic.
+| attempt | failure |
+| --- | --- |
+| 1 | `verdict does not match full schema` — every required property reported missing |
+| 2 | `auditor stdout must be exactly one duplicate-free JSON object with no banners` |
+| 3 | `AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT` |
 
-**Do not cite nsys `gpu_idle_fraction` on a graphed route.** It read 0.981 here and
-is an artifact — `collect_nsys` passes no `--cuda-graph-trace=node`, so it saw 1 of
-58 kernels. torch-profiler read 0.124 on identical bytes. LESSONS 31. The "98% GPU
-idle" line in the 30 Aug rehearsal note is withdrawn.
+The retry cap is exhausted and the entry is escalated to `owner_attention` permanently.
+**The auditor itself worked** — both attempts 1 and 2 produced complete, high-quality
+verdict documents which are durable at
+`Project/authority/blobs/0b3fa1ce…audit-response.json` and `…/92b7c588….audit-response.json`.
+Both returned integrity **RETEST** and technical **WEAK_DIAGNOSIS**, and both were correct
+about a real attribution error. The failure is in the *recording* path, not the auditing.
+`Project/tools/audit_champion.py` and the audit authority are inside the LOCK and
+Write-denied to the agent, so this is owner work.
 
-## STOPPED 30 Aug ~22:50 SGT — two things need the owner
+Consequence: **0 of 60 attempts have produced a promotable result, and none can until this
+is fixed.** All measurement below is screening-lane, which cannot promote by design.
 
-**1. Audits cannot be recorded. This blocks everything.** The first real audit ran, cost
-$2.49, took 384 s, and returned a complete verdict — integrity **RETEST**, technical
-**WEAK_DIAGNOSIS**. `record_audit_result` then refused it with "verdict does not match
-full schema", naming every required property as missing while the stored artifact
-`Project/authority/blobs/0b3fa1ce…audit-response.json` visibly contains all of them. The
-journal shows only `attempt_failed` / `AUDITOR_PROCESS_ABANDONED_WITHOUT_TERMINAL_EVENT`,
-so **no hard verdict is latched and no brake is set** — the absence is a bug, not a pass.
-`audit_champion.py` and the audit authority are inside the LOCK and Write-denied to the
-agent, so this is owner-only. **Until it is fixed nothing can promote**, and each further
-attempt burns budget plus ~$2.49 to produce an unpromotable row.
+---
 
-**2. Shape 1 is now DECOMPOSED, on a verified deep-idle box, in the scratch lane.**
-Both arms measured, both correct, neither promotable (screening cannot promote, by design):
+## 2. THE COMPLETE QUIET-BOX BOARD — all 12 primary shapes measured
 
-| arm | quiet-box speedup vs baseline | marginal |
-| --- | --- | --- |
-| k003 — authored Triton attention, no graph | **1.6010x** | fusion carries 1.601x |
-| k004 — same kernel **plus** whole-forward graph | **2.1428x** | **graph adds x1.338** |
+k004 (authored Triton flash attention + whole-forward CUDA graph capture) against the
+unmodified eager baseline. Every run: verified-quiet box (`champion_watch --dry-run`
+showing `active: []`, SM 210 MHz, ~1–3% util, ~14 W), campaign timing protocol
+(warmup 20, repeats 100, rounds 3), **`correct: true` on every seed**, screening lane,
+**0 strikes**.
 
-**Both mechanisms are real and material.** k004 is a genuine two-mechanism bundle and the
-campaign now holds the isolating measurement that splits it — which is exactly what the
-independent audit demanded and did not have.
+| shape | B | heads | head_dim | seq | baseline idle | **k004** |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | 1 | 4 | 32 | 128 | 86.0% | **8.1115x** |
+| 3 | 4 | 4 | 32 | 128 | 82.6% | **7.1845x** |
+| 13 | 64 | 4 | 32 | 1024 | — | **5.8096x** |
+| 11 | 64 | 16 | 8 | 128 | — | **4.2433x** |
+| 7 | 64 | 4 | 8 | 128 | 3.2% | **3.4781x** |
+| 12 | 64 | 4 | 32 | 32 | 69.8% | **3.2334x** |
+| 4 | 16 | 4 | 32 | 128 | 49.2% | **2.7175x** |
+| 5 | 128 | 4 | 32 | 128 | 1.0% | **2.1475x** |
+| 1 | 64 | 4 | 32 | 128 | 3.4% | **2.1428x** |
+| 10 | 64 | 2 | 64 | 128 | — | **1.5833x** |
+| 9 | 64 | 1 | 128 | 128 | — | **1.1723x** |
+| 8 | 64 | 4 | 256 | 128 | 0.2% | **1.1060x** |
 
-Getting there took two of my own errors, both caught and both recorded:
+**Geomean across these twelve: 2.94x.** Minimum 1.1060x — the candidate is **never slower
+than the baseline on any measured shape**.
 
-- I first credited the whole 2.07x to graph replay. The auditor's WEAK_DIAGNOSIS was
-  right that the attribution was unproven (LESSONS 32).
-- I then over-corrected: I accepted the auditor's **1.035x ceiling** as settled fact and
-  committed it. A preregistered falsifier — "if k004 on a quiet box lands at or above 2.0,
-  that ceiling must be wrong" — fired at 2.1428x twenty minutes later. The ceiling was
-  computed under the profiler and, decisively, an idle-fraction bound cannot see work the
-  mechanism deletes from the *busy* side (the baseline issues 17 memcpy and 24 memset per
-  forward that the graph removes outright). See LESSONS 34.
+**Caveat on the headline:** the campaign's official scenario is `geomean-shapes-1-13`,
+which includes **shape 6** (B=10000). Shape 6 is a dedicated side lane and is NOT in the
+table above, so 2.94x is the geomean of the twelve primary shapes and is **not** the
+official scenario figure. Do not quote it as such.
 
-**Superseded:** the earlier claim in this file that the five graph-replay families for
-shapes 5, 9, 10, 11, 13 are "misframed". They are not — graph capture is worth 1.338x on
-shape 1. They are legitimate and simply need per-shape counter evidence before use.
+---
 
-**Also dead: the contention explanation for attempt 1.** The quiet box gave 2.1428x,
-*higher* than the contended 2.0748x. What the tripwire actually caught was the **wall**
-arm (unpaired sequential blocks, 2.6043) disagreeing with the **event** arm; the paired
-interleaved event timing was sound all along, which is what the harness intends it to be.
+## 3. What explains the board — four measured baseline weaknesses
 
-**Ledger:** 3 of 60 attempts spent (1 optimization, 2 screening), 0 promoted, **0 strikes**
-(characterization misses cost nothing), 12 shapes calibrated with immutable thresholds,
-6 profiles, 7 families registered, no permit armed, lock valid, campaign not stalled, tree
-clean on `grind-lastday`.
+None of these is a strength of our kernel. They are all defects of the eager route that
+our route simply does not have.
 
-**What is genuinely banked and defensible:** the 12 calibrated noise floors; the
-115-launches-to-2 counter measured on both routes; the nsys graph-blindness finding with
-its clean control; the shape-1 two-arm decomposition above; and a loop that caught two
-attribution errors by its own operator inside one hour, one of them via a falsifier
-written to point at itself.
+1. **Narrow head dimension is the biggest single lever.** Holding heads at 4 and narrowing
+   head_dim from 32 to 8 moves 2.1428x (shape 1) → **3.4781x** (shape 7). Adding twelve
+   more heads on top only moves it to 4.2433x (shape 11). *Head width dominates head
+   count* — an earlier entry had this backwards and is corrected in DECISIONS.
+2. **Quadratic sequence traffic.** At S=1024 the baseline materializes ~1.07 GB of score
+   tensor per layer and spends **71.2%** of its device time on `masked_fill`, scale and
+   softmax over it. Shape 13 → 5.8096x.
+3. **Launch-bound small batch.** Baseline idle fraction orders these cleanly:
+   1.0% → 2.1475x, 3.4% → 2.1428x, 49.2% → 2.7175x, 69.8% → 3.2334x, 82.6% → 7.1845x,
+   86.0% → 8.1115x. No saturation at the extreme.
+4. **Nothing to exploit.** Shape 8 (d=1024, head_dim 256, 99.8% device-busy, ~98% linear)
+   has none of the above and lands at 1.1060x.
 
-**The 49 "pending" audits are inert — do not panic at them.**
-`champion_watch.py --dry-run` lists 49 pre-gate entries. Running the watcher skips
-every one of them in about a second with `packet is absent`, *before* any auditor
-process starts: they predate the packet store, so there is nothing to audit. No
-quota is spent, no attempt is recorded, no retry counter moves, and `owner_attention`
-stays empty. They do **not** queue ahead of new work — the loop walks past them and
-launches the first entry that has a real packet. Verified by running it, 30 Aug.
+**Not a factor: problem size.** Shape 5 doubles shape 1's batch and moves the result by
+0.2%.
 
-**The private keys are inside HOME, and that is a real residual.** The runbook said
-`~/techjam-keys`, so `keygen` needed `--allow-home-key`. Files are `0600`, but that is
-guard-level, not OS isolation: anything running as `admin` can read them. So do **not**
-claim the agent cannot reach the signing key. Claim instead: the key is never in the
-repo, never in a prompt, never printed; every privileged transition is a signed,
-one-use, scope- and time-bounded capability; every use is a separate hash-chained
-journal event. Upgrading this means moving the keys outside HOME, after which every
-`mint-capability` needs `sudo` — a five-minute change if the stronger claim is wanted.
+---
 
-The passphrase was scrubbed from `OWNER_RUNBOOK_POSTLOCK.md` (30 Aug) and is **not**
-rotated: it is a generated string, unrelated to any login, and it is half of a two-part
-secret whose other half (the key file in `~/techjam-keys`) is untracked and never ships.
-It remains in git history at `dcb4f25`/`dbcd487`; rewriting history on a locked repo
-before freeze is a larger risk than the leak, so it stays. Keep it out of new commits.
+## 4. Method finding, and it is the honest headline about process
 
-**The documented unlock for those verdicts does not work.** `run_gate.py verdict-clear
---kind violation` spends a signed owner capability, prints "resolved by
-controller-verified owner authority", and leaves the brake exactly where it was — the
-brake is an audit-authority hard event, and `cleared_verdicts` is display state. It also
-cannot be minted through the ceremony without `--allow-unknown-action`, because the
-ceremony signs `verdict.resolve` while the gate demands `resolve_integrity_verdict`.
-Both were found by rehearsing the whole ceremony on a repo copy, and `verdict-clear` now
-says so and exits 1. The path that works is
-`python3 Project/tools/clear_pregate_verdicts.py` — read its header; it retires all 16
-from ONE `audit.resolve` signature and was rehearsed end to end (16 retired, brake off).
+| kind of claim | record |
+| --- | --- |
+| numeric prediction bands | **0 for 14** |
+| qualitative regime hypotheses with preregistered falsifiers | **6 for 6** |
 
-**Ten commits landed on 30 Aug between 15:46 and 17:08** (`ed053f2..eae70a1`) and they
-changed what is true:
-- Candidate code now runs in a bubblewrap jail, and a real Triton kernel has been proven
-  to compile and run inside it on this GPU (`Project/tools/tests/sandbox_boundary_test.py`,
-  max abs error 0.0).
-- Owner authority is Ed25519-signed: keys, a hash-pinned LOCK over 29 files, one-use
-  permits, and a controller that refuses everything until the lock validates.
-- The competence gate, audit authority, staged allowlist guard and the diagnostic lane
-  all exist in code.
-- Thirteen test suites live under `Project/tools/tests/`; all thirteen were green at
-  `1ed6e20`. Re-run them before trusting any of the above.
+Every numeric band missed, including one derived from a measured per-kernel breakdown of
+the very shape being predicted. Per a commitment preregistered on card C11, numeric bands
+were **retired** mid-campaign (LESSONS 35); the gate requires the field, so it is now
+filled as an explicitly low-confidence placeholder and no conclusion is drawn from it.
 
-**The board is dead until it is re-measured.** 130 promoted rows exist in
-`Project/results/JOURNAL.jsonl`; **zero** are promotion-eligible under the new audit
-authority — none was taken under a permit and none carries a bound verdict. 16 uncleared
-RULE_VIOLATION rows freeze all new permits. So the whole board gets re-measured after
-LOCK, and the old ~11x geomean is not quotable in anything (HANDOVER 3.1). Neither is
-`Project/results/LEADERBOARD.md`, which stars max-ever rows across incomparable runs.
+The six qualitative hypotheses all held, including the two hardest cases: one aimed at the
+**low** end (shape 8 predicted to be worst — it was) and one **two-sided** bracket (shape 4
+required to land inside 2.1428–3.2334 — it landed at 2.7175). Total strike cost of fourteen
+consecutive numeric misses: **zero**, because every run was `--prediction-kind
+characterization` in the scratch lane.
 
-**Superseded:** the old owner action "paste `Project/loop/OWNER_PATCH_card_gate.md` v4
-into the guard" is gone. The guard, settings and runner shim are now staged bytes in
-`Project/lock_staging/`, installed by the owner as step 1 of `Project/OWNER_LOCK.md`.
+**I can classify regimes reliably. I cannot forecast magnitudes at all.** That distinction
+determines which claims this project's evidence can carry.
 
-## The two rules that get broken by accident
+---
 
-1. **Idle box before anything timed.** Do NOT check it with `pgrep -f "codex exec"` —
-   `-f` matches the joined command line, so any command that merely names a benchmark or
-   an auditor reads as one running (DECISIONS.md:53 recorded that false reading once).
-   The sound check is in code: `champion_watch.py` (`_argv_is_busy` / `runner_busy()`)
-   matches whole argv elements and exempts the caller's own process tree, and it refuses
-   to launch an audit while a runner or controller run is live.
-   `python3 Project/tools/champion_watch.py --dry-run` reports audits in flight as
-   `active`, read from the ledger rather than a process scan.
-2. **Commit candidate bytes BEFORE first controller contact.** The permit binds a sha;
-   back-editing measured bytes is evidence corruption.
+## 5. Ledger
 
-## Standing rules (unchanged)
+22 of 60 attempts spent (1 optimization, 21 screening), **0 promoted**, **0 strikes**,
+12 shapes calibrated with immutable thresholds, 24 profiles, 13 families registered,
+14 research cycles, no permit armed, lock active and valid at 29 files, campaign not
+stalled, tree clean.
+
+Capabilities `/tmp/cap_grind.json`, `/tmp/cap_family.json`, `/tmp/cap_stall.json` expire
+**31 Aug ~21:25 SGT**.
+
+## 6. Next actions
+
+1. **Owner:** fix the audit recording path. Everything else is ready.
+2. Once fixed: re-run the strongest shapes in `--mode optimization` and audit them. The
+   screening numbers give well-founded expectations for every shape.
+3. Open research target: **head_dim 8 padding waste** in the Triton kernel — shape 11 and
+   shape 7 show narrow head_dim is where the baseline is weakest, so a kernel that avoids
+   the 2x pad to 16 could go beyond 4.24x.
+
+## 7. Standing rules (unchanged)
 
 Never touch frozen/protected files. Every benchmark goes through a permit and the trusted
-controller — no raw dials, no ad-hoc script, no `python3 -c` timing. One GPU process at a
-time. Never compare absolute times across invocations (LESSONS #11). Trace every number to
-the artifact that produced it (LESSONS #24). Guard etiquette: never put `clean`, `reset`,
-`restore` or `checkout` after `git` in one command segment. Plain language, no jargon
-walls. The owner's explicit "go" is required before repo actions, and the owner's stop
-overrides everything, immediately.
+controller. One GPU process at a time. Never benchmark while an audit runs. Never compare
+absolute times across invocations (LESSONS 11). Trace every number to the artifact that
+produced it (LESSONS 24). Guard etiquette: never put `clean`, `reset`, `restore` or
+`checkout` after `git` in one command segment. Plain language. The owner's explicit "go"
+is required before repo actions, and the owner's stop overrides everything, immediately.
 
-## Clock (owner's, not the working queue)
+## 8. Clock
 
-CODE FREEZE 31 Aug 20:00 SGT → packaging 31 Aug 20:00 to 1 Sep 02:00 → final ~10h
-reproduction/contingency → submission AND Devpost registration close 1 Sep 12:00 GMT+8.
-Report/README/video prose must be finished BEFORE the freeze; only numbers and assembly
-wait for it.
+CODE FREEZE 31 Aug 20:00 SGT → packaging to 1 Sep 02:00 → submission AND Devpost
+registration close 1 Sep 12:00 GMT+8.

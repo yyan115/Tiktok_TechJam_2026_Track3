@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-POSTLOCK",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788109013.1116388,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T00:11:53+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-aefff5c4bd7c52202306238c.json",
+ "profile_record_id": "profile-aefff5c4bd7c52202306238c",
+ "promotion_allowed": false,
+ "question": "Establish the baseline device idle fraction on shape 4 at batch sixteen, which sits between shape 3 at batch four and shape 1 at batch sixty four, completing the batch axis and the twelve shape board.",
+ "request_id": "4ae269060a50d5981fb9284565755f9a",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/70720d0af0c1834a5e27a5814e65a9321d43888a55ca7ec0389e624d1ac8cfe1.json",
+ "request_sha256": "70720d0af0c1834a5e27a5814e65a9321d43888a55ca7ec0389e624d1ac8cfe1",
+ "route": "k000-baseline eager route on shape 4",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 4,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+ "tool": "nsys",
+ "verdict_lines": 81
+}
