@@ -600,9 +600,12 @@ The submission ships the actual process artifacts, not a reconstruction.
    output caching keyed on input address); shape assertions (defeats
    quietly shrinking the problem); hash-pinned evaluator and candidate
    bytes; committed-before-measured provenance.
-4. **Blind cross-family audits, fired mechanically.** Every new champion
-   triggers a detached audit automatically — not when the agent feels
-   ready.
+4. **Blind cross-family audits, fired mechanically.** A new champion triggers
+   a detached audit automatically — not when the agent feels ready — and 81
+   verdicts are in the ledger (§4). **Stated in the present tense honestly:
+   the audit recorder is currently broken and no row of §2.1.1 carries a
+   bound verdict.** The mechanism is real and its history is in the repo; it
+   is not running today, and the fix is owner-only by design.
 5. **Research before code.** A source-of-truth research base
    (`Project/research/`) that every proposal must cite. It has killed
    directions *before* they cost GPU time: a single-CTA CUDA play for
@@ -612,11 +615,31 @@ The submission ships the actual process artifacts, not a reconstruction.
 6. **Preregistered predictions, and what they actually taught us.** Each
    experiment declares a falsifiable claim before it runs; the gate computes
    hit or miss from the measured result, so the agent never grades its own
-   screening. The result is worth reporting honestly: the *numeric* bands
-   went **0 for 26**. Not one landed. The final miss is the clearest — a ±2%
-   band centred on a figure copied directly off the prior record missed by
-   **0.2%**. We retired numeric bands as a forecasting instrument and kept
-   them only as a required field, drawing no conclusions from them.
+   screening. Across the campaign the gate judged **38 numeric bands**, and
+   splitting them by *what they were predicting* is the whole finding:
+
+   | band type | what it asserts | record |
+   |---|---|--:|
+   | **mechanism forecast** | what a change will buy | **0 / 27** |
+   | **consistency check** | two near-identical things measure alike | 6 / 11 |
+
+   **Not one forecast of a mechanism's effect ever landed, in 27 attempts.**
+   The methods were varied and several were well-founded — mechanism
+   ceilings, cross-tool device-time arithmetic, work-density scaling, a
+   measured per-kernel breakdown of the very shape being predicted, and
+   finally a fitted physical model with one free parameter that matched four
+   points to within half a percent and died on its fifth. We retired numeric
+   bands as a forecasting instrument and now keep them only as a required
+   field, drawing no conclusions from them.
+
+   The consistency checks are the interesting half. They only assert "the
+   shipped file should measure like the kernel module it dispatches to", and
+   even those went **6 of 11** — because we set ±1% bands on shapes whose
+   genuine cross-invocation scatter reaches 10% (§2.1.1). The failures are
+   not wrong predictions; they are correct predictions with a band narrower
+   than the instrument's own noise. **The lesson we would pass on: an agent
+   can state in advance what would change its mind, and cannot state in
+   advance by how much.**
 
    The *qualitative* falsifiers, by contrast, worked. Each named in advance
    what result would kill the direction and what the report would then have
