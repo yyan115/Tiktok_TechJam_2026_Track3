@@ -1,0 +1,123 @@
+{
+ "activation_bytes": 4194304,
+ "attention_flops_per_layer": 536870912,
+ "dims": {
+  "batch_size": 64,
+  "causal": true,
+  "d_model": 128,
+  "dtype": "float32",
+  "ffn_dim": 128,
+  "head_dim": 32,
+  "itemsize": 4,
+  "num_heads": 4,
+  "num_layers": 4,
+  "seq_len": 128
+ },
+ "dram_bytes": 1628984320,
+ "dram_bytes_model": "baseline-dense-route compulsory traffic, one write + one read per intermediate, no cache reuse credited",
+ "ffn_activation_bytes": 4194304,
+ "ffn_flops_per_layer": 536870912,
+ "materialized_bytes": 16777216,
+ "materialized_bytes_all_layers_if_retained": 67108864,
+ "materialized_bytes_softmax_peak": 50331648,
+ "matmul_flops": 8589934592,
+ "matmul_flops_per_layer": 2147483648,
+ "parameter_bytes": 1594368,
+ "parameters": 398592,
+ "peak_reserved_bytes": 93869056,
+ "projection_flops_per_layer": 1073741824,
+ "score_matrix_bytes": 16777216,
+ "score_matrix_fp32_bytes": 16777216,
+ "traffic_tail_bytes": 16778240,
+ "traffic_terms_per_layer": [
+  {
+   "bytes": 398336,
+   "term": "parameters_read_once"
+  },
+  {
+   "bytes": 8388608,
+   "term": "norm1_rw"
+  },
+  {
+   "bytes": 25165824,
+   "term": "qkv_projection_rw"
+  },
+  {
+   "bytes": 25165824,
+   "term": "split_heads_contiguous_rw"
+  },
+  {
+   "bytes": 25165824,
+   "term": "scores_matmul"
+  },
+  {
+   "bytes": 33554432,
+   "term": "scale_multiply_rw"
+  },
+  {
+   "bytes": 33554432,
+   "term": "causal_masked_fill_rw"
+  },
+  {
+   "bytes": 33554432,
+   "term": "key_mask_masked_fill_rw"
+  },
+  {
+   "bytes": 33554432,
+   "term": "scores_to_float32"
+  },
+  {
+   "bytes": 33554432,
+   "term": "softmax_fp32_rw"
+  },
+  {
+   "bytes": 33554432,
+   "term": "probs_to_dtype"
+  },
+  {
+   "bytes": 25165824,
+   "term": "probs_times_v"
+  },
+  {
+   "bytes": 8388608,
+   "term": "context_transpose_contiguous_rw"
+  },
+  {
+   "bytes": 8388608,
+   "term": "out_projection_rw"
+  },
+  {
+   "bytes": 8388608,
+   "term": "attention_output_masked_fill_rw"
+  },
+  {
+   "bytes": 12582912,
+   "term": "residual_add_1"
+  },
+  {
+   "bytes": 8388608,
+   "term": "norm2_rw"
+  },
+  {
+   "bytes": 8388608,
+   "term": "ffn_in"
+  },
+  {
+   "bytes": 8388608,
+   "term": "gelu_rw"
+  },
+  {
+   "bytes": 8388608,
+   "term": "ffn_out"
+  },
+  {
+   "bytes": 12582912,
+   "term": "residual_add_2"
+  },
+  {
+   "bytes": 8388608,
+   "term": "block_masked_fill_rw"
+  }
+ ],
+ "useful_attention_flops_causal": 1082130432.0
+}

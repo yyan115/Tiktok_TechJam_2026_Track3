@@ -258,3 +258,33 @@ Everything below came out of the live system under CAMP-POSTLOCK, one permit per
 - **Reading it.** Nearly half the forward is pointwise and normalization traffic, not math — that is the evidence-backed direction for shape 1, and it points at `kernel-fusion` against `global-memory-traffic`, not at anything launch- or sync-shaped. Note the mask check separately: `aten::item` shows 83% of *CPU* total but only 80 µs of device time, because the host is blocking there on the whole queued graph rather than on the check. Removing it buys host overlap, not GPU time, and this benchmark synchronizes every iteration anyway — so it is not the prize.
 - **Step 12 is deliberately not done, and needs the owner.** Registering `F-shape1-graph` on `launch-overhead` as the runbook drafts it would now be building on a premise this profile falsified. The family the evidence supports wants bottleneck `global-memory-traffic`, whose `required_metrics` is `dram_bytes` — not produced by either profile so far. `ncu` would give it and needs root (residual 2, unchanged), but `static-analysis` and `microbenchmark` also produce `dram_bytes`, are in that bottleneck's `evidence_tools`, and are reachable from the agent shell — so one more diagnostic unblocks it without root. Family registration is owner-signed regardless (`mint-capability register_family` → `authorize` → `family-register`).
 - Ledger cost so far: 3 permits issued and consumed, 1 calibration request, 2 diagnostic requests, **0 attempts against the 60-attempt budget**, 0 strikes, no permit armed.
+
+**30 Aug 22:07 SGT — third diagnostic (static-analysis), and a caveat on what it measures.**
+
+`profile-027eccbd1db7a1848aef555c`, shape 1, `--supports global-memory-traffic`. Run to
+get the `dram_bytes` metric that the fusion direction needs and that neither profiler
+produces. Also served as the live proof that the owner's new overnight capability works.
+
+- `dram_bytes` **1,628,984,320** (1.63 GB), flagged `dram_bytes_is_lower_bound: true`
+- `arithmetic_intensity_flops_per_byte` 5.27, `matmul_flops` 8.59e9,
+  `useful_attention_flops_causal` 1.08e9
+- `materialized_bytes` 16,777,216 — exactly one dense `[64,4,128,128]` fp32 score matrix
+
+**Read it carefully, because it is not what it first looks like.** The model's own
+`dram_bytes_model` string says "baseline-dense-route compulsory traffic": it is derived
+from the *shape*, assuming the dense route that materializes the full score matrix. It is
+therefore a floor for the **baseline**, not for k004, whose Triton attention never
+materializes that matrix. Arithmetic makes that concrete: 1.63 GB at the 3060 Ti's ~448
+GB/s is ~3.6 ms, while the torch profiler measured k004 at ~2.6 ms of device time per
+forward. **k004 is already below this "floor", which is the proof that the number does not
+bound it.** So the honest use is narrow: it shows the dense baseline route is
+bandwidth-bound, and it gives a compute reference (8.59 GFLOP) against which k004's ~2.6 ms
+is roughly 5x off the tensor-core roofline. It must NOT be quoted as k004's traffic, and a
+plan must not claim a fusion win "against the memory floor" on the strength of it.
+Same failure mode as LESSONS 31: a real number that describes something other than the
+thing under test.
+
+- What still stands, and is the direction: the torch-profiler kernel table is a direct
+  measurement of k004 itself, and it says 49% of device time is elementwise plus
+  normalization across 44 kernels per forward. That is the evidence the fusion family gets
+  registered on.
