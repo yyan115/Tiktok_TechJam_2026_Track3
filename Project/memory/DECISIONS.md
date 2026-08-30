@@ -613,6 +613,54 @@ running the twenty-minute experiment that refutes it. See LESSONS 34.
 - Nothing here is promotable until the audit-recording fault is fixed, but the *science*
   is now correct and the plans built on it will be too.
 
+**30 Aug 23:47–23:50 SGT — shape 3 measures 7.1845x, a new best, and the FIRST falsifier
+tonight that did not fire against me.**
+
+Shape 3 (B=4) turned out to be a qualitatively different regime, and the profile said so
+before the run rather than after:
+
+| shape | batch | baseline `gpu_idle_fraction` |
+| --- | --- | --- |
+| 5 | 128 | 0.0104 |
+| 1 | 64 | 0.0336 |
+| **3** | **4** | **0.8256** |
+
+At batch four the device is **idle 82.6% of the span** — roughly 2.13 ms of idle behind
+0.45 ms of device work per forward, while the same 115 host launches trickle through. This
+is the latency-bound, grid-too-small regime `roofline-table.md` describes, and it is the
+one shape where the launch-overhead mechanism the family is named for should genuinely
+dominate. I preregistered that reading with a falsifier at 2.0: *"if shape 3 lands below
+2.0 then being launch-bound confers no larger gain and the launch-overhead framing is wrong
+on the one shape where it should be strongest."* **Measured 7.1845x. The falsifier did not
+fire — the qualitative hypothesis is supported.**
+
+Note the distinction that matters: the *numeric* placeholder (2.97–3.03, filled only
+because the gate requires the field) missed badly, and per LESSONS 35 no conclusion is
+drawn from that. The *qualitative, falsifiable* claim held. That is the difference between
+a forecast and a hypothesis, and it is why I retired one and kept the other.
+
+### Board after seven shapes — geomean 2.85x
+
+| shape | B | heads | seq | k004 vs baseline | regime |
+| --- | --- | --- | --- | --- | --- |
+| 9 | 64 | 1 | 128 | 1.1723x | single head, baseline already efficient |
+| 10 | 64 | 2 | 128 | 1.5833x | two heads |
+| 1 | 64 | 4 | 128 | 2.1428x | work-bound reference |
+| 5 | 128 | 4 | 128 | 2.1475x | work-bound, size irrelevant |
+| 11 | 64 | 16 | 128 | 4.2433x | many small per-head matmuls |
+| 13 | 64 | 4 | 1024 | 5.8096x | quadratic score tensor, 1.07 GB/layer |
+| **3** | **4** | 4 | 128 | **7.1845x** | **launch-bound, 82.6% device idle** |
+
+**Three independent baseline weaknesses now explain the whole spread**, and none of them is
+a strength of our kernel so much as a defect of the eager route: it degrades as heads
+multiply, quadratically as sequence grows, and catastrophically when the batch is too small
+to fill the grid. Our route is simply flat across all three.
+
+**Implication for the remaining shapes, stated before measuring them:** 2 (B=1), 4 (B=16),
+12 (S=32) and 7 (d=32) are all small-work shapes that should sit in the launch-bound
+regime, so the geomean is more likely to rise than fall. Shape 8 (d=1024, GEMM-dominated)
+is the one that should look like shape 9. No numeric bands attached to any of that.
+
 **30 Aug 23:41–23:44 SGT — shape 13 measures 5.8096x, the best on the board, and I am
 retiring my own prediction bands as promised.**
 

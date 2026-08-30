@@ -209,7 +209,8 @@
     "F-shape9-graph",
     "F-shape10-graph",
     "F-shape11-graph",
-    "F-shape13-graph"
+    "F-shape13-graph",
+    "F-shape3-graph"
    ],
    "max_calibrations_per_shape": 3,
    "max_total_attempts": 60,
@@ -218,7 +219,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -251,7 +252,8 @@
   "c1af8e2e0ba55542e4e4877080515ac91f72e2f78f65c11e762d0ba1f26d17b0",
   "10422abec19a2d58c1c4272251c6f748340786e850539f676b63e45a75ada64a",
   "5a14414053c403ef8b75465ce5c81a8de7af0cb514d7a5a0da680788880e098b",
-  "6e80785eaf386293ff8d61b540c0e8d8a43ec9e4be85f05fc01a0297417d96b0"
+  "6e80785eaf386293ff8d61b540c0e8d8a43ec9e4be85f05fc01a0297417d96b0",
+  "f81532a46d34bb2d4d01241f76b53ed1b5fd81cf7f8d1d24484f9f533e618a6d"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -294,6 +296,14 @@
    "authority_event_id": "evt-20260830T143800.372076Z-543740a6b8ea",
    "authority_event_sha256": "ee27e18a5e94b412a535edfacfd2e4202586904ffebacc6f7d0ac2f77166f032",
    "subject_sha256": "1c8e62bdb4a0f7e785de454a15868a0b71d1e38544dcf027613de4706300387c"
+  },
+  "F-shape3-graph": {
+   "action": "register_family",
+   "admitted": "2026-08-30T23:48:51+0800",
+   "admitted_epoch": 1788104931.2834036,
+   "authority_event_id": "evt-20260830T154845.972366Z-08446a612a07",
+   "authority_event_sha256": "09bbda8cf7df5dee95ef08922cc25a8f057170dc3078bf8c783d44a40be25afe",
+   "subject_sha256": "891999bbb04a09b1c961660dfd021391d06a3d986cf24fb3d9f9ea6784cb741b"
   },
   "F-shape5-graph": {
    "action": "register_family",
@@ -387,6 +397,21 @@
    "mechanism": "cuda-graph-replay",
    "parent_family_id": null,
    "shape": 13
+  },
+  "F-shape3-graph": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 8,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape3-graph",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 3
   },
   "F-shape5-graph": {
    "admission": "controller-authorized",
@@ -502,6 +527,24 @@
     "budget_minutes": 90,
     "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
     "family_id": "F-shape13-graph"
+   },
+   "closed": false,
+   "closure_nonce": null,
+   "exec_failures": 0,
+   "nonstrike_budget": 2,
+   "scientific_attempts": 1,
+   "scratch_attempted_shas": [
+    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
+   ],
+   "strikes": 0
+  },
+  "F-shape3-graph|3": {
+   "best_speedup": null,
+   "budget_snapshot": {
+    "budget_attempts": 8,
+    "budget_minutes": 90,
+    "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+    "family_id": "F-shape3-graph"
    },
    "closed": false,
    "closure_nonce": null,
@@ -704,6 +747,55 @@
    "profile_record_id": "profile-1c6e3b5b015f76066f82eec3",
    "reconciled_state_seq": 55,
    "shape": 5,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
+  },
+  "profile-36a8031d7cb6bbff4bdb953d": {
+   "artifact_path": "Project/loop/profile_evidence/profile-36a8031d7cb6bbff4bdb953d.json",
+   "artifact_sha256": "75cc9158c34eeddcfba12de3935eefa575dc309a66565c533c95dae18e72fe4b",
+   "created_epoch": 1788104858.0967622,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 12.0,
+    "gpu_busy_ns": 8984171.0,
+    "gpu_idle_fraction": 0.8255760278927046,
+    "gpu_span_ns": 51507662.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "64c19e09029cbbcc3fe4f9287c3255cacb482e74616f7a293ba9987db8b1eeab",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-36a8031d7cb6bbff4bdb953d",
+   "reconciled_state_seq": 85,
+   "shape": 3,
    "supported_bottlenecks": [
     "launch-overhead"
    ],
@@ -1066,7 +1158,9 @@
   "08422972bb295dbec1553486e0ee0787d28ebd066c258d00094ccfea8facb9b7",
   "7f8781bfec9e0da71ce47f0f8241603130f5a8e07c80131eb94002446e095a16",
   "475a39de2d183ea304a93ab28a0b285f133a3d4096965652b70a68166ca2e082",
-  "c1a795a17384d893894f1ba447879149b12ae0ead713f85d07482251ee0663e7"
+  "c1a795a17384d893894f1ba447879149b12ae0ead713f85d07482251ee0663e7",
+  "aff0dd41d2a29d1ab1bdd1162fe03022ff15f25662a0d6e76d5a23095f62e08a",
+  "0f80813beb3e862b8199ce3561e6fa948cf94d7b9bd55f2d414b1096ec81eae1"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -1098,11 +1192,13 @@
   "e07fdf55655eb2b597ff0c15e8ec091b8bea4c3ddab3669d4708a0fdae010bf1",
   "207ab9b3bdb6a554f7bfbfa50761cf1c1018b4de9235d155c0606bd21aab1878",
   "ac83a9725818a1c8c862b300b726c4475bc1fa9707c9587be9429f905ec66684",
-  "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c"
+  "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c",
+  "50ddb855e16f34a6cc25d2458f889710494c946f7de51cd36918f75b898ea195",
+  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562"
  ],
- "research_cycle": 8,
+ "research_cycle": 9,
  "research_open": false,
- "seq": 83,
+ "seq": 90,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1133,6 +1229,8 @@
   "e07fdf55655eb2b597ff0c15e8ec091b8bea4c3ddab3669d4708a0fdae010bf1",
   "207ab9b3bdb6a554f7bfbfa50761cf1c1018b4de9235d155c0606bd21aab1878",
   "ac83a9725818a1c8c862b300b726c4475bc1fa9707c9587be9429f905ec66684",
-  "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c"
+  "8a4cb331d09023cb0f18103936b7b83cede74f7dd695597ecd4d1050127c258c",
+  "50ddb855e16f34a6cc25d2458f889710494c946f7de51cd36918f75b898ea195",
+  "6919b6a6b9de6c7acbd3511b1ad6d7f816a426b9ddfc631a780b5d7a5765c562"
  ]
 }

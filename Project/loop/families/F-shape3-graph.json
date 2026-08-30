@@ -1,0 +1,13 @@
+{
+ "family_id": "F-shape3-graph",
+ "shape": 3,
+ "mechanism": "cuda-graph-replay",
+ "bottleneck": "launch-overhead",
+ "changed_resource": "kernel-launches",
+ "expected_counter_change": {"kernel_launch_api_calls": "decrease"},
+ "parent_family_id": null,
+ "budget_attempts": 8,
+ "budget_minutes": 90,
+ "admission": "controller-authorized",
+ "allow_new_attempts": true
+}
