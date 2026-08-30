@@ -1846,3 +1846,49 @@ Both drafts said correctness was checked on "five seeds". The packets show **sev
 five fixed (1234–1238) plus two drawn at random per run, which is materially better because
 a candidate cannot be tuned to a known seed list. Fixed in both. Verified `suspicious:false`
 and event/wall agreement 1.005 on the shipped shape-13 packet while I was in there.
+
+---
+
+## 31 Aug ~05:30 SGT — I probed our own headline control claim and it did not fire.
+
+The tech report §7 said, and `HANDOVER.md` says more specifically:
+
+> "16 uncleared RULE_VIOLATION rows will freeze permits the moment the gate opens."
+
+There are now **28** uncleared RULE_VIOLATION rows and `cleared_verdicts: []` in the gate
+state. Yet this campaign issued and consumed ~40 permits without ever meeting a freeze. That
+is either a design nuance or a broken control, and the difference matters enough to test
+rather than reason about.
+
+**The probe.** Submitted a `delta` in the **primary optimization lane** — not the screening
+lane everything else used — on shape 13.
+
+1. `run_gate.py delta --mode optimization` → **DELTA accepted.**
+2. `trusted_controller.py issue-permit` → **permit issued, `"may_promote": true`.**
+
+No freeze at the plan boundary and none at the permit boundary, with 28 uncleared hard
+verdicts sitting in the ledger. I did **not** execute it; the permit
+(`permit-a5ccbeb47e97a4ed955e856acd916f4f`) was left to expire unused, which leaves one
+`open_permits: 1` and a PENDING reconcile until roughly 04:54 SGT. **Reconcile again next
+tick so the owner does not inherit a pending request.**
+
+**The likely explanation, and why it does not rescue the claim.** The 28 verdicts are bound
+to **pre-LOCK journal entry ids** (`20260828-…`), not to campaign run ids (`run-…`), so they
+do not gate `CAMP-POSTLOCK`. That is defensible design. But it carries its own admission:
+**because audit recording is broken, no post-LOCK row carries a verdict of any kind**, so
+the freeze has not been exercised once since the gate went live. It is implemented and it is
+covered by the test suite; it is not something this campaign demonstrated.
+
+**Why this goes in the report rather than getting quietly softened.** The whole §7 argument
+is "a verdict with no mechanical consequence is a comment". Publishing that argument while
+carrying an untested version of exactly that mechanism would be the same failure the section
+is about. The report now states the probe, the result, and the explanation — and explicitly
+says the control is *unexercised, not demonstrated*.
+
+**Also corrected in §9:** it claimed "the final board is a median of repeated sweeps". It is
+not — **each row is the median of 300 paired samples inside a single invocation** (warmup 20
+/ repeats 100 / rounds 3, alternating). We deliberately never average across invocations,
+because §6 forbids comparing absolute latencies across processes. And the noise figures were
+conflated: within-invocation calibration noise is 0.03–0.4%, cross-invocation clock drift on
+identical work is ~9%, shipped-versus-module scatter is −10.0% to +2.6%, and the old "±25%"
+came from two uncontrolled pre-gate boards and should not be quoted for these.
