@@ -213,7 +213,7 @@
    "opened_epoch": 1788094504.8318138,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 2,
+   "scientific_attempts": 3,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -448,7 +448,10 @@
    "primary_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
    ],
-   "scientific_attempts": 1,
+   "scientific_attempts": 2,
+   "scratch_attempted_shas": [
+    "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
+   ],
    "strikes": 0
   }
  },
@@ -712,7 +715,8 @@
   "ee24a80e114e912cb30eac0c4cd77433a1ddb872e359b4dc3670efc092f29cc2",
   "257a76a34d4846835e631a5e263c7d70249d1a74f06b35171f3c46fcce74583a",
   "deb5f5b145421e3c648ada5c1df28296d772fc984b265a9dac5732cdd615783b",
-  "aac7d7cec7e76d38378dd18ebf1cfdf6731f769493419aa304f30bfbe33c525f"
+  "aac7d7cec7e76d38378dd18ebf1cfdf6731f769493419aa304f30bfbe33c525f",
+  "762ad637433ebb432bce762c2f70539bcef6a694322eb8e3515e41d0fdd4304d"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -733,11 +737,12 @@
   "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8",
   "c7f59c0b93a29e9eb254024e65af645cc3acbca5c97f0340a872966fef8be939",
   "a4fb1a3ffb6068ea0782237cced8695e926936ad4bad64100c455d1e4b565661",
-  "0d963a3e0d0308c17006fceeeab2cd8c1ab10d67e9c31006575bb72055f17411"
+  "0d963a3e0d0308c17006fceeeab2cd8c1ab10d67e9c31006575bb72055f17411",
+  "d711688e8d4fa0e5f129c9f656e71acf7884785981a485456332e39ae5a50404"
  ],
- "research_cycle": 2,
+ "research_cycle": 3,
  "research_open": false,
- "seq": 49,
+ "seq": 53,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -757,6 +762,7 @@
   "532a2480bd7ec24e2bcec6eb08a654d566e835f71ce2b857d79a9ef80a29e6e8",
   "c7f59c0b93a29e9eb254024e65af645cc3acbca5c97f0340a872966fef8be939",
   "a4fb1a3ffb6068ea0782237cced8695e926936ad4bad64100c455d1e4b565661",
-  "0d963a3e0d0308c17006fceeeab2cd8c1ab10d67e9c31006575bb72055f17411"
+  "0d963a3e0d0308c17006fceeeab2cd8c1ab10d67e9c31006575bb72055f17411",
+  "d711688e8d4fa0e5f129c9f656e71acf7884785981a485456332e39ae5a50404"
  ]
 }

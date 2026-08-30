@@ -555,9 +555,58 @@ different route than the one being run. **Rule: if the arm has never been profil
 the band is a guess and mark the prediction kind `characterization`** — which I did do
 here, which is why this cost zero strikes.
 
+### CORRECTION, 23:20 SGT, three minutes after the above was committed
+
+**I ran k004 on the same quiet box and it measured 2.1428x — HIGHER than the contended
+2.0748x, not lower. The contention explanation is dead, and so is the 1.035x ceiling.**
+The falsifier I preregistered on that plan said, verbatim: *"If k004 on the quiet box lands
+at or above 2.0, the contention explanation for attempt 1 is wrong and the launch-overhead
+ceiling derived from the baseline profile must be wrong too."* It landed at 2.1428. The
+falsifier fired against my own stated position, which is the only reason this got caught
+inside twenty minutes.
+
+**The real decomposition, both arms measured on the same deep-idle box, both correct:**
+
+| arm | measured | marginal |
+| --- | --- | --- |
+| baseline → k003 (Triton attention, no graph) | **1.6010x** | 1.601x from fusion |
+| baseline → k004 (Triton attention + graph) | **2.1428x** | **x1.3384 from graph capture** |
+
+Graph capture is worth **1.338x on top of the Triton kernel** — not 1.035x. The ceiling
+argument was out by an order of magnitude in its excess (0.338 vs 0.035).
+
+**Why the ceiling was wrong, since I amplified it and must own the correction.** It reasoned
+that if the baseline is GPU-busy 96.6% of its span, removing host launches can recover at
+most 3.4%. Three defects:
+
+1. **It was computed under the profiler.** Under nsys the baseline ran 5.928 ms/iter; its
+   unprofiled median is 5.154 ms/iter. Profiling inflated the very span the fraction is
+   taken over by ~15%, and CUPTI instrumentation changes the launch behaviour it measures.
+2. `gpu_busy_ns` is a sum of kernel durations, so sub-resolution inter-kernel gaps are
+   counted as busy rather than idle.
+3. **Decisive: graph replay removes real device work, not only idle gaps.** The baseline's
+   own nsys API summary records **340 `cudaMemcpyAsync` and 480 `cudaMemsetAsync` over 20
+   iterations** — 17 and 24 per forward — and that traffic is *inside* `gpu_busy_ns`.
+   A ceiling built on idle fraction structurally cannot see work that the mechanism
+   eliminates from the busy side. So `1 / (1 - idle_fraction)` is **not** a valid upper
+   bound on what a captured graph can buy.
+
+**What this means for the two families.** Neither of my framings was right and neither was
+worthless. `F-shape1-graph` was wrong to claim the whole 2.07x, but the mechanism is real
+and material at 1.338x. `F-shape1-fusion` is real and larger at 1.601x. **k004 is a genuine
+two-mechanism bundle**, and this campaign now holds the isolating measurement that
+decomposes it — which is exactly what the auditor asked for and did not have.
+
+**Where the auditor was right and where it was wrong.** Right: the attribution was
+unproven, the bundle was unmeasured, and the isolating run was the correct demand. Wrong:
+its quantitative 1.035x ceiling. **My error was worse than its error** — it offered a
+bounded argument from the evidence available; I promoted that argument to a settled fact,
+wrote "the graph adds at most 1.035x" into the durable record, and committed it, without
+running the twenty-minute experiment that refutes it. See LESSONS 34.
+
 ### What this changes
 
-- `F-shape1-fusion` is the correct family for shape 1 and it has a real, quiet-box,
+- `F-shape1-fusion` is a correct family for shape 1 and it has a real, quiet-box,
   correct measurement behind it.
 - The five `*-graph` families registered earlier for shapes 5, 9, 10, 11, 13 are confirmed
   misframed and should be replaced by fusion families before any attempt is spent on them.
