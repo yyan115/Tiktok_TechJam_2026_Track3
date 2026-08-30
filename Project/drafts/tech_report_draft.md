@@ -535,9 +535,18 @@ The submission ships the actual process artifacts, not a reconstruction.
 
 1. **A frozen referee the agent cannot edit.** `Project/harness/runner.py`
    is hash-pinned and protected by both tool-level deny rules and a shell
-   guard hook. It re-hashes the official benchmark every run, drives
-   multi-seed correctness, and appends to an immutable journal. Every
-   number in this report regenerates from it with one command.
+   guard hook. Since the LOCK it is a thin shim onto the trusted controller,
+   which re-hashes the official benchmark every run, drives multi-seed
+   correctness, and appends to an immutable authority log. It refuses to
+   time anything without a one-use permit — verified by running it, §10.
+
+   *An earlier draft claimed "every number in this report regenerates from
+   it with one command." That is not true and we checked: `runner.py
+   leaderboard` no longer exists, and the post-LOCK board lives in the
+   authority log and its packets rather than the legacy journal. What is
+   true is that every row is content-addressed and independently
+   re-derivable from those artifacts; `sensitivity_board.py` still
+   regenerates the side board in one command.*
 2. **Pinned shapes.** The official script's *defaults* match none of the 14
    test shapes (defaults: batch 8, d_model 512, causal OFF). An agent
    benchmarking raw dials would optimize the wrong problem and report
@@ -755,15 +764,32 @@ python3 Project/tools/build_submission.py --verify
 python3 Project/harness/runner.py run --shape 13 \
         --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
 
-# Regenerate the leaderboard and the score-sensitivity board from the journal.
-python3 Project/harness/runner.py leaderboard
+# Regenerate the score-sensitivity board. (Verified working 31 Aug.)
 python3 Project/tools/sensitivity_board.py
+# `runner.py leaderboard` no longer exists: the LOCK replaced runner.py with a
+# shim onto the trusted controller, which has no such subcommand. The post-LOCK
+# board's provenance is the authority log + packets, not the legacy journal.
 
 # The two shapes that do not fit on 8 GB.
 python3 Project/tools/smokes/shape14_core_smoke.py
 python3 Project/tools/smokes/shape6_core_smoke.py
 ```
 
-Full environment, hashes and per-entry provenance are in
+**Provenance of the §2.1.1 board, checked rather than asserted.** Each row is
+a `measurement_recorded` event in the controller's append-only authority log
+`Project/authority/events.jsonl`, bound to a content-addressed packet under
+`Project/authority/blobs/<packet_sha>.json` that carries the full 300-sample
+baseline and candidate distributions, the consumed permit id, the candidate
+sha256 and the environment. The scientific record of why each run happened —
+hypothesis, falsifier, preregistered band, judged outcome — is
+`Project/loop/gate_log.jsonl`.
+
+`Project/results/JOURNAL.jsonl` holds the **pre-LOCK** history only.
+Screening-lane runs write to the scratch namespace by design, so that a
+characterisation run can never be mistaken for a champion; that is why the
+headline board is not in the primary journal and why none of it is
+promotion-eligible (§2.1, caveat 2).
+
+Full environment and hashes are additionally in
 `Project/results_side/SHIP_MANIFEST.json` **[PENDING regeneration at the
-final commit]** and the append-only journal `Project/results/JOURNAL.jsonl`.
+final commit]**.

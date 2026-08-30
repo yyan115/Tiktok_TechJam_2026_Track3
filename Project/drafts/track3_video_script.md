@@ -151,9 +151,14 @@ the official baseline runs out of memory, verified against the batch-chunked
 official computation. Both on our own machine, by splitting the computation
 into blocks — which is exactly what the organizers said they expected."
 
-**Close:** "Every number regenerates from the journal with one command. The
-agent optimized, the system kept it honest, and the human owned every gate
-— including the one the agent isn't allowed to open."
+**Close:** "Every number is content-addressed and bound to the permit that
+produced it. The agent optimized, the system kept it honest, and the human
+owned every gate — including the one the agent isn't allowed to open."
+
+> Changed from "every number regenerates from the journal with one command",
+> which stopped being true at the LOCK: `runner.py leaderboard` no longer
+> exists and the post-LOCK board lives in the authority log and its packets.
+> Verified 31 Aug.
 
 ---
 

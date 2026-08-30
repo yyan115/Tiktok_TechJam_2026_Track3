@@ -1746,3 +1746,40 @@ Both now show it as refusing by design and point at the RUNBOOK for the permitte
 **Transferable point:** every command a document tells someone to type is a claim, and it
 decays exactly like a number does. The LOCK changed what `runner.py` is and three documents
 kept the pre-LOCK invocation. Test the commands, not just the figures.
+
+### 3. Following that rule immediately found a bigger one: a false provenance claim
+
+Having written "test the commands", I tested the rest of them.
+
+- `python3 Project/tools/sensitivity_board.py` — **works**, writes
+  `Project/results_side/SENSITIVITY.md`.
+- `python3 Project/harness/runner.py leaderboard` — **dead**. The shim forwards only the
+  controller's subcommands and `leaderboard` is not among them.
+
+That second one matters more than a broken command, because two documents built a claim on
+top of it: *"Every number in this report regenerates from it with one command"* (tech report
+§5.1) and *"Every number we publish regenerates from `Project/results/JOURNAL.jsonl`"*
+(README). **Both are false**, and not only because the command is gone.
+
+I checked where the headline rows actually are. Confirmed by inspecting the last commit's
+file list: **no `Project/results/JOURNAL.jsonl` change and no scratch-ledger files were
+written at all.** The post-LOCK board lives entirely in
+
+- `Project/authority/events.jsonl` — `measurement_recorded` events, append-only;
+- `Project/authority/blobs/<packet_sha>.json` — content-addressed packets holding the full
+  300-sample baseline and candidate distributions, permit id, candidate sha256, environment;
+- `Project/loop/gate_log.jsonl` — the scientific record of why each run happened.
+
+`JOURNAL.jsonl` holds the **pre-LOCK** history. That is not a defect: screening-lane runs
+write to the scratch namespace precisely so a characterisation run cannot be mistaken for a
+champion, which is the same design fact as "none of this is promotion-eligible". But the
+report was describing the pre-LOCK provenance story while presenting post-LOCK numbers.
+
+Corrected in all three documents with the real locations. The honest version is actually
+stronger: content-addressed packets bound to consumed permits are better provenance than a
+regenerable text table, and we can say exactly where every figure came from.
+
+**Second-order lesson:** a claim about *infrastructure* decays as silently as a claim about
+a number, and it is worse, because a reader who tries it concludes the whole project is
+broken. The trigger for finding this was writing down a rule and then actually obeying it in
+the same session.

@@ -193,17 +193,34 @@ python3 Project/tools/build_submission.py --verify
 python3 Project/harness/runner.py run --shape 13 \
         --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
 
-# 4. Regenerate every published table from the append-only journal.
-python3 Project/harness/runner.py leaderboard     # -> Project/results/LEADERBOARD.md
+# 4. Regenerate the score-sensitivity board. (VERIFIED 31 Aug: this one works.)
 python3 Project/tools/sensitivity_board.py        # -> Project/results_side/SENSITIVITY.md
+
+#    NOTE: `runner.py leaderboard` no longer exists -- the LOCK replaced runner.py
+#    with a shim onto the trusted controller, which has no such subcommand. The
+#    post-LOCK speedup board is NOT in Project/results/JOURNAL.jsonl; see below.
 
 # 5. The two shapes that don't fit in 8 GB.
 python3 Project/tools/smokes/shape14_core_smoke.py
 python3 Project/tools/smokes/shape6_core_smoke.py
 ```
 
-Every number we publish regenerates from `Project/results/JOURNAL.jsonl`
-(append-only) plus the side-evaluator packets in `Project/results_side/`.
+**Where the published numbers actually live** (corrected 31 Aug after
+checking, rather than asserted):
+
+- The **speedup board** — every row of both tables above — is in the
+  controller's append-only authority log, `Project/authority/events.jsonl`,
+  as `measurement_recorded` events, each carrying a content-addressed
+  measurement packet under `Project/authority/blobs/<packet_sha>.json` with
+  the full 300-sample baseline and candidate distributions, the permit id,
+  the candidate sha256 and the environment. The scientific record of *why*
+  each run happened is `Project/loop/gate_log.jsonl`.
+- `Project/results/JOURNAL.jsonl` holds the **pre-LOCK** history. The
+  post-LOCK board is deliberately not in it: screening-lane runs write to
+  the scratch namespace, not the primary journal, which is what stops a
+  characterisation run from being mistaken for a champion.
+- Side-evaluator packets for shapes 6 and 14 are in `Project/results_side/`.
+
 Each entry records the GPU, driver, CUDA, torch, Triton, dtype, TF32 flags,
 code hash and harness version, so only like-for-like profiles are compared.
 
