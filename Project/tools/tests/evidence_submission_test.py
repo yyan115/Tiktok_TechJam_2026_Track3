@@ -34,6 +34,7 @@ for _path in (TOOLS, HARNESS):
 
 import audit_authority
 import build_submission
+import run_gate
 import shape14_eval
 import shape6_local_eval
 import ship_manifest
@@ -433,11 +434,21 @@ class FixtureRepo:
     # -- packet bodies ----------------------------------------------------
     def shape6_packet(self, entry_id, *, allocated=None, declared_flat=True,
                       candidate_sha=None, env=None) -> dict:
+        # Every protocol number below is read out of ship_manifest, which
+        # reads it out of the controller.  A fixture that restated 20/100/3
+        # /300/10 would be yet another writer of the protocol, and the
+        # packet tests would then only prove that two hardcodes happen to
+        # match -- which is precisely the failure this consolidation exists
+        # to remove.  Derived here, a controller protocol change moves the
+        # fixture and the code under test together, and the drift tests
+        # below are what catch a controller that has actually parted ways.
         shape = self.shapes[6]
         seeds = [1, 2, 3, 4, 5]
-        allocated = allocated if allocated is not None else [100.0] * 10
-        reserved = [200.0] * 10
-        samples = [1.0] * 300
+        memory_repeats = ship_manifest.SHAPE6_MEMORY_REPEATS
+        allocated = (allocated if allocated is not None
+                     else [100.0] * memory_repeats)
+        reserved = [200.0] * memory_repeats
+        samples = [1.0] * ship_manifest.SHAPE6_RAW_SAMPLE_COUNT
         recomputed = {
             "allocated_slope_bytes_per_repeat": ship_manifest.series_slope(allocated),
             "reserved_slope_bytes_per_repeat": ship_manifest.series_slope(reserved),
@@ -472,8 +483,8 @@ class FixtureRepo:
             },
             "memory": {
                 "flat": declared_flat,
-                "warmups": 3,
-                "repeats": 10,
+                "warmups": ship_manifest.SHAPE6_MEMORY_WARMUPS,
+                "repeats": memory_repeats,
                 "limits": dict(ship_manifest.SHAPE6_MEMORY_LIMITS),
                 "peak_allocated_bytes_per_repeat": allocated,
                 "peak_reserved_bytes_per_repeat": reserved,
@@ -482,21 +493,28 @@ class FixtureRepo:
                 **recomputed,
             },
             "timing": {
-                "warmups": 20, "repeats_per_round": 100, "round_count": 3,
+                "warmups": ship_manifest.CONTROLLER_TIMING["warmup"],
+                "repeats_per_round": ship_manifest.CONTROLLER_TIMING["repeats"],
+                "round_count": ship_manifest.CONTROLLER_TIMING["rounds"],
                 "speedup_vs_baseline": None,
                 "raw_samples_ms": samples,
                 "rounds": [
                     {"round": index,
-                     "samples_ms": samples[index * 100:(index + 1) * 100]}
-                    for index in range(3)
+                     "samples_ms": samples[
+                         index * ship_manifest.CONTROLLER_TIMING["repeats"]:
+                         (index + 1) * ship_manifest.CONTROLLER_TIMING["repeats"]
+                     ]}
+                    for index in range(ship_manifest.CONTROLLER_TIMING["rounds"])
                 ],
                 "median_ms": 1.0,
             },
         }
 
-    def shape14_stage_packets(self, entry_id, *, slices=None, repeats=3,
+    def shape14_stage_packets(self, entry_id, *, slices=None, repeats=None,
                               extra_timing=None) -> list:
         shape = self.shapes[14]
+        if repeats is None:
+            repeats = ship_manifest.SHAPE14_MIN_TIMING_REPEATS
         slices = slices if slices is not None else shape["batch_size"]
         binding = self.binding("shape14_eval.py")
         validation = {
@@ -519,7 +537,7 @@ class FixtureRepo:
         wall = [float(slices) + 8.0] * repeats
         timing = {
             "protocol": "32 serial B=1 submission calls; CUDA events exclude staging",
-            "warmup_slices": 3,
+            "warmup_slices": ship_manifest.SHAPE14_MIN_WARMUP_SLICES,
             "timing_repeats": repeats,
             "slice_times_ms": {
                 "orientation": "batch_index x timing_repeat",
@@ -1072,7 +1090,10 @@ class Shape6MemoryConditionTests(unittest.TestCase):
 
     def test_a_lying_flat_true_over_a_rising_series_is_refused(self):
         with fixture_repo() as repo:
-            rising = [float(index) * 32 * 2**20 for index in range(10)]
+            rising = [
+                float(index) * 32 * 2**20
+                for index in range(ship_manifest.SHAPE6_MEMORY_REPEATS)
+            ]
             packet = repo.shape6_packet(
                 "20260830-120006-aaaaaa", allocated=rising, declared_flat=True
             )
@@ -1090,7 +1111,10 @@ class Shape6MemoryConditionTests(unittest.TestCase):
     def test_memory_condition_blocks_the_whole_shape6_selection(self):
         with fixture_repo() as repo:
             entry_id = "20260830-120006-aaaaaa"
-            rising = [float(index) * 32 * 2**20 for index in range(10)]
+            rising = [
+                float(index) * 32 * 2**20
+                for index in range(ship_manifest.SHAPE6_MEMORY_REPEATS)
+            ]
             packet = repo.shape6_packet(entry_id, allocated=rising, declared_flat=True)
             selector = repo.side_measurement(
                 entry_id=entry_id, shape_id=6,
@@ -1313,6 +1337,494 @@ class PrimaryProtocolBindingTests(unittest.TestCase):
                     selector, 1, repo.shapes[1], repo.submission_sha
                 )
             self.assertIn("numerical state is not official", str(caught.exception))
+
+
+# --------------------------------------------------------------------------
+# One timing protocol, one writer
+#
+# The benchmark timing protocol (warmup / repeats / rounds) was written down
+# independently in five places.  Two of them disagreeing is what wedged the
+# gate: a campaign bound to one protocol while the controller stamped another
+# into every measurement, so no calibration could reconcile and no experiment
+# could be planned.  The consolidation makes trusted_controller.TIMING the
+# only writer, and every other site derive from it.
+#
+# These tests exist to fail when that consolidation regresses.  They check
+# three separate things, because "the numbers happen to match today" is
+# exactly the assurance that failed last time:
+#   1. every consumer agrees with the controller RIGHT NOW;
+#   2. no consumer restates a protocol number as a bare literal, so agreement
+#      cannot be an accident of two hardcodes lining up;
+#   3. a controller whose own shape-6/shape-14 copies part ways with its
+#      published TIMING is REFUSED, loudly, on the shipping path.
+# --------------------------------------------------------------------------
+
+CONTROLLER_SOURCE_TEXT = ship_manifest.CONTROLLER_SOURCE.read_text(encoding="utf-8")
+
+
+@contextlib.contextmanager
+def drifted_controller(old: str, new: str):
+    """Run the body against an in-memory controller with one literal changed.
+
+    The file on disk is never touched -- it is write-denied, and the question
+    under test is what ship_manifest does when it READS a controller that
+    disagrees with itself.  ``old`` is built from the live protocol by every
+    caller, so a legitimate protocol change moves these mutations with it
+    instead of quietly making them no-ops.
+    """
+    assert CONTROLLER_SOURCE_TEXT.count(old) == 1, \
+        f"mutation anchor is not unique in the controller: {old!r}"
+    tree = ast.parse(CONTROLLER_SOURCE_TEXT.replace(old, new))
+    with mock.patch.object(ship_manifest, "_CONTROLLER_AST", tree):
+        yield
+
+
+def function_int_literals(path: Path, names: set[str]) -> dict[str, list[int]]:
+    """Bare integer literals inside the named module-level functions."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    found: dict[str, list[int]] = {}
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and node.name in names:
+            found[node.name] = sorted({
+                child.value for child in ast.walk(node)
+                if isinstance(child, ast.Constant) and type(child.value) is int
+            })
+    assert set(found) == names, f"missing functions: {sorted(names - set(found))}"
+    return found
+
+
+def attribute_floors(path: Path, function: str, root: str) -> dict[str, int]:
+    """``root.attr < N`` floors enforced inside one module-level function."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    floors: dict[str, int] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == function):
+            continue
+        for child in ast.walk(node):
+            if (isinstance(child, ast.Compare) and len(child.ops) == 1
+                    and isinstance(child.ops[0], ast.Lt)
+                    and isinstance(child.left, ast.Attribute)
+                    and isinstance(child.left.value, ast.Name)
+                    and child.left.value.id == root
+                    and isinstance(child.comparators[0], ast.Constant)
+                    and type(child.comparators[0].value) is int):
+                floors[child.left.attr] = child.comparators[0].value
+    return floors
+
+
+def argparse_defaults(path: Path, flags: set[str]) -> dict[str, int]:
+    """``add_argument("--flag", ..., default=N)`` values for the named flags."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    defaults: dict[str, int] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "add_argument" and node.args):
+            continue
+        first = node.args[0]
+        if not (isinstance(first, ast.Constant) and first.value in flags):
+            continue
+        for keyword in node.keywords:
+            if (keyword.arg == "default" and isinstance(keyword.value, ast.Constant)
+                    and type(keyword.value.value) is int):
+                defaults[first.value] = keyword.value.value
+    return defaults
+
+
+class TimingProtocolConsolidationTests(unittest.TestCase):
+    """The timing protocol has one writer; everything else derives from it."""
+
+    # -- 1. every writer agrees today ---------------------------------------
+
+    def test_every_writer_of_the_timing_protocol_agrees(self):
+        import trusted_controller
+
+        protocol = trusted_controller.TIMING
+        with self.subTest(writer="ship_manifest.CONTROLLER_TIMING"):
+            self.assertEqual(ship_manifest.CONTROLLER_TIMING, protocol)
+        with self.subTest(writer="run_gate.controller_timing_protocol"):
+            self.assertEqual(run_gate.controller_timing_protocol()[0], protocol)
+        with self.subTest(writer="shape6_local_eval OFFICIAL_*"):
+            self.assertEqual(
+                (shape6_local_eval.OFFICIAL_WARMUPS,
+                 shape6_local_eval.OFFICIAL_REPEATS,
+                 shape6_local_eval.OFFICIAL_ROUNDS),
+                (protocol["warmup"], protocol["repeats"], protocol["rounds"]),
+            )
+        with self.subTest(writer="trusted_controller shape-6 literals"):
+            self.assertEqual(
+                ship_manifest._controller_shape6_literals()["get"],
+                {
+                    "timing.warmups": protocol["warmup"],
+                    "timing.repeats_per_round": protocol["repeats"],
+                    "timing.round_count": protocol["rounds"],
+                    "memory.repeats": ship_manifest.SHAPE6_MEMORY_REPEATS,
+                },
+            )
+        with self.subTest(writer="derived sample count"):
+            # 300 is not a number, it is repeats x rounds.
+            self.assertEqual(
+                ship_manifest.SHAPE6_RAW_SAMPLE_COUNT,
+                protocol["repeats"] * protocol["rounds"],
+            )
+        ship_manifest.require_controller_protocol_agreement()
+
+    def test_the_memory_protocol_is_pinned_to_the_producer_that_authors_it(self):
+        """3/10 is NOT derivable from the timing protocol -- so pin its source.
+
+        The shape-6 memory trend runs a separate, coarser protocol.  Its only
+        author is shape6_local_eval.py; the controller re-pins the repeat count
+        and nothing at all pins the warmup count.  ship_manifest names both as
+        constants so they are searchable, and this test is the only thing that
+        holds them to their origin.
+        """
+        self.assertEqual(
+            (ship_manifest.SHAPE6_MEMORY_WARMUPS,
+             ship_manifest.SHAPE6_MEMORY_REPEATS),
+            (shape6_local_eval.MEMORY_WARMUPS, shape6_local_eval.MEMORY_REPEATS),
+        )
+        self.assertEqual(
+            ship_manifest._controller_shape6_literals()["get"]["memory.repeats"],
+            ship_manifest.SHAPE6_MEMORY_REPEATS,
+        )
+        # The byte thresholds ride along with the same protocol and are the
+        # one remaining copy in this area, so pin them to their author too.
+        self.assertEqual(
+            ship_manifest.SHAPE6_MEMORY_LIMITS, shape6_local_eval.MEMORY_LIMITS
+        )
+
+    def test_the_shape14_floors_are_pinned_to_every_writer(self):
+        """Shape 14 is not measured under the CUDA-event protocol at all."""
+        floors = attribute_floors(TOOLS / "shape14_eval.py", "cmd_eval", "args")
+        self.assertEqual(
+            floors.get("timing_repeats"), ship_manifest.SHAPE14_MIN_TIMING_REPEATS
+        )
+        self.assertEqual(
+            floors.get("warmup"), ship_manifest.SHAPE14_MIN_WARMUP_SLICES
+        )
+        defaults = argparse_defaults(
+            TOOLS / "shape14_eval.py", {"--timing-repeats", "--warmup"}
+        )
+        self.assertGreaterEqual(
+            defaults["--timing-repeats"], ship_manifest.SHAPE14_MIN_TIMING_REPEATS
+        )
+        self.assertGreaterEqual(
+            defaults["--warmup"], ship_manifest.SHAPE14_MIN_WARMUP_SLICES
+        )
+        controller = ship_manifest._controller_shape14_literals()
+        self.assertEqual(
+            controller["floors"].get("repeat_count"),
+            ship_manifest.SHAPE14_MIN_TIMING_REPEATS,
+        )
+        self.assertGreaterEqual(
+            int(controller["stage_args"]["--timing-repeats"]),
+            ship_manifest.SHAPE14_MIN_TIMING_REPEATS,
+        )
+        self.assertGreaterEqual(
+            int(controller["stage_args"]["--warmup"]),
+            ship_manifest.SHAPE14_MIN_WARMUP_SLICES,
+        )
+        ship_manifest.require_controller_shape14_agreement()
+
+    # -- 2. no consumer restates a protocol number --------------------------
+
+    def test_no_protocol_number_is_written_down_again_in_the_shipping_path(self):
+        """Agreement must be structural, not a coincidence of two hardcodes."""
+        protocol = ship_manifest.CONTROLLER_TIMING
+        forbidden = {
+            protocol["warmup"],
+            protocol["repeats"],
+            protocol["rounds"],
+            ship_manifest.SHAPE6_RAW_SAMPLE_COUNT,
+            ship_manifest.SHAPE6_MEMORY_WARMUPS,
+            ship_manifest.SHAPE6_MEMORY_REPEATS,
+            ship_manifest.SHAPE14_MIN_TIMING_REPEATS,
+            ship_manifest.SHAPE14_MIN_WARMUP_SLICES,
+        }
+        consumers = {
+            "require_shape6_protocol", "require_shape14_protocol",
+            "build_controller_entry", "build_side_controller_entry",
+            "validate_timing_samples",
+        }
+        literals = function_int_literals(TOOLS / "ship_manifest.py", consumers)
+        for name, values in sorted(literals.items()):
+            with self.subTest(consumer=name):
+                self.assertEqual(
+                    sorted(forbidden.intersection(values)), [],
+                    f"{name} restates a protocol number as a bare literal; "
+                    "derive it from CONTROLLER_TIMING instead",
+                )
+        # The residue is deliberately pinned: 0 (violation/nonfinite counts),
+        # 1 (indexing and single-match counts) and 5 (the minimum correctness
+        # seed count, a correctness rule and not a timing one).  A new bare
+        # integer in either protocol validator has to be justified here.
+        self.assertEqual(literals["require_shape6_protocol"], [0, 1, 5])
+        self.assertEqual(literals["require_shape14_protocol"], [0, 1, 5])
+
+    def test_the_derived_constants_are_derived_and_not_transcribed(self):
+        """A literal that happens to equal the protocol is still a second writer.
+
+        Value equality cannot tell "read from the controller" apart from
+        "typed in again and correct today", and the second one is what wedged
+        the gate.  So this asserts the SHAPE of the assignments: the protocol
+        is a call, and the sample count is arithmetic on it.
+        """
+        tree = ast.parse((TOOLS / "ship_manifest.py").read_text(encoding="utf-8"))
+        assigned = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        assigned[target.id] = node.value
+        self.assertIsInstance(
+            assigned["CONTROLLER_TIMING"], ast.Call,
+            "CONTROLLER_TIMING must be read from the controller, not written here",
+        )
+        product = assigned["SHAPE6_RAW_SAMPLE_COUNT"]
+        self.assertIsInstance(
+            product, ast.BinOp,
+            "the raw sample count must be repeats x rounds, not the number 300",
+        )
+        self.assertIsInstance(product.op, ast.Mult)
+        subscripted = {
+            node.value.id
+            for node in ast.walk(product)
+            if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name)
+        }
+        self.assertEqual(subscripted, {"CONTROLLER_TIMING"})
+        # The three that are NOT derivable are declared as plain constants on
+        # purpose -- searchable, and documented where they come from -- and the
+        # tests above pin each of them to its actual author.
+        for name in ("SHAPE6_MEMORY_WARMUPS", "SHAPE6_MEMORY_REPEATS",
+                     "SHAPE14_MIN_TIMING_REPEATS", "SHAPE14_MIN_WARMUP_SLICES"):
+            with self.subTest(constant=name):
+                self.assertIsInstance(assigned[name], ast.Constant)
+
+    # -- 3. a self-contradicting controller is refused, loudly --------------
+
+    def controller_drifts(self):
+        protocol = ship_manifest.CONTROLLER_TIMING
+        warmup = protocol["warmup"]
+        repeats = protocol["repeats"]
+        rounds = protocol["rounds"]
+        raw = ship_manifest.SHAPE6_RAW_SAMPLE_COUNT
+        memory = ship_manifest.SHAPE6_MEMORY_REPEATS
+        floor = ship_manifest.SHAPE14_MIN_TIMING_REPEATS
+        warmup_slices = ship_manifest.SHAPE14_MIN_WARMUP_SLICES
+        return (
+            ("shape-6 warmups",
+             f'timing.get("warmups") != {warmup}',
+             f'timing.get("warmups") != {warmup + 7}',
+             f"timing.warmups == {warmup + 7}"),
+            ("shape-6 repeats per round",
+             f'timing.get("repeats_per_round") != {repeats}',
+             f'timing.get("repeats_per_round") != {repeats + 7}',
+             f"timing.repeats_per_round == {repeats + 7}"),
+            ("shape-6 round count",
+             f'timing.get("round_count") != {rounds}',
+             f'timing.get("round_count") != {rounds + 7}',
+             f"timing.round_count == {rounds + 7}"),
+            ("shape-6 retained raw samples",
+             f"len(samples_value) != {raw}",
+             f"len(samples_value) != {raw + 7}",
+             "retained-series lengths"),
+            ("shape-6 memory repeats",
+             f'memory.get("repeats") != {memory}',
+             f'memory.get("repeats") != {memory + 7}',
+             f"memory.repeats == {memory + 7}"),
+            ("shape-6 round slicing",
+             f"samples[index * {repeats}:(index + 1) * {repeats}]",
+             f"samples[index * {repeats + 7}:(index + 1) * {repeats + 7}]",
+             "cuts the shape-6 raw samples into rounds"),
+            ("shape-14 repeat floor",
+             f"or repeat_count < {floor}\n",
+             f"or repeat_count < {floor + 7}\n",
+             f"accepts shape-14 evidence at {floor + 7} timing repeats"),
+            ("shape-14 commissioned warmup",
+             f'"--warmup", "{warmup_slices}",',
+             '"--warmup", "1",',
+             "commissions the shape-14 evaluator with --warmup 1"),
+        )
+
+    def test_a_controller_that_drifts_from_its_own_protocol_is_refused(self):
+        for label, old, new, fragment in self.controller_drifts():
+            with self.subTest(drift=label), drifted_controller(old, new):
+                with self.assertRaises(ship_manifest.ManifestError) as caught:
+                    ship_manifest.require_controller_protocol_agreement()
+                message = str(caught.exception)
+                self.assertIn("split-brain", message)
+                self.assertIn(fragment, message)
+                self.assertIn("do not silence this".lower(), message.lower())
+
+    def test_a_controller_that_stops_pinning_the_protocol_fails_closed(self):
+        """Absence is not agreement: an unreadable pin refuses, never assumes."""
+        protocol = ship_manifest.CONTROLLER_TIMING
+        cases = (
+            ("shape-6 warmups check deleted",
+             f'timing.get("warmups") != {protocol["warmup"]}\n        or ',
+             "",
+             "no longer pins timing.warmups in validate_shape6_packet()"),
+            ("shape-6 validator renamed",
+             "def validate_shape6_packet(",
+             "def _retired_validate_shape6_packet(",
+             "no longer pins a module-level validate_shape6_packet()"),
+            ("shape-14 validator renamed",
+             "def validate_shape14_packets(",
+             "def _retired_validate_shape14_packets(",
+             "no longer pins a module-level validate_shape14_packets()"),
+            ("shape-14 stage arguments gone",
+             '"--timing-repeats", "'
+             f'{ship_manifest.SHAPE14_MIN_TIMING_REPEATS}",\n',
+             "",
+             "exactly one shape-14 evaluator argument vector (0 found)"),
+        )
+        for label, old, new, fragment in cases:
+            with self.subTest(missing=label), drifted_controller(old, new):
+                with self.assertRaises(ship_manifest.ManifestError) as caught:
+                    ship_manifest.require_controller_protocol_agreement()
+                self.assertIn("unprovable", str(caught.exception))
+                self.assertIn(fragment, str(caught.exception))
+
+    def test_a_controller_that_cannot_be_read_is_fatal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            broken = Path(directory) / "trusted_controller.py"
+            broken.write_text("def (:\n", encoding="utf-8")
+            missing = Path(directory) / "absent_controller.py"
+            for label, path in (("unparseable", broken), ("absent", missing)):
+                with self.subTest(controller=label), \
+                        mock.patch.object(ship_manifest, "CONTROLLER_SOURCE", path), \
+                        mock.patch.object(ship_manifest, "_CONTROLLER_AST", None):
+                    with self.assertRaises(ship_manifest.ManifestError) as caught:
+                        ship_manifest.require_controller_protocol_agreement()
+                    self.assertIn(
+                        "cannot read the controller timing protocol",
+                        str(caught.exception),
+                    )
+
+    # -- the refusal reaches the shipping path, not just the helper ---------
+
+    def test_controller_drift_refuses_shape6_evidence_that_is_otherwise_perfect(self):
+        protocol = ship_manifest.CONTROLLER_TIMING
+        with fixture_repo() as repo:
+            packet = repo.shape6_packet("20260830-120006-aaaaaa")
+            ship_manifest.require_shape6_protocol(packet)
+            with drifted_controller(
+                f'timing.get("repeats_per_round") != {protocol["repeats"]}',
+                f'timing.get("repeats_per_round") != {protocol["repeats"] + 7}',
+            ):
+                with self.assertRaises(ship_manifest.ManifestError) as caught:
+                    ship_manifest.require_shape6_protocol(packet)
+                self.assertIn("split-brain timing protocol", str(caught.exception))
+
+    def test_controller_drift_refuses_a_whole_shape6_selection(self):
+        protocol = ship_manifest.CONTROLLER_TIMING
+        with fixture_repo() as repo:
+            entry_id = "20260830-120006-aaaaaa"
+            selector = repo.side_measurement(
+                entry_id=entry_id, shape_id=6,
+                stage_packets=[("shape6-eval", repo.shape6_packet(entry_id))],
+            )
+            ship_manifest.build_side_controller_entry(
+                selector, 6, repo.shapes[6], repo.submission_sha
+            )
+            with drifted_controller(
+                f'timing.get("warmups") != {protocol["warmup"]}',
+                f'timing.get("warmups") != {protocol["warmup"] + 7}',
+            ):
+                with self.assertRaises(ship_manifest.ManifestError) as caught:
+                    ship_manifest.build_side_controller_entry(
+                        selector, 6, repo.shapes[6], repo.submission_sha
+                    )
+                self.assertIn("split-brain timing protocol", str(caught.exception))
+
+    def test_controller_drift_refuses_shape14_evidence(self):
+        floor = ship_manifest.SHAPE14_MIN_TIMING_REPEATS
+        with fixture_repo() as repo:
+            entry_id = "20260830-120014-bbbbbb"
+            packet = repo.shape14_stage_packets(entry_id)[-1][1]
+            ship_manifest.require_shape14_protocol(packet, repo.shapes[14])
+            with drifted_controller(
+                f"or repeat_count < {floor}\n", f"or repeat_count < {floor + 7}\n"
+            ):
+                with self.assertRaises(ship_manifest.ManifestError) as caught:
+                    ship_manifest.require_shape14_protocol(packet, repo.shapes[14])
+                self.assertIn("split-brain shape-14 floor", str(caught.exception))
+
+    # -- evidence that misses the protocol is refused ------------------------
+
+    def test_shape6_evidence_must_match_the_derived_protocol_exactly(self):
+        protocol = ship_manifest.CONTROLLER_TIMING
+        raw = ship_manifest.SHAPE6_RAW_SAMPLE_COUNT
+        memory_repeats = ship_manifest.SHAPE6_MEMORY_REPEATS
+
+        def off(field, value):
+            def mutate(packet):
+                packet["timing"][field] = value
+            return mutate
+
+        def memory_off(field, value):
+            def mutate(packet):
+                packet["memory"][field] = value
+            return mutate
+
+        mutations = (
+            ("timing warmups", off("warmups", protocol["warmup"] + 1),
+             "timing protocol is inconsistent"),
+            ("timing repeats per round",
+             off("repeats_per_round", protocol["repeats"] + 1),
+             "timing protocol is inconsistent"),
+            ("timing round count", off("round_count", protocol["rounds"] + 1),
+             "timing protocol is inconsistent"),
+            ("one raw sample short",
+             lambda packet: packet["timing"].__setitem__(
+                 "raw_samples_ms", packet["timing"]["raw_samples_ms"][:-1]),
+             f"must contain exactly {raw} samples"),
+            ("one round short",
+             lambda packet: packet["timing"].__setitem__(
+                 "rounds", packet["timing"]["rounds"][:-1]),
+             "timing rounds are malformed"),
+            ("a short round",
+             lambda packet: packet["timing"]["rounds"][0].__setitem__(
+                 "samples_ms", packet["timing"]["rounds"][0]["samples_ms"][:-1]),
+             f"must contain exactly {protocol['repeats']} samples"),
+            ("memory warmups",
+             memory_off("warmups", ship_manifest.SHAPE6_MEMORY_WARMUPS + 1),
+             f"{ship_manifest.SHAPE6_MEMORY_WARMUPS}-warmup"),
+            ("memory repeats", memory_off("repeats", memory_repeats + 1),
+             f"{memory_repeats}-repeat protocol"),
+            ("a short memory series",
+             lambda packet: packet["memory"].__setitem__(
+                 "peak_allocated_bytes_per_repeat",
+                 packet["memory"]["peak_allocated_bytes_per_repeat"][:-1]),
+             f"must contain exactly {memory_repeats} samples"),
+        )
+        with fixture_repo() as repo:
+            for label, mutate, fragment in mutations:
+                with self.subTest(evidence=label):
+                    packet = repo.shape6_packet("20260830-120006-aaaaaa")
+                    mutate(packet)
+                    with self.assertRaises(ship_manifest.ManifestError) as caught:
+                        ship_manifest.require_shape6_protocol(packet)
+                    self.assertIn(fragment, str(caught.exception))
+
+    def test_shape14_evidence_below_the_floor_is_refused(self):
+        floor = ship_manifest.SHAPE14_MIN_TIMING_REPEATS
+        warmups = ship_manifest.SHAPE14_MIN_WARMUP_SLICES
+        with fixture_repo() as repo:
+            entry_id = "20260830-120014-bbbbbb"
+            at_floor = repo.shape14_stage_packets(entry_id, repeats=floor)[-1][1]
+            ship_manifest.require_shape14_protocol(at_floor, repo.shapes[14])
+            below = repo.shape14_stage_packets(entry_id, repeats=floor - 1)[-1][1]
+            with self.assertRaises(ship_manifest.ManifestError) as caught:
+                ship_manifest.require_shape14_protocol(below, repo.shapes[14])
+            self.assertIn(f"{floor} timing repeats", str(caught.exception))
+            short_warmup = repo.shape14_stage_packets(
+                entry_id, extra_timing={"warmup_slices": warmups - 1}
+            )[-1][1]
+            with self.assertRaises(ship_manifest.ManifestError) as caught:
+                ship_manifest.require_shape14_protocol(short_warmup, repo.shapes[14])
+            self.assertIn(f"{warmups} warmup", str(caught.exception))
 
 
 # --------------------------------------------------------------------------

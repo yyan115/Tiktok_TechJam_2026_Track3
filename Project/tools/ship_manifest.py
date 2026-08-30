@@ -26,6 +26,7 @@ binding is missing today. It writes nothing and relaxes nothing.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import math
@@ -87,12 +88,45 @@ SHAPE6_MEMORY_LIMITS = {
     "allocated_max_growth_bytes": 64 * MIB,
     "reserved_max_growth_bytes": 256 * MIB,
 }
+
+
+class ManifestError(RuntimeError):
+    """The requested final evidence set is missing or internally inconsistent."""
+
+
 # What Project/harness/trusted_controller.py actually stamps into every primary
 # worker request and measurement.  These are pinned here so a run taken with
 # different tolerances, a different matmul precision, a different timing
 # protocol or a different official shape table can never be selected -- the
 # side lane has enforced official numerics from the start, the primary lane
 # enforced none.
+CONTROLLER_SOURCE = HARNESS / "trusted_controller.py"
+_CONTROLLER_AST: ast.Module | None = None
+
+
+def _controller_ast() -> ast.Module:
+    """Parse the trusted controller once; every reader below shares the tree.
+
+    The controller is read, never copied.  It is the authority on the timing
+    protocol, so any number transcribed out of it by hand becomes a second
+    writer waiting to drift.  A controller that cannot be read or parsed is
+    fatal: this module decides what ships, and guessing is the defect.
+    """
+    global _CONTROLLER_AST
+    if _CONTROLLER_AST is None:
+        try:
+            _CONTROLLER_AST = ast.parse(
+                CONTROLLER_SOURCE.read_text(encoding="utf-8"),
+                filename=str(CONTROLLER_SOURCE),
+            )
+        except (OSError, SyntaxError) as exc:
+            raise ManifestError(
+                "cannot read the controller timing protocol from "
+                f"{CONTROLLER_SOURCE}: {exc}"
+            ) from exc
+    return _CONTROLLER_AST
+
+
 def _controller_timing() -> dict[str, int]:
     """Read the trusted controller's timing protocol; never copy the literal.
 
@@ -106,16 +140,7 @@ def _controller_timing() -> dict[str, int]:
     or that publishes no protocol is fatal here: this module decides what
     ships, and guessing is the defect.
     """
-    import ast
-
-    source = ROOT / "Project" / "harness" / "trusted_controller.py"
-    try:
-        tree = ast.parse(source.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError) as exc:
-        raise ManifestError(
-            f"cannot read the controller timing protocol from {source}: {exc}"
-        ) from exc
-    for node in tree.body:
+    for node in _controller_ast().body:
         if not isinstance(node, ast.Assign):
             continue
         names = [t.id for t in node.targets if isinstance(t, ast.Name)]
@@ -132,11 +157,38 @@ def _controller_timing() -> dict[str, int]:
             raise ManifestError(f"controller TIMING is malformed: {value!r}")
         return value
     raise ManifestError(
-        f"{source} publishes no module-level TIMING; the shippable timing "
-        "protocol is undefined and no manifest may be built")
+        f"{CONTROLLER_SOURCE} publishes no module-level TIMING; the shippable "
+        "timing protocol is undefined and no manifest may be built")
 
 
 CONTROLLER_TIMING = _controller_timing()
+# Every timing number this module enforces is ARITHMETIC on the protocol above,
+# never a second copy of the answer.  "300 raw samples" is not a number, it is
+# one sample per repeat per round; spelling out the product means a controller
+# that moves to 50 repeats moves this module with it, instead of silently
+# refusing every packet the controller can now produce.
+SHAPE6_RAW_SAMPLE_COUNT = CONTROLLER_TIMING["repeats"] * CONTROLLER_TIMING["rounds"]
+# NOT derivable from the timing protocol, and named rather than inlined so the
+# pair is greppable.  The shape-6 memory trend is a separate and much coarser
+# protocol than the CUDA-event timing protocol: both numbers are authored in
+# Project/tools/shape6_local_eval.py (MEMORY_WARMUPS = 3, MEMORY_REPEATS = 10),
+# which is the only writer of the warmup count anywhere in the repository.  The
+# repeat count does have a second writer -- trusted_controller.py's shape-6
+# validator pins memory["repeats"] and both allocator-series lengths -- and
+# require_controller_shape6_agreement() below holds that one in step.  Nothing
+# but the evaluator pins the warmup count, so it is stated here for what it is:
+# a value copied from one line of one producer, with no authority behind it.
+SHAPE6_MEMORY_WARMUPS = 3
+SHAPE6_MEMORY_REPEATS = 10
+# Floors, not a protocol, and likewise not derivable: shape 14 is not measured
+# under the CUDA-event protocol at all (it is B serial B=1 slices summed per
+# repeat), so nothing about it follows from CONTROLLER_TIMING.  Three is the
+# minimum authored in Project/tools/shape14_eval.py (both --timing-repeats and
+# --warmup refuse anything below it), re-pinned by trusted_controller.py's
+# shape-14 validator, and used by the side stage the controller commissions.
+# require_controller_shape14_agreement() below holds those writers in step.
+SHAPE14_MIN_TIMING_REPEATS = 3
+SHAPE14_MIN_WARMUP_SLICES = 3
 CONTROLLER_NUMERICAL = {
     "padding_ratio": 0.0,
     "input_scale": 1.0,
@@ -179,10 +231,6 @@ from audit_authority import (  # noqa: E402
     require_audit_enqueue,
 )
 from authority import AuthorityError, AuthorityStore  # noqa: E402
-
-
-class ManifestError(RuntimeError):
-    """The requested final evidence set is missing or internally inconsistent."""
 
 
 class ManifestRefusal(ManifestError):
@@ -847,7 +895,233 @@ def require_official_numerics(packet: dict[str, Any], label: str) -> None:
         raise ManifestError(f"{label} did not use the official numerical state")
 
 
+# ---------------------------------------------------------------------------
+# Controller / manifest protocol agreement
+#
+# Project/harness/trusted_controller.py validates the shape-6 side packet
+# against its own hardcoded copy of the timing protocol -- a copy that sits
+# beside, but is not derived from, the module-level TIMING constant the same
+# file stamps into every primary measurement.  That is the identical defect
+# that wedged the gate, one file further along: two validators enforcing two
+# protocols on the same evidence, with nothing that notices when they part.
+#
+# This module cannot edit the controller (it is write-denied).  What it can do
+# is read those literals back the same way _controller_timing() reads TIMING,
+# and refuse to accept shape-6 or shape-14 evidence while they disagree with
+# the protocol this module ships under.  That converts a silent split-brain
+# into a loud refusal at the moment it matters -- when evidence is offered for
+# shipping -- instead of a manifest that quietly certifies numbers taken under
+# a protocol nobody agreed on.
+#
+# Absence fails exactly as disagreement does.  If a literal cannot be located,
+# agreement is unproven, and shipping on an unproven protocol binding is the
+# thing this path exists to prevent.
+# ---------------------------------------------------------------------------
+_DRIFT_HINT = (
+    "One of the two is validating evidence the other never measured. "
+    f"{CONTROLLER_SOURCE.name} is the authority and is write-denied to agents; "
+    "reconcile it there. Do NOT silence this by editing the derived constants "
+    "in ship_manifest.py -- that is how the split-brain got here."
+)
+
+
+def _agreement_unprovable(what: str) -> ManifestError:
+    return ManifestError(
+        f"controller/manifest protocol agreement is unprovable: "
+        f"{CONTROLLER_SOURCE.name} no longer pins {what}. The protocol this "
+        "module ships under can no longer be shown to match the protocol the "
+        "controller validates evidence under, so no evidence may be selected."
+    )
+
+
+def _controller_function(name: str) -> ast.FunctionDef | ast.AsyncFunctionDef:
+    for node in _controller_ast().body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and node.name == name:
+            return node
+    raise _agreement_unprovable(f"a module-level {name}()")
+
+
+def _controller_shape6_literals() -> dict[str, Any]:
+    """Read back the numbers the controller validates shape-6 evidence against.
+
+    Three shapes of literal are collected, because the controller writes the
+    protocol down in three different grammars:
+
+    ``get``    ``timing.get("warmups") != 20`` and friends, keyed by the
+               object and key being read, which is stable against rewording of
+               the refusal messages and against the checks being reordered.
+    ``len``    ``len(samples_value) != 300`` -- the retained-series lengths.
+    ``slice``  the integers used to cut the raw samples back into rounds.
+    """
+    function = _controller_function("validate_shape6_packet")
+    gets: dict[str, int] = {}
+    lengths: set[int] = set()
+    slice_integers: set[int] = set()
+    for node in ast.walk(function):
+        if isinstance(node, ast.Slice):
+            slice_integers.update(
+                child.value for child in ast.walk(node)
+                if isinstance(child, ast.Constant) and type(child.value) is int
+            )
+            continue
+        if not (isinstance(node, ast.Compare) and len(node.ops) == 1
+                and isinstance(node.ops[0], ast.NotEq)):
+            continue
+        right = node.comparators[0]
+        if not (isinstance(right, ast.Constant) and type(right.value) is int):
+            continue
+        left = node.left
+        if (isinstance(left, ast.Call)
+                and isinstance(left.func, ast.Attribute)
+                and left.func.attr == "get"
+                and isinstance(left.func.value, ast.Name)
+                and len(left.args) == 1
+                and isinstance(left.args[0], ast.Constant)
+                and isinstance(left.args[0].value, str)):
+            gets[f"{left.func.value.id}.{left.args[0].value}"] = right.value
+        elif (isinstance(left, ast.Call) and isinstance(left.func, ast.Name)
+              and left.func.id == "len"):
+            lengths.add(right.value)
+    return {"get": gets, "len": lengths, "slice": slice_integers}
+
+
+def _controller_shape14_stage_arguments() -> dict[str, str]:
+    """The argument vector the controller commissions the shape-14 stage with."""
+    matches: list[dict[str, str]] = []
+    for node in ast.walk(_controller_ast()):
+        if not isinstance(node, ast.List):
+            continue
+        values = [
+            element.value if isinstance(element, ast.Constant) else None
+            for element in node.elts
+        ]
+        if "--timing-repeats" not in values:
+            continue
+        pairs: dict[str, str] = {}
+        for index, value in enumerate(values[:-1]):
+            following = values[index + 1]
+            if (isinstance(value, str) and value.startswith("--")
+                    and isinstance(following, str)):
+                pairs[value] = following
+        matches.append(pairs)
+    if len(matches) != 1:
+        raise _agreement_unprovable(
+            f"exactly one shape-14 evaluator argument vector ({len(matches)} found)"
+        )
+    return matches[0]
+
+
+def _controller_shape14_literals() -> dict[str, Any]:
+    """Read back the shape-14 floors the controller enforces and commissions."""
+    function = _controller_function("validate_shape14_packets")
+    floors: dict[str, int] = {}
+    for node in ast.walk(function):
+        if (isinstance(node, ast.Compare) and len(node.ops) == 1
+                and isinstance(node.ops[0], ast.Lt)
+                and isinstance(node.left, ast.Name)
+                and isinstance(node.comparators[0], ast.Constant)
+                and type(node.comparators[0].value) is int):
+            floors[node.left.id] = node.comparators[0].value
+    return {"floors": floors, "stage_args": _controller_shape14_stage_arguments()}
+
+
+def require_controller_shape6_agreement() -> None:
+    """Refuse while the controller's shape-6 copy disagrees with the protocol."""
+    literals = _controller_shape6_literals()
+    protocol = {
+        "timing.warmups": ("warmup", CONTROLLER_TIMING["warmup"]),
+        "timing.repeats_per_round": ("repeats", CONTROLLER_TIMING["repeats"]),
+        "timing.round_count": ("rounds", CONTROLLER_TIMING["rounds"]),
+    }
+    for key, (protocol_key, expected) in protocol.items():
+        found = literals["get"].get(key)
+        if found is None:
+            raise _agreement_unprovable(f"{key} in validate_shape6_packet()")
+        if found != expected:
+            raise ManifestError(
+                f"split-brain timing protocol: {CONTROLLER_SOURCE.name} "
+                f"validates shape-6 evidence with {key} == {found!r}, but the "
+                f"protocol it publishes as TIMING says {protocol_key} == "
+                f"{expected!r}. {_DRIFT_HINT}"
+            )
+    memory_repeats = literals["get"].get("memory.repeats")
+    if memory_repeats is None:
+        raise _agreement_unprovable("memory.repeats in validate_shape6_packet()")
+    if memory_repeats != SHAPE6_MEMORY_REPEATS:
+        raise ManifestError(
+            f"split-brain memory protocol: {CONTROLLER_SOURCE.name} validates "
+            f"shape-6 evidence with memory.repeats == {memory_repeats!r}, but "
+            f"this module requires {SHAPE6_MEMORY_REPEATS!r} "
+            f"(shape6_local_eval.py MEMORY_REPEATS). {_DRIFT_HINT}"
+        )
+    expected_lengths = {
+        SHAPE6_RAW_SAMPLE_COUNT,
+        CONTROLLER_TIMING["rounds"],
+        SHAPE6_MEMORY_REPEATS,
+    }
+    if literals["len"] != expected_lengths:
+        raise ManifestError(
+            f"split-brain timing protocol: {CONTROLLER_SOURCE.name} pins "
+            f"shape-6 retained-series lengths {sorted(literals['len'])}, but "
+            f"the protocol requires {sorted(expected_lengths)} "
+            f"({CONTROLLER_TIMING['repeats']} repeats x "
+            f"{CONTROLLER_TIMING['rounds']} rounds = {SHAPE6_RAW_SAMPLE_COUNT} "
+            f"raw samples, {CONTROLLER_TIMING['rounds']} retained rounds, "
+            f"{SHAPE6_MEMORY_REPEATS} memory repeats). {_DRIFT_HINT}"
+        )
+    if CONTROLLER_TIMING["repeats"] not in literals["slice"]:
+        raise ManifestError(
+            f"split-brain timing protocol: {CONTROLLER_SOURCE.name} cuts the "
+            f"shape-6 raw samples into rounds using "
+            f"{sorted(literals['slice'])}, which does not include the "
+            f"protocol's {CONTROLLER_TIMING['repeats']} repeats per round. "
+            f"{_DRIFT_HINT}"
+        )
+
+
+def require_controller_shape14_agreement() -> None:
+    """Refuse while the controller's shape-14 floors disagree with this module."""
+    literals = _controller_shape14_literals()
+    floor = literals["floors"].get("repeat_count")
+    if floor is None:
+        raise _agreement_unprovable(
+            "a repeat_count floor in validate_shape14_packets()"
+        )
+    if floor != SHAPE14_MIN_TIMING_REPEATS:
+        raise ManifestError(
+            f"split-brain shape-14 floor: {CONTROLLER_SOURCE.name} accepts "
+            f"shape-14 evidence at {floor} timing repeats while this module "
+            f"requires {SHAPE14_MIN_TIMING_REPEATS}. {_DRIFT_HINT}"
+        )
+    commissioned = literals["stage_args"]
+    for flag, minimum, label in (
+        ("--timing-repeats", SHAPE14_MIN_TIMING_REPEATS, "timing repeats"),
+        ("--warmup", SHAPE14_MIN_WARMUP_SLICES, "warmup slices"),
+    ):
+        raw = commissioned.get(flag)
+        if raw is None or not raw.isdigit():
+            raise _agreement_unprovable(
+                f"{flag} on the shape-14 evaluator stage it commissions"
+            )
+        if int(raw) < minimum:
+            raise ManifestError(
+                f"split-brain shape-14 floor: {CONTROLLER_SOURCE.name} "
+                f"commissions the shape-14 evaluator with {flag} {raw}, below "
+                f"the {minimum} {label} this module requires, so every packet "
+                f"the controller can produce would be refused here. "
+                f"{_DRIFT_HINT}"
+            )
+
+
+def require_controller_protocol_agreement() -> None:
+    """Every controller/manifest protocol binding this module depends on."""
+    require_controller_shape6_agreement()
+    require_controller_shape14_agreement()
+
+
 def require_shape6_protocol(packet: dict[str, Any]) -> None:
+    require_controller_shape6_agreement()
     require_official_numerics(packet, "shape 6")
     correctness = packet.get("correctness")
     if not isinstance(correctness, dict):
@@ -882,23 +1156,27 @@ def require_shape6_protocol(packet: dict[str, Any]) -> None:
     memory = packet.get("memory")
     if not isinstance(memory, dict) or memory.get("limits") != SHAPE6_MEMORY_LIMITS:
         raise ManifestError("shape 6 memory protocol or limits are inconsistent")
-    if memory.get("warmups") != 3 or memory.get("repeats") != 10:
-        raise ManifestError("shape 6 memory trend did not use the required protocol")
+    if (memory.get("warmups") != SHAPE6_MEMORY_WARMUPS
+            or memory.get("repeats") != SHAPE6_MEMORY_REPEATS):
+        raise ManifestError(
+            f"shape 6 memory trend did not use the required "
+            f"{SHAPE6_MEMORY_WARMUPS}-warmup, {SHAPE6_MEMORY_REPEATS}-repeat protocol"
+        )
     for key in ("peak_allocated", "peak_reserved", "settled_allocated", "settled_reserved"):
         numeric_series(
             memory.get(f"{key}_bytes_per_repeat"),
             f"shape 6 {key}",
-            count=10,
+            count=SHAPE6_MEMORY_REPEATS,
         )
     allocated = numeric_series(
         memory.get("settled_allocated_bytes_per_repeat"),
         "shape 6 settled allocated",
-        count=10,
+        count=SHAPE6_MEMORY_REPEATS,
     )
     reserved = numeric_series(
         memory.get("settled_reserved_bytes_per_repeat"),
         "shape 6 settled reserved",
-        count=10,
+        count=SHAPE6_MEMORY_REPEATS,
     )
     recomputed = {
         "allocated_slope_bytes_per_repeat": series_slope(allocated),
@@ -918,17 +1196,21 @@ def require_shape6_protocol(packet: dict[str, Any]) -> None:
 
     timing = packet.get("timing")
     if not isinstance(timing, dict) or (
-        timing.get("warmups") != 20
-        or timing.get("repeats_per_round") != 100
-        or timing.get("round_count") != 3
+        timing.get("warmups") != CONTROLLER_TIMING["warmup"]
+        or timing.get("repeats_per_round") != CONTROLLER_TIMING["repeats"]
+        or timing.get("round_count") != CONTROLLER_TIMING["rounds"]
         or timing.get("speedup_vs_baseline") is not None
     ):
-        raise ManifestError("shape 6 timing protocol is inconsistent")
+        raise ManifestError(
+            f"shape 6 timing protocol is inconsistent with the controller's "
+            f"{CONTROLLER_TIMING}"
+        )
     raw = numeric_series(
-        timing.get("raw_samples_ms"), "shape 6 timing", count=300, positive=True
+        timing.get("raw_samples_ms"), "shape 6 timing",
+        count=SHAPE6_RAW_SAMPLE_COUNT, positive=True,
     )
     rounds = timing.get("rounds")
-    if not isinstance(rounds, list) or len(rounds) != 3:
+    if not isinstance(rounds, list) or len(rounds) != CONTROLLER_TIMING["rounds"]:
         raise ManifestError("shape 6 timing rounds are malformed")
     retained = []
     for index, round_row in enumerate(rounds):
@@ -937,7 +1219,7 @@ def require_shape6_protocol(packet: dict[str, Any]) -> None:
         retained.extend(numeric_series(
             round_row.get("samples_ms"),
             f"shape 6 timing round {index}",
-            count=100,
+            count=CONTROLLER_TIMING["repeats"],
             positive=True,
         ))
     if retained != raw:
@@ -957,6 +1239,7 @@ def require_shape14_protocol(packet: dict[str, Any],
     different batch sizes are not comparable, so the slice count is anchored to
     the official shape here and no baseline speedup may appear at all.
     """
+    require_controller_shape14_agreement()
     require_official_numerics(packet, "shape 14")
     slices = expected_shape.get("batch_size")
     if isinstance(slices, bool) or not isinstance(slices, int) or slices < 1:
@@ -1015,11 +1298,14 @@ def require_shape14_protocol(packet: dict[str, Any],
     if (
         isinstance(repeats, bool)
         or not isinstance(repeats, int)
-        or repeats < 3
+        or repeats < SHAPE14_MIN_TIMING_REPEATS
         or not isinstance(timing.get("warmup_slices"), int)
-        or timing["warmup_slices"] < 3
+        or timing["warmup_slices"] < SHAPE14_MIN_WARMUP_SLICES
     ):
-        raise ManifestError("shape 14 timing needs at least three warmups and repeats")
+        raise ManifestError(
+            f"shape 14 timing needs at least {SHAPE14_MIN_WARMUP_SLICES} warmup "
+            f"slices and {SHAPE14_MIN_TIMING_REPEATS} timing repeats"
+        )
     matrix = timing.get("slice_times_ms")
     if (
         not isinstance(matrix, dict)
