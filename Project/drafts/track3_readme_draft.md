@@ -1,13 +1,13 @@
 # Transformer Kernel Optimization on a Consumer GPU — TikTok TechJam 2026, Track 3
 
-**An AI agent that writes GPU kernels, and a referee it is not allowed to
-touch.**
+**An AI agent writes the GPU kernels. A separate locked program measures them,
+and the agent has no way to change it.**
 
 This project combines modern kernel-agent techniques with cryptographic signing
-and loop engineering, so that the agent doing the optimising cannot drift off
-task and cannot falsify its own results. It never measures its own work: every
-number below came out of a locked program the agent has no write access to,
-under a single-use permit drawn from a run budget only the human owner can sign.
+and loop engineering, so the agent doing the optimising stays on task and cannot
+fake its own results. Every number below came out of a locked program the agent
+has no write access to, using a single-use permit from a run budget only the
+human owner can sign.
 
 **Run on my own desktop — one NVIDIA RTX 3060 Ti, a consumer card with 8 GB.**
 
@@ -33,8 +33,8 @@ under a single-use permit drawn from a run budget only the human owner can sign.
 are submitting, `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`.
 Not fourteen scripts, and not a different version of our code for each shape.
 
-So the 11.87× above is a property of the file you would actually run, not an
-average across several versions of it.
+So the 11.87× above describes the file you would actually run, rather than being
+an average across several versions of it.
 
 On correctness we went past what was asked. The official script checks five
 fixed seeds; we check **seven — five fixed plus two drawn at random per run**,
@@ -52,10 +52,9 @@ found 33% of its reinforcement-learned "solutions" timed work on a side
 stream the clock never saw; Sakana's optimizer edited its own evaluator.
 
 We therefore built the measurement system first and gave the kernel-writing
-agent no authority over it. The agent is **structurally forbidden from
-measuring its own work**: it can edit the first box below and nothing else, and
-every stage after the permit is hash-pinned under a signature whose private key
-only the human owner holds.
+agent no authority over it. **The agent cannot measure its own work.** It can
+edit the first box below and nothing else, and every stage after the permit is
+hash-pinned under a signature whose private key only the human owner holds.
 
 ```
   AI writes  ─▶  PERMIT      ─▶  LOCKED     ─▶  SANDBOX    ─▶  EVIDENCE     ┄▶  AUDIT
@@ -81,43 +80,43 @@ The pieces:
 - **A tripwire per known cheat.** Wall-clock cross-checked against CUDA events
   catches side-stream timing; fresh-memory re-runs catch output caching; shape
   assertions catch a silently shrunken problem.
-- **Provenance by hash, not by promise.** The candidate is copied into a
-  content-addressed blob when its permit is issued, and that hash is bound into
-  the permit, the request and the result packet — so the bytes audited and the
-  bytes measured are the same object.
+- **Provenance.** The candidate is copied into a content-addressed blob when its
+  permit is issued, and that hash goes into the permit, the request and the
+  result packet. The bytes that get audited are the same bytes that got measured.
 - **A second model as auditor.** A different model family (GPT-5.6 via Codex
   CLI) gets only the evidence packet and returns a typed verdict. Hard verdicts
   pause the machine; only the owner can clear them. **81 verdicts, 28 of them
   rule violations against us**, in `Project/audits/verdicts.jsonl`.
 
-Two caveats on the auditor, stated rather than buried: when the Codex quota ran
-out we fell back to Claude, and same-family review is a weaker claim than
-cross-family. And **no verdict is bound to any row of the board above** — our
-verdict schema uses `allOf`, which OpenAI's structured-output mode rejects, so
-the request fails before the model ever reads the packet.
+Two caveats on the auditor. When the Codex quota ran out we fell back to Claude,
+which is a weaker claim than review by a different vendor. And **no verdict is
+bound to any row of the board above** — our verdict schema uses `allOf`, which
+OpenAI's structured-output mode rejects, so the request fails before the model
+ever reads the packet.
 
 ### The loop: research, plan, three strikes
 
-Optimising was not free-running. Every attempt had to pass a gate that starts
-**closed**, and reading the research base is checked, not promised:
+The agent could not run the benchmark whenever it wanted. Before each attempt it
+had to do four things:
 
 1. **Research.** Must cite at least two existing notes from `Project/research/`
    and carry the current hash of the index, which proves it was read this cycle.
 2. **Plan.** Refused unless research happened this cycle. Needs a hypothesis, a
    **numeric** prediction, kill criteria, and citations as `file:line` — the
-   gate resolves each one and copies the quoted text into the log, so an
-   invented citation does not survive.
+   gate looks each one up and copies the quoted text into the log, so a made-up
+   citation gets caught.
 3. **One run.** The gate shuts the moment it executes. Whether it improved is
    read from the referee's own journal, never from the agent's claim.
-4. **Three strikes.** Three attempts with no improvement closes that direction,
-   forces a written postmortem, and the agent must go somewhere else.
+4. **Three strikes.** Three attempts with no improvement closes off that
+   approach. The agent then has to write up what it predicted, what actually
+   happened, and what that rules out, before it can start on a different one.
 
-`Project/memory/` carries the decisions and lessons between sessions, so a
-mistake made once is not available to make twice.
+`Project/memory/` keeps the decisions and lessons between sessions, so the same
+mistake does not get repeated later.
 
-The kernels are the deliverable; the governance is the idea. It came out of a
-failure in a sibling track, where an agent with authority over its own
-measurement produced numbers we had to throw away.
+The kernels are what we are submitting. The system around them is the part we
+think is worth showing. It came out of a failure in a sibling track, where an
+agent that controlled its own measurement produced numbers we had to throw away.
 
 ## Results
 
@@ -189,16 +188,15 @@ the small shapes where the headroom actually is, and it sits far below the
 work-proportional weightings that would flatter us most. We publish all five
 because the rule is not ours to pick.
 
-**† The two sdpa columns are weaker evidence than the rest of the table, and we
-would rather say so than let a reader assume otherwise.** They were measured on
-28 August on a different build, so `vs sdpa` is our speedup divided by theirs
-rather than a paired measurement. And `Project/kernels/k001_sdpa.py` runs the
+**† The two sdpa columns are weaker evidence than the rest of the table.** They
+were measured on 28 August on a different build, so `vs sdpa` is our speedup
+divided by theirs, not a paired measurement. And `Project/kernels/k001_sdpa.py` runs the
 model at fp32 with TF32 matmul, matching the official baseline, while our route
 computes at fp16 with fp32 accumulation, so **part of that margin is precision
 rather than kernel engineering**. Both clear the competition's 2e-3 predicate, so
 both are legal. The `speedup` column against TikTok's own baseline has neither
 problem: same process, same input, same build, same precision on both sides.
-That is the column to defend.
+That is the column we would defend first.
 
 The sdpa columns are here to answer one question: is 11.87× a statement about our
 kernels, or about how slow the reference is? A competent off-the-shelf
@@ -211,7 +209,7 @@ Twelve shapes route to the fused-block megakernel. Shapes 8 and 14, the two with
 `d_model` 1024, route to the fp16 tensor-core stack, a different kernel inside
 the same file. Each packet records which route ran.
 
-**Read the spread, not just the mean.** The result ranges from 2.37× to 31.51×.
+**The spread matters as much as the mean.** The result ranges from 2.37× to 31.51×.
 The win is largest where the baseline is launch-bound. On shapes 2 and 3 the
 baseline's GPU sits idle 86% and 83% of the time waiting for the CPU to queue
 work. It is smallest where the baseline is already doing real arithmetic: shape
@@ -219,8 +217,8 @@ work. It is smallest where the baseline is already doing real arithmetic: shape
 0.71, and 2.37× is what doubling utilisation looks like. It is also small where
 attention is a single well-shaped matmul, as on shape 9 with one head.
 
-A geometric mean over that range is a summary and not a description, so the
-per-shape table above is the primary result and the mean is the shorthand.
+A single average over that range hides a lot, so the per-shape table above is
+the real result and the mean is just shorthand for it.
 
 **MFU is the column that is scored.** The organiser has said the technical score
 is a weighted sum of per-shape model FLOPs utilisation, and that the weights are
@@ -234,13 +232,12 @@ invalid**: no permit, no bound audit verdict, and baselines that
 `Project/HANDOVER.md` §3.1 records as 6 to 63% slower than their own calibration. We withdrew them and
 re-measured everything under the gate.
 
-Worth stating because it cuts against us: the withdrawn board was **not**
-inflated. Per shape it scattered from −22.4% to +21.6%, in both directions, and
-uncorrelated with baseline device idle. The old numbers were roughly right and
-improperly obtained. We report the ones that were properly obtained, which are
-now higher than the withdrawn figure rather than lower, because the kernels
-improved in between. Procedurally invalid and numerically wrong are different
-failures, and only the first one happened.
+The withdrawn board was **not** inflated, which is worth saying because it does
+not help us. Per shape it scattered from −22.4% to +21.6%, in both directions,
+and uncorrelated with baseline device idle. The old numbers were roughly right,
+they were just obtained improperly. The board we report now is higher than the
+withdrawn one because the kernels improved in between, not because the
+accounting changed.
 
 A second withdrawal matters more, because it is about this board's own
 construction. A later 10.6858× geomean was quoted as if it described one program.
@@ -469,8 +466,7 @@ CPU can queue the next, so launch overhead, not arithmetic, is the wall.
   sequence handled inside each call.
 - **Dispatch**: one `UserOptimizedTransformer` inspects the incoming shape and
   routes, which is the mechanism the track explicitly permits. The route taken is
-  recorded in every evidence packet, so the claim is checkable rather than
-  asserted.
+  recorded in every evidence packet, so anyone can check which route ran.
 
 No external kernel library is wrapped, with no FlashAttention package and no
 xFormers. The kernels are authored. `torch.compile` and SDPA appear only as
@@ -496,8 +492,8 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
 | `Project/results/` | **pre-LOCK history only.** `JOURNAL.jsonl` is the append-only pre-gate journal. The post-LOCK board is in `Project/authority/`. |
 | `Project/results_side/` | evidence packets for shapes 6 and 14 |
 | `Project/audits/` | verdict ledger, evidence packets, review prompts |
-| `Project/research/` | source-of-truth research notes every proposal must cite |
-| `Project/loop/` | the experiment-gate design and its honesty ledger |
+| `Project/research/` | the research notes every plan had to cite |
+| `Project/loop/` | the gate design, its state, and the log of every attempt |
 | `Project/memory/` | decisions, lessons, running state |
 
 ## Reflection: limitations, and what we would improve
@@ -542,39 +538,37 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
   file hash — but in the **screening lane**, which cannot promote. So these
   are characterisation runs, not promoted champions, and no audit verdict is
   bound to them: our audit recorder failed mid-campaign and repairing it
-  requires the human owner, who alone can write to those files. We would
-  rather ship a correctly-labelled measurement than an over-claimed one.
+  requires the human owner, who alone can write to those files. We have labelled
+  them accordingly.
 - An earlier version of this README published a 10.32× geometric mean from runs
   that had no permit and used baselines 6 to 63% off their own calibration. We
   withdrew it and re-measured under the gate. A later version published 10.6858×
   as if it described one program, when its rows came from four different
-  artifacts. Both corrections are in the git history rather than quietly
-  overwritten, because the process failures are more interesting than the
-  numbers. The board in this file is the first that is one artifact throughout,
-  and it is higher than either withdrawn figure, because the kernels improved in
-  between rather than because the accounting changed.
+  artifacts. Both corrections are in the git history. The board in this file is
+  the first that is one artifact throughout, and it is higher than either
+  withdrawn figure because the kernels improved in between.
 - **A pre-LOCK `LEADERBOARD.md` used to sit in `Project/results/`, and it was
   not a result.** It was generated 30 Aug by a command that no longer exists,
   and it starred the max-ever row per shape across invocations that are not
   comparable — which selects for whichever run happened to have the slowest
   baseline. Its shape-1 rows showed the effect plainly: the starred k009 run
   read 11.150× on a 7.2044 ms baseline, another k009 run read 9.910× on a
-  5.7539 ms baseline, and our measured baseline is 5.0586 ms. We removed it at
-  packaging rather than ship a starred number that contradicts the board. It
-  remains in git history, so the record is labelled rather than erased.
+  5.7539 ms baseline, and our measured baseline is 5.0586 ms. We deleted it at
+  packaging so nobody quotes a starred number that contradicts the board. It is
+  still in the git history.
 - One GPU, one architecture, one framework (PyTorch). Nothing here is
   validated on the TensorFlow path.
-- On a single-user machine, our anti-tamper measures are
-  forge-*obvious*, not forge-*proof*. We state the ceiling rather than
-  implying we exceeded it.
+- On a single-user machine, our anti-tamper measures make forgery *obvious*, not
+  *impossible*. The owner has root and could defeat any of it. That is the
+  ceiling of what this design can claim.
 
 **What we would do with more time.**
 
 1. **The launch-bound family (shapes 2, 3, 7, 12)** measures 5.3%, 16.2%, 17.7%
    and 34.1% MFU, the four lowest on the board, because the grid cannot fill
    38 SMs and per-call cost does not shrink with problem size. A
-   sequence-persistent kernel is the honest next step. Published results for
-   that class suggest around 1.2×, which is why our own score-sensitivity board
+   sequence-persistent kernel is the next thing to try. Published results for
+   that class suggest around 1.2×, which is why our score-sensitivity board
    ranks it below the extreme shapes.
 2. **Profiler-in-the-loop.** Diagnosis is currently a human-readable
    research note. The agent should read hardware counters directly and
@@ -595,7 +589,7 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
 
 ## Contributions
 
-Solo entry. The human owner set every rule, held sole authority over
-freezes, promotions and everything that shipped, and made the calls the
-agents were structurally forbidden from making. The AI agents wrote
-kernels and audited each other under that authority.
+Solo entry. The human owner set every rule, held sole authority over freezes,
+promotions and everything that shipped, and made the decisions the agents were
+not allowed to make. The AI agents wrote kernels and audited each other under
+that authority.
