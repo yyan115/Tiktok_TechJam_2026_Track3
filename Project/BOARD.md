@@ -72,8 +72,11 @@ moved**. Any work-proportional weighting is therefore close to a report of shape
 shape 2 at 5.3%, which is capped near 21% by occupancy no matter who writes it.
 
 **Which one we optimise against:** equal weight across all 14, by owner
-direction. It is the least favourable reading and the one that keeps pressure on
-the small shapes, which is where our remaining headroom is.
+direction. It is not the lowest of the five — the geometric mean is harsher at
+35.5%, and equal weight over the twelve with a baseline is 37.5% — but it is the
+reading that keeps pressure on the small shapes, which is where our remaining
+headroom is, and it sits far below the two work-proportional weightings that
+would flatter us most.
 
 **Provenance note:** the FLOP weighting uses per-shape GFLOP derived in §5.6 and
 checked by hand. The bandwidth weighting uses the `ideal MB` column of

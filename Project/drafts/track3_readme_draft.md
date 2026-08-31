@@ -18,20 +18,27 @@ under a single-use permit signed with a key only the human owner holds.
   at batch 32, a shape the official code cannot run at all on this hardware.
 - **We beat PyTorch's own `sdpa` on every shape**, by 5.4× to 20.9× — and on the
   two extreme shapes it cannot run at all while ours does.
-- **Where we had to supply our own reference, we held it to a bar 20× tighter
-  than the competition's.** Shape 14 is too large for TikTok's baseline to run,
-  so we wrote a streamed reference and validated it against their real
-  implementation at 1,024, 2,048 and 4,096 tokens to within **1e-4 with zero
-  mismatching elements**. The competition's own tolerance is 2e-3.
+- **The one shape where we had to write our own reference, we held to twice the
+  competition's strictness.** Shape 14 is too large for TikTok's baseline to run
+  at all, so we wrote a streamed reference and validated it against their real
+  implementation at 1,024, 2,048 and 4,096 tokens at **1e-3 absolute — twice as
+  strict as the competition's 2e-3**.
 - **94 correctness trials, 17,370,759,168 elements compared, zero violations.**
-- Across all fourteen shapes weighted equally, mean utilisation is **42.7%**.
+- **Mean utilisation is 42.7%** with every shape weighted equally. The organiser
+  has not published the weighting, and the same fourteen measurements give
+  **35.5% to 88.6%** depending on which rule is used — we published all five and
+  optimised against the low end.
 
-**Every row is measured on one artifact**,
-`c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`, which is the
-submission file itself, each under a single-use permit bound to that hash. That
-matters more than it sounds: earlier versions of this board drew its rows from
-four different builds, and a geometric mean over such a board is not a statement
-about any one program.
+**All fourteen rows come from running the same single file** — the exact one we
+are submitting, `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`.
+Not fourteen scripts, and not a different version of our code for each shape.
+
+This is worth saying because our own earlier table failed it. Its rows came from
+four different builds: one shape measured on one version, another shape on a
+later one. Averaging those into a single headline number describes a program
+that never existed. We withdrew that number for exactly this reason.
+
+So the 11.87× above is a property of the file you would actually run.
 
 On correctness we went past what was asked. The official script checks five
 fixed seeds; we check **seven — five fixed plus two drawn at random per run**,
@@ -188,9 +195,11 @@ moved, and we reach 88.7% on it. So any work-proportional weighting is close to 
 report of shape 14 alone, while any per-shape weighting is dominated by shape 2
 at 5.3%, which occupancy caps near 21% for any implementation.
 
-**We optimise against equal weight** — the least favourable of the five — because
-it keeps the pressure on the small shapes where the headroom is. We publish all
-five because the rule is not ours to pick.
+**We optimise against equal weight.** It is not the lowest of the five — the
+geometric mean is harsher at 35.5% — but it is the reading that keeps pressure on
+the small shapes where the headroom actually is, and it sits far below the
+work-proportional weightings that would flatter us most. We publish all five
+because the rule is not ours to pick.
 
 **† The two sdpa columns are weaker evidence than the rest of the table, and we
 would rather say so than let a reader assume otherwise.** They were measured on
