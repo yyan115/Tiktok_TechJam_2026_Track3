@@ -73,7 +73,35 @@ margin is in the bytes that get measured.
 
 ---
 
-## PHASE 3 — the three untried levers, hardest-hitting first
+## PHASE 3 — the six untried levers, cheapest-and-broadest first
+
+> **Revised after stress-testing the first draft of this plan.** That draft listed three
+> levers and missed three more — and two of the missed ones are *cheaper and better
+> evidenced* than two of the three I had picked. The corrected order is below; 3a and 3c
+> are the new entries, 3f is new, and what was 3a/3b/3c is now 3b/3d/3e.
+
+### 3a. The CUDA graph INPUT copy — cheapest, broadest, and already proven once
+
+**Why this is first.** `HOTSPOT_COVERAGE.md` states it plainly: *"The input copy is
+untouched."* It is **3.3%–4.6% of device time on every one of the eleven fused shapes**
+(and 0.89% on shape 8), one `Memcpy DtoD` per forward, cost proportional to input bytes.
+
+**It is the same mechanism that produced the best gain-per-effort of the entire campaign.**
+Removing the *output* clone was worth **+0.87% to +7.04% on six shapes** (LESSONS 55), and
+it became possible only after someone read `torch_transformer_benchmark.py` and established
+that neither the timing loop (line 494, result discarded) nor the accuracy loop (line 392,
+compared on the next line) retains the returned tensor. **That same reading has never been
+done for the input side.**
+
+**The question to answer by reading, not guessing:** is the benchmark's input tensor stable
+enough across calls to be written into the graph's static input buffer directly — or better,
+can the graph capture read the caller's buffer? Read the script's input generation and its
+call sites first; the answer is in the file, exactly as it was last time.
+
+**Ceiling:** ~3.3–4.6% on twelve shapes. **Cost:** one careful read plus one change.
+**Cannot-help shape:** shape 6 (runs eagerly, no graph) — the built-in null control.
+
+### 3b. Shape 8's untouched elementwise tax — heavy under any weighting
 
 These are the only large components with no measured search. Everything else on the fused
 route has been attacked: `_sub_norm_qkv` took four candidates (k011 occupancy split lost
@@ -115,7 +143,32 @@ can fold into the existing `_sub_ln_fp16` the same way `k010` folded LayerNorm a
 **Shape where it cannot help:** every fused shape (they do not take this branch) — so they
 are the built-in null control and must measure unchanged.
 
-### 3b. Sequence-persistent CTAs — the biggest un-attempted idea on the board
+### 3c. The mask host synchronization — a full sync on every forward
+
+**The evidence.** `bool(valid_token_mask.all())` runs at `dispatcher_region.py:1029` on
+every forward. Device-side cost is measured and material on the small shapes: **5.00% on
+shape 2**, 4.52% on shape 3, 4.38% on shape 7, 3.43% on shape 12 (reduce kernel plus the
+`Memcpy DtoH`). `HOTSPOT_COVERAGE.md` marks this row **"NO — never searched."**
+
+**The honest limit, which is why this is third and not first.** The *host*-side figure is
+not an opportunity and must not be treated as one. `cudaStreamSynchronize` reads 75% of self
+CPU on shape 9 and **94.05% on shape 8** — but on shape 8 `Self CUDA time total` is 377 ms
+against a 379 ms host total, so the host is blocked because the device is *busy*. Reading
+that 94% as headroom would be wrong by nearly the whole amount.
+
+**So the experiment must separate queue-drain from a genuine stall before anything is
+built.** The device-side 3–5% on the small shapes is real and removable; the host-side
+number is not established as anything.
+
+**Two candidate routes, both avoiding the cache hazard the external audit warned about
+(C6):** make the kernel consume the mask directly so no host decision is needed, or copy
+the mask into graph-static storage and branch inside the kernel. **A mask *cache* keyed on
+object identity is explicitly rejected** — in-place mutation, storage reuse and view
+aliasing all defeat it, and we do not currently have that bug. Do not introduce it.
+
+**Ceiling:** 3–5% on the four small shapes. **Cannot-help shape:** 13 (0.30% device).
+
+### 3d. Sequence-persistent CTAs — the biggest un-attempted idea on the board
 
 **The evidence.** Shapes 2, 3, 7 and 12 sit at **0.03–0.32 MFU** because the grid cannot
 fill 38 SMs. `megakernels-persistent.md` names the fix and states it is **Triton-expressible
@@ -138,13 +191,45 @@ sequence-persistence only if it pays and there is more to take.
 **Shape where it cannot help:** shape 13 (65,536 tokens — the grid is already full, and this
 is exactly where k022's identical mechanism cost **−6.9%**). Measure it or repeat LESSONS 53.
 
-### 3c. Shrinking `_sub_attn_heads`' live set — ranked last, and may close on paper
+### 3e. Shrinking `_sub_attn_heads`' live set — ranked last, and may close on paper
 
 `k020` attacked this kernel by making K/V resident — it **enlarged** the live set and lost
 (32.15 µs against 24.54 µs). The lesson drawn was "shrink, don't enlarge," and nothing has
 tried shrinking. But the accumulator is `[BLOCK_M, HD_PAD]` fp32 and **autotune already
 sweeps BLOCK_M**, so much of the shrink space is covered. Write the arithmetic first; if it
 does not clear the Phase-1 resolution, close it on paper and say so.
+
+### 3f. Shape 14's kernel has NEVER been performance-tuned — and it is the heaviest shape
+
+**This is not a fallback. It is arguably the largest single lever in the project, and it
+was invisible because the shape cannot currently be measured.**
+
+`DECISIONS.md`, 28 Aug: shape 14's core was proven correct on this card — seq 100,000
+causal, zero tolerance violations — and then **"100k perf tuning deferred (configs target
+short seqs)."** It has never been revisited. `k014` is `k010` plus long-sequence memory
+discipline; its autotune configs were written for `seq_len` 128.
+
+Shape 14 is **1,391,250 GFLOP — roughly 11,000× a typical shape and 1,180× shape 13.**
+Under any FLOP- or work-weighted score it dominates everything else combined, and our own
+research note warns never to pick a target off that axis alone — but equally, never to
+leave the top of it untuned.
+
+`Project/research/megakernels-persistent.md` already names the technique: shape 14 is
+**~94% attention by useful FLOPs**, so its lever is an authored FlashAttention-2-style
+kernel — online softmax, causal tiling, query-block parallelism within each head — **not**
+megakernel or GEMM work. Two of those three (base-2 softmax, causal block elimination) were
+built for the fused route on 31 Aug as `k028` and are sitting in
+`dispatcher_region.py` right now, gated at `seq_len >= 256`. **Shape 14 does not use that
+kernel** — `d_model` 1024 routes to `_fp16_forward`, which calls `_sub_attn_fwd`, a
+different kernel that still uses `tl.exp` and an ungated causal mask on **every** block.
+
+At `seq_len` 100,000 the causal loop split is worth vastly more than it is at 1,024: the
+fraction of key blocks that lie strictly below the diagonal approaches 1, so nearly every
+block skips both the mask and the bounds check. On shape 13 that change was worth −7.9% on
+the attention kernel; shape 14's inner loop is ~100× longer.
+
+**Gate:** blocked until the evaluator fix (Phase 5b) makes shape 14 measurable at all.
+**Then it is the first thing measured, not the last.**
 
 ---
 
@@ -160,6 +245,14 @@ point.** Every row of the board carries this hash (condition 6).
 **5a. The twelve.** Screening run per shape on the frozen sha. Fast path: `delta` needs no
 research cycle; each shape needs one diagnostic first, for counter-evidence bound to these
 bytes.
+
+**5a-bis. Shape 6's missing CUDA graph — one free check, not a lever.**
+Shape 6 is the **only** shape that runs eagerly: `dispatcher_region.py:1051` routes
+`B*S >= 262144` away from graph capture, and the comment justifying it says capture memory
+at that size is **"unproven"** in its own words. The launch argument is probably sound —
+at 1.28M tokens every kernel runs for milliseconds, so launch savings really are
+negligible — but "probably" has cost this project a headline four times. It rides along
+with the shape-6 measurement at no extra cost. Measure it; do not assume it.
 
 **5b. Shapes 6 and 14 — the zero-risk, and the only owner dependency in this plan.**
 
@@ -207,6 +300,25 @@ and **10.14×** — and none matches the current build. Conditions 11 and 12.
   regressed.)
 - **Shape 6 measures above 2e-3 on any seed** → stop all optimisation. A zero on a
   1,174-GFLOP shape outweighs every gain available anywhere else.
+
+## If every lever fails — the answer the first draft did not have
+
+Six levers can all lose. Two of the last three candidates in this project did. So:
+
+**A 0-for-6 result is itself a finding, and it is not a dead end.** It would mean the fused
+route is genuinely searched — which is exactly the claim `HOTSPOT_COVERAGE.md` exists to
+let us make honestly, and which no competitor can make about their own work without the
+same table. In that case the remaining time goes to **3f**, because shape 14 has never been
+tuned at all and carries more work than every other shape combined; tuning the heaviest,
+least-optimised shape is strictly better than re-litigating eleven that have taken ten
+candidates between them.
+
+**And the floor is not low.** Even at 0-for-6 the position is: fourteen shapes measured and
+correct on one artifact, MFU reported under three weightings, every hotspot either searched
+or closed with the measurement that closed it, and kernels already running 2.02×–33.65×.
+The bar in `WIN_BAR.md` is written so that all twelve conditions can go green **without a
+single further speedup** — because completeness and defensibility are what a judge can
+check, and speed we cannot prove is worth less than speed we can.
 
 ## What is deliberately not in this plan
 
