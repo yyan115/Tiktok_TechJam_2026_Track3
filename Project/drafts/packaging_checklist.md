@@ -129,32 +129,63 @@ harmless, but worth a glance before pushing.
 - [x] README draft restructured to the required sections
 - [x] Video shot list updated
 - [x] Score-sensitivity board rebuilt (multi-denominator, ship-pass selection)
-- [ ] Devpost description drafted
+- [x] Devpost description drafted (updated 1 Sep to the single-artifact board)
 - [ ] Skills / interaction-history samples curated (a scored deliverable class)
 - [ ] Owner: Decision 1 and Decision 2 above
 - [ ] Owner: **verify Devpost registration** — registration closes at the
       same moment as submission, and it is the one failure mode that makes
       everything else worthless
 
-**At the freeze (GPU work, idle box):**
+**At the freeze (GPU work, idle box):** — done 1 Sep 02:15–02:45 SGT on
+artifact `c2028c48…`, quiet box verified before and during.
 
-- [ ] Re-run the complete official-dials board against the final submission
-      sha, N ≥ 3 per small shape, all N reported (narrowing 11d)
-- [ ] Re-capture the shape-6 and shape-14 packets against the shipped
-      submission file, ≥ 5 seeds (narrowing 10)
-- [ ] Shape 14 full batch-decomposed timing (narrowings 2 and 4)
+- [~] Re-run the complete official-dials board against the final submission
+      sha, N ≥ 3 per small shape, all N reported (narrowing 11d).
+      **PARTIAL: all 14 shapes measured on one artifact, but N = 1 per shape,
+      not N ≥ 3.** Each row is internally paired and valid. The gap matters
+      because shape 12 replicated 13.2% apart on byte-identical code
+      (LESSONS 59), so single samples on the small shapes cannot resolve
+      anything below that. The twelve-shape geomean averages the scatter
+      down and is the figure quoted. Fixing this costs ~2 extra runs per
+      small shape and the family budgets allow it.
+- [x] Re-capture the shape-6 and shape-14 packets against the shipped
+      submission file, ≥ 5 seeds (narrowing 10). **5 seeds each, both bound
+      to `c2028c48…`.** The device-comparison bug that blocked this is fixed.
+- [x] Shape 14 full batch-decomposed timing (narrowings 2 and 4).
+      **48.271 s, 88.7% of the physical floor, 0 violations over
+      16,384,000,000 elements.** No extrapolation was used.
 - [ ] Fix and regenerate `SHIP_MANIFEST.json` from the final commit
-      (narrowing 11a–c)
-- [ ] Audit-ledger parity check: every current champion carries a verdict
+      (narrowing 11a–c). **BLOCKED, diagnosed 1 Sep.**
+      `ship_manifest.py --diagnose` returns *"No official shape has post-lock
+      bound evidence"*: every shape blocks on `missing_audit_verdict`, and the
+      manifest reads the pre-LOCK journal plus `results_side/` rather than the
+      authority store where the screening board lives. Unblocks when the
+      auditor does. Not a blocker for the report — `Project/BOARD.md` §2
+      indexes every row's packet with the same environment and hashes.
+- [ ] Audit-ledger parity check: every current champion carries a verdict.
+      **BLOCKED on the same root cause, and the root cause is now known.**
+      `Project/audits/verdict_schema.json:70` uses `allOf`, which OpenAI's
+      structured-output mode forbids, so Codex is refused with HTTP 400 before
+      it reads the packet. Added 30 Aug 15:46 by `ed053f2`; masked five hours
+      later when `231e786` moved the default backend to Claude (which has no
+      `--output-schema`) for an unrelated quota reason; resurfaced 1 Sep when
+      Codex ran again — three attempts, three 400s, escalated to
+      `owner_attention`. **Owner fix, one edit, inside the LOCK.** LESSONS 61.
 - [ ] Independent adversarial final review, one defect class per reviewer
       (narrowing 11c)
 
-**Packaging window (31 Aug 20:00 → 1 Sep 02:00):**
+**Packaging window:**
 
-- [ ] Fill every `[PENDING]` from the final board
+- [x] Fill every `[PENDING]` from the final board — done, except the repo URL
+      and video URL in `devpost_description.md`, which are owner values
 - [ ] Apply the README at root; move the tech report into the judge path
-- [ ] Execute Decisions 1 and 2, merge to `main`, push
-- [ ] Record and upload the video (public), link it in Devpost
+- [ ] Execute Decisions 1 and 2, merge to `main`, push.
+      **Note: `git push` is not on the post-LOCK allowlist, so the agent cannot
+      do it, and this branch has never been pushed.**
+- [ ] Record and upload the video (public), link it in Devpost.
+      No length requirement exists — the official README asks only for a
+      "short video", and explicitly accepts a walkthrough of result analysis
+      where no front end applies, which is what the shot list is.
 - [ ] Submit on Devpost
 
 **Final 10 hours:** clean-checkout reproduction, submission rebuild, link
