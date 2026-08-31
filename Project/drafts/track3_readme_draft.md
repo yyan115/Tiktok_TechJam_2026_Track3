@@ -398,8 +398,8 @@ code hash and harness version, so only like-for-like profiles are compared.
 | `Project/kernels/` | every candidate implementation, including the failures |
 | `Project/harness/runner.py` | the frozen referee (hash-pinned, protected) |
 | `Project/submission/` | the single-file submission + byte-identity prover |
-| `Project/results/` | **pre-LOCK history only.** `JOURNAL.jsonl` is the append-only pre-gate journal. `LEADERBOARD.md` is a frozen pre-LOCK artifact that stars the max-ever row per shape across invocations that are not comparable, so it is **not a result and must not be quoted as one** — see the reflection section. The post-LOCK board is in `Project/authority/`. |
-| `Project/results_side/` | evidence packets for shapes 6 and 14, score-sensitivity board |
+| `Project/results/` | **pre-LOCK history only.** `JOURNAL.jsonl` is the append-only pre-gate journal. The post-LOCK board is in `Project/authority/`. |
+| `Project/results_side/` | evidence packets for shapes 6 and 14 |
 | `Project/audits/` | verdict ledger, evidence packets, review prompts |
 | `Project/research/` | source-of-truth research notes every proposal must cite |
 | `Project/loop/` | the experiment-gate design and its honesty ledger |
@@ -458,15 +458,15 @@ code hash and harness version, so only like-for-like profiles are compared.
   numbers. The board in this file is the first that is one artifact throughout,
   and it is higher than either withdrawn figure, because the kernels improved in
   between rather than because the accounting changed.
-- **`Project/results/LEADERBOARD.md` is in the repository and is not a result.**
-  It is a frozen pre-LOCK artifact, last generated 30 Aug, by a command that no
-  longer exists. It stars the max-ever row per shape across invocations that are
-  not comparable, which selects for whichever run happened to have the slowest
-  baseline. Its own shape-1 rows show the effect: the starred k009 run reads
-  11.150× on a 7.2044 ms baseline, while another k009 run reads 9.910× on a
-  5.7539 ms baseline, and our measured baseline is 5.0586 ms. We keep the file
-  because deleting inconvenient history is worse than labelling it, but nothing
-  in it should be read as a claim.
+- **A pre-LOCK `LEADERBOARD.md` used to sit in `Project/results/`, and it was
+  not a result.** It was generated 30 Aug by a command that no longer exists,
+  and it starred the max-ever row per shape across invocations that are not
+  comparable — which selects for whichever run happened to have the slowest
+  baseline. Its shape-1 rows showed the effect plainly: the starred k009 run
+  read 11.150× on a 7.2044 ms baseline, another k009 run read 9.910× on a
+  5.7539 ms baseline, and our measured baseline is 5.0586 ms. We removed it at
+  packaging rather than ship a starred number that contradicts the board. It
+  remains in git history, so the record is labelled rather than erased.
 - One GPU, one architecture, one framework (PyTorch). Nothing here is
   validated on the TensorFlow path.
 - On a single-user machine, our anti-tamper measures are
