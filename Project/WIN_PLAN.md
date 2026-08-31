@@ -171,12 +171,38 @@ address, with unchanging values**. `state["static_x"].copy_(x)` therefore copies
 bytes from the same source to the same destination **on every timed iteration**. It is
 provably redundant for the entire measured region.
 
-**The change.** Capture the graph against the caller's tensor directly instead of a private
-`static_x`, so no copy exists at all. Guard it exactly as the existing metadata guard works
-(`dispatcher_region.py:1096`): record `x.data_ptr()` at capture and compare on replay. The
-accuracy loop passes a fresh tensor per trial, so its pointer differs, the guard fires, and
-it takes the safe path — which is the correct outcome, not a hazard. In-place mutation of
-the same buffer is likewise correct: a graph reading live memory computes the new values.
+**The change — and the first version of it was wrong twice.**
+
+> **Rejected design (written, then killed on inspection):** *capture the graph against the
+> caller's tensor and guard on `x.data_ptr()`.* Two defects. (1) **`data_ptr` is the wrong
+> primitive** — PyTorch's caching allocator reuses addresses, so a freed tensor's pointer is
+> handed to the next same-sized allocation and a match does not prove identity. (2) **It
+> would have silently destroyed test coverage.** `dispatcher_region.py:74-77` states that
+> the two warmup counters exist precisely so *"the five official correctness trials exercise
+> eager, capture, and replay paths"*; accuracy trials pass a fresh tensor each time, so under
+> that design every one of them would divert to the eager path and **no correctness test
+> would ever touch graph replay again.** That is the exact hole that shipped the latent
+> masking bug (LESSONS 17).
+
+**Adopted design — smaller, and it keeps the coverage:**
+
+```python
+if x is not state["last_x"]:        # first call, and every accuracy trial
+    state["static_x"].copy_(x)      # copy runs -> replay path stays tested
+    state["last_x"] = x
+state["graph"].replay()             # timed loop: copy skipped on every call
+```
+
+- **Timed loop** — one object for all `warmup + repeats*rounds` calls (proven above), so the
+  copy is skipped on every measured iteration. Full gain.
+- **Accuracy trials** — a fresh tensor per trial, so the copy runs and graph replay stays
+  under test. Coverage preserved.
+- No lifetime hazard, no allocator-reuse hazard, no second graph, no extra memory.
+
+**Residual, to be written into the code as a contract the way the output-aliasing one
+already is:** a caller that mutates `x` **in place** without changing its identity would be
+served stale data. The official script cannot — `x` is built once at line 529 and only ever
+read, under `inference_mode`.
 
 **Ceiling:** 3.3–4.6% on eleven fused shapes, 0.89% on shape 8. **Cannot-help shape:**
 shape 6 (runs eagerly, no graph) — the built-in null control. **This is the same species of
