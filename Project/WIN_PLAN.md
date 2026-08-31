@@ -20,6 +20,32 @@ either the wrong artifact or a new one.
 
 So the order is: **fix the instrument → change the kernels → FREEZE → measure once.**
 
+> **Ordering bug found and fixed in the second revision of this plan.** The first version
+> put the evaluator fix in Phase 5b — *after* the Phase 4 freeze — while lever **3f (shape
+> 14 tuning) depends on that fix.** The single largest lever in the plan was therefore
+> scheduled after the point at which no kernel may change. Corrected below: the owner fix
+> is **Phase 0, requested at T=0 and running in parallel with everything**, and all shape
+> 6/14 work happens **before** the freeze.
+
+---
+
+## PHASE 0 — request the owner fix immediately, then carry on without waiting
+
+Two one-line changes, both in LOCK-protected files that are Write-denied to me (correctly —
+they are the code that decides whether our own claims are true):
+
+- `Project/tools/shape6_local_eval.py:146` — device set at line 296
+- `Project/tools/shape14_eval.py:274` — device set at line 289
+
+Both compare `mask.device != device` where `device = torch.device("cuda")` (no index) and
+the official generator returns the mask on `cuda:0`. PyTorch treats those as unequal, so
+both evaluators abort on their first check. Fix: compare `mask.device.type != device.type`,
+or normalise with `device = torch.zeros(0, device=device).device`.
+
+**This gates conditions 1, 2 and 3 — the entire no-zero half of the bar — and lever 3f.**
+Nothing else in this plan waits on it, so it is requested first and worked around until it
+lands.
+
 ---
 
 ## PHASE 1 — prove the instrument. Nothing else is meaningful first.
@@ -64,21 +90,44 @@ falsifier fired (`gate_log.jsonl:462`).
 **Do:** revert all three sites to the two-pass form (`mean` first, then `E[(x−mean)²]`).
 Rebuild, verify byte-identity outside the sanctioned region.
 
-**Gate:** shape 1 screening must land within the Phase-1 resolution of its current value.
-If it costs more than that, keep the one-pass form and instead attack shape 6's margin
-directly once it is measurable.
+**This is insurance, and the first draft of this plan wrongly called it "free."** k019
+measured **+3.3% on the module and nothing integrated — but only on shape 1.**
+`_sub_norm_qkv` carries up to **37.1% of device time (shape 10)**, so reverting could cost
+up to roughly **1% end-to-end** on the shapes where that kernel is heaviest. That is a
+price, not zero.
 
-**Cost:** ~30 minutes. Needs nothing from the owner. **Do this before the freeze** so the
-margin is in the bytes that get measured.
+**Take the price anyway, and here is the arithmetic that says so.** Paying ≤1% across
+eleven shapes buys error headroom on a **1,174-GFLOP shape sitting at 92% of its budget**,
+where the failure mode is not a slow row but a **zero**. Expected value is not close.
+
+**Gate:** measure it on **shape 10** (where `_sub_norm_qkv` is heaviest), not shape 1
+(where k019 was measured and found nothing). If the cost exceeds the Phase-1 resolution,
+keep the revert anyway but record the measured price — and if it exceeds 2%, gate the
+one-pass form to the shapes that are not near the precision cliff instead of reverting
+board-wide.
+
+**Cost:** ~30 minutes. Needs nothing from the owner. **Before the freeze**, so the margin
+is in the bytes that get measured.
 
 ---
 
-## PHASE 3 — the six untried levers, cheapest-and-broadest first
+## PHASE 3 — the eight untried levers, cheapest-and-broadest first
 
-> **Revised after stress-testing the first draft of this plan.** That draft listed three
-> levers and missed three more — and two of the missed ones are *cheaper and better
-> evidenced* than two of the three I had picked. The corrected order is below; 3a and 3c
-> are the new entries, 3f is new, and what was 3a/3b/3c is now 3b/3d/3e.
+> **Twice revised under challenge.** Draft 1 listed **three** levers. Stress-testing it
+> found three more (3a graph input copy, 3c mask sync, 3f shape-14 tuning) — two of them
+> *cheaper and better evidenced* than two I had picked. A second pass found two more
+> (3g `_sub_final_norm`, 3h the shape-11 recheck). **Three became eight**, and the two
+> best-value entries in the list — 3a and 3f — were both missing from the first draft.
+>
+> The pattern in what I missed is worth naming, because it will recur: **I searched the
+> components I had already been working on and skipped the ones adjacent to them** — the
+> input copy sits beside the output clone I removed, `_sub_final_norm` sits beside the three
+> kernels I profiled, and shape 14 was invisible only because it cannot currently be
+> measured. **Unmeasurable is not the same as searched.**
+
+**Run order:** 3a → 3g → 3b → 3c → 3d → 3h → 3e, with **3f jumping the queue the moment
+Phase 0 lands.** Cheapest and broadest first; anything that fails its arithmetic ceiling
+dies on paper without a run.
 
 ### 3a. The CUDA graph INPUT copy — cheapest, broadest, and already proven once
 
@@ -199,6 +248,48 @@ tried shrinking. But the accumulator is `[BLOCK_M, HD_PAD]` fp32 and **autotune 
 sweeps BLOCK_M**, so much of the shrink space is covered. Write the arithmetic first; if it
 does not clear the Phase-1 resolution, close it on paper and say so.
 
+### 3g. `_sub_final_norm` — the one kernel nobody gave a config list to
+
+**Missed in both earlier drafts.** It is **3.0%–10.9%** of device time, and
+`HOTSPOT_COVERAGE.md` dismisses it as *"too small to justify a beam on any shape except 2
+and 3"* — which concedes it matters on two shapes and then does nothing about them. Look at
+the launch (`dispatcher_region.py:920-923`):
+
+```python
+_sub_final_norm[(triton.cdiv(tokens, 128),)](
+    ..., BLOCK_T=128, num_warps=4)
+```
+
+**It is the only kernel in the fused route that is not autotuned.** `BLOCK_T` and
+`num_warps` are hardcoded. On shape 2, `tokens` is 128, so the grid is `cdiv(128,128)` =
+**one CTA on a 38-SM card** — the identical grid starvation that k022 fixed on
+`_sub_norm_qkv` for +24.1%, sitting untouched in the one kernel that never got a config
+list.
+
+**Ceiling:** up to 10.9% of device time on the shapes where it is largest, and those are
+exactly the starved ones. **Cost:** adding an autotune decorator — the cheapest item in
+this plan. **Cannot-help shape:** 13 (3.0%, grid already full).
+
+### 3h. Re-check shape 11 before dismissing it — the target was closed on two routes, not on evidence
+
+Shape 11 sat at **MFU 0.25 against 0.41 for shapes 1/9/10** — the same 7.52 GFLOP problem
+at a different head count, and **the only shape on the board measurably inefficient against
+a directly comparable control.** `head-count-scaling.md` calls it "the clearest remaining
+optimization target."
+
+It was then dismissed twice: head-packing is arithmetically impossible (QK^T contracts over
+the feature axis), and `tl.sum`-reduce trades tensor cores for CUDA cores. **Both are true
+about those two routes and neither is true about the target** — which is precisely the
+LESSONS 49 error, and I have now made it twice in this plan.
+
+Meanwhile k017 moved shape 11 **+40.3%** (12.59 → 17.66), which should put its MFU near
+0.35. **Nobody re-measured it.** So the first action is not a kernel: it is one line of
+arithmetic on the post-split numbers. If the gap to 0.41 has closed, the target is closed
+*with evidence*. If it has not, the residue is quantified and gets its own beam.
+
+**Cost:** a recomputation from Phase 6's board. **Do not build anything here until that
+number exists.**
+
 ### 3f. Shape 14's kernel has NEVER been performance-tuned — and it is the heaviest shape
 
 **This is not a fallback. It is arguably the largest single lever in the project, and it
@@ -228,8 +319,10 @@ fraction of key blocks that lie strictly below the diagonal approaches 1, so nea
 block skips both the mask and the bounds check. On shape 13 that change was worth −7.9% on
 the attention kernel; shape 14's inner loop is ~100× longer.
 
-**Gate:** blocked until the evaluator fix (Phase 5b) makes shape 14 measurable at all.
-**Then it is the first thing measured, not the last.**
+**Gate:** blocked until **Phase 0**'s evaluator fix makes shape 14 measurable at all —
+which is why that fix is requested at T=0 rather than scheduled late. The moment it lands,
+this jumps the queue: it is the heaviest shape on the board and the least optimised, and it
+must be done **before the freeze**, not after.
 
 ---
 
@@ -254,21 +347,10 @@ at 1.28M tokens every kernel runs for milliseconds, so launch savings really are
 negligible — but "probably" has cost this project a headline four times. It rides along
 with the shape-6 measurement at no extra cost. Measure it; do not assume it.
 
-**5b. Shapes 6 and 14 — the zero-risk, and the only owner dependency in this plan.**
-
-Both evaluators abort on their first check. `device = torch.device("cuda")` is compared
-against tensors that materialise on `cuda:0`, and PyTorch treats those as unequal:
-
-- `Project/tools/shape6_local_eval.py:146` (device set at line 296)
-- `Project/tools/shape14_eval.py:274` (device set at line 289)
-
-Fix either way: compare `mask.device.type != device.type`, or normalise first with
-`device = torch.zeros(0, device=device).device`. **Both files are LOCK-protected and
-Write-denied to me — correctly, since they are the code that decides whether our own claims
-are true.** One line each; it unblocks conditions 1, 2 and 3.
-
-Then: shape 6 at **≥5 seeds** (currently one), shape 14 validate → decomposition check →
-full 32-slice evaluation.
+**5b. Shapes 6 and 14 — measured on the frozen bytes.** The evaluator fix landed back in
+Phase 0; shape 14's tuning (3f) landed before the freeze. This is the final measurement:
+shape 6 at **≥5 seeds** (currently one), shape 14 validate → decomposition check → full
+32-slice evaluation.
 
 **5c. MFU.** Compute per shape from the measured candidate medians and the known FLOP
 counts, against **both** 32.4 and 64.8 TF/s. No re-running needed — the inputs already
@@ -303,9 +385,9 @@ and **10.14×** — and none matches the current build. Conditions 11 and 12.
 
 ## If every lever fails — the answer the first draft did not have
 
-Six levers can all lose. Two of the last three candidates in this project did. So:
+Eight levers can all lose. Two of the last three candidates in this project did. So:
 
-**A 0-for-6 result is itself a finding, and it is not a dead end.** It would mean the fused
+**A 0-for-8 result is itself a finding, and it is not a dead end.** It would mean the fused
 route is genuinely searched — which is exactly the claim `HOTSPOT_COVERAGE.md` exists to
 let us make honestly, and which no competitor can make about their own work without the
 same table. In that case the remaining time goes to **3f**, because shape 14 has never been
@@ -313,7 +395,7 @@ tuned at all and carries more work than every other shape combined; tuning the h
 least-optimised shape is strictly better than re-litigating eleven that have taken ten
 candidates between them.
 
-**And the floor is not low.** Even at 0-for-6 the position is: fourteen shapes measured and
+**And the floor is not low.** Even at 0-for-8 the position is: fourteen shapes measured and
 correct on one artifact, MFU reported under three weightings, every hotspot either searched
 or closed with the measurement that closed it, and kernels already running 2.02×–33.65×.
 The bar in `WIN_BAR.md` is written so that all twelve conditions can go green **without a
