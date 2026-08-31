@@ -1,0 +1,29 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "expires_epoch": 1788142466.4169154,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T09:29:26+0800",
+ "ledger": null,
+ "ledger_namespace": "calibration",
+ "ledger_pre_lines": null,
+ "machine_state_path": "machine_state.json",
+ "machine_state_sha256": "f723a2ef82f1aca6f7fac3a2bc852db202d66c58f2bf745355c0864756d653db",
+ "mode": "calibration",
+ "promotion_allowed": false,
+ "request_id": "0e9eba01f7b8ea876c77419763fbf24b",
+ "request_kind": "calibration",
+ "request_path": "Project/loop/requests/0d1785f554a4911b8d70fee509fe53a22b7502c95d3dabcceb16d4255b8030ad.json",
+ "request_sha256": "0d1785f554a4911b8d70fee509fe53a22b7502c95d3dabcceb16d4255b8030ad",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 7,
+ "timing_config": {
+  "repeats": 100,
+  "rounds": 3,
+  "warmup": 20
+ },
+ "verdict_lines": 81
+}
