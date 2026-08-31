@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788154442.876075,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T12:49:02+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-3e8bcde3d65346569d7629b5.json",
+ "profile_record_id": "profile-3e8bcde3d65346569d7629b5",
+ "promotion_allowed": false,
+ "question": "On the final gated build at shape 10 with two heads at head dim 64 how does device time split across the three fused kernels",
+ "request_id": "b5a0fa081dfa3f7fc28289da36cf4e05",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/6079a57d58ee2266ce4e8cb701e434af0a8bc4c17263852b8c633dbbb25f0c8b.json",
+ "request_sha256": "6079a57d58ee2266ce4e8cb701e434af0a8bc4c17263852b8c633dbbb25f0c8b",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 10,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}
