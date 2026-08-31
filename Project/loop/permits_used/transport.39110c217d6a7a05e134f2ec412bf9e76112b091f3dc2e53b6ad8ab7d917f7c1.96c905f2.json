@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788144361.6148024,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T10:01:01+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-f9d7d0f456f2f374201d7e21.json",
+ "profile_record_id": "profile-f9d7d0f456f2f374201d7e21",
+ "promotion_allowed": false,
+ "question": "On shape 11 which carries both sixteen heads and head dim 8, how is device time split across the three fused path kernels of the rebuilt submission file and how many launches per forward does it issue",
+ "request_id": "186ffe11443ea53cf7e976fadfb5db36",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/39110c217d6a7a05e134f2ec412bf9e76112b091f3dc2e53b6ad8ab7d917f7c1.json",
+ "request_sha256": "39110c217d6a7a05e134f2ec412bf9e76112b091f3dc2e53b6ad8ab7d917f7c1",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 11,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

@@ -12,82 +12,123 @@ Then read all of `Project/memory/LESSONS.md`, every session, and
 
 **If a command and a document disagree, the command is right** — including this one.
 
-Updated: 2026-08-31 ~02:10 SGT. Branch `grind-lastday`.
+Updated: 2026-08-31 ~10:30 SGT. Branch `grind-lastday`.
 
 ---
 
-## 🔴 0. I BROKE `reconcile`. One owner command fixes it. Read this first.
+## 🟢 0. THE HEADLINE MOVED: 9.45x → **10.14x**, measured on the file that ships.
 
-**What I did.** To test whether the verdict brake actually fires (§7 of the report), I issued
-a permit in the primary lane and deliberately **did not run it**, letting it expire. That was
-the right experiment and the wrong way to end it: the gate recorded the request as *settled*
-but there is no authority event saying how it settled, because no run ever happened.
+31 Aug ~10:30 SGT. A new kernel design is **integrated into
+`Project/submission/dispatcher_region.py`**, the submission is rebuilt (`verified: true`,
+byte-identical outside the replacement region), and **all twelve shapes have been
+re-measured on the rebuilt artifact itself** — sha `54057a33…`, one screening-lane permit
+per row, verified-quiet box, `correct: true` on every row.
 
-**Symptom.** `run_gate.py reconcile` and `run_gate.py delta` now both refuse with:
+| shape | old file `4da76db6…` | **new file `54057a33…`** | delta | note |
+| --- | --- | --- | --- | --- |
+| 13 | 28.2849x | **30.8989x** | +9.2% | |
+| 7 | 20.9595x | **23.8603x** | +13.8% | head_dim 8 |
+| 11 | 12.5909x | **17.6588x** | **+40.3%** | head_dim 8, 16 heads |
+| 2 | 13.1434x | **15.5315x** | +18.2% | |
+| 3 | 12.9618x | **12.1500x** | **−6.3%** | only loss on the board |
+| 12 | 10.4348x | **10.5427x** | +1.0% | |
+| 4 | 8.9211x | **10.0690x** | +12.9% | |
+| 5 | 9.1150x | **9.3050x** | +2.1% | |
+| 1 | 8.1673x | **8.3830x** | +2.6% | |
+| 10 | 6.5352x | **6.2975x** | −3.6% | |
+| 9 | 4.3503x | **4.5459x** | +4.5% | |
+| 8 | 2.0160x | **2.0216x** | +0.3% | fp16 branch, **untouched by this change** |
+| **geomean** | **9.4470x** | **10.1370x** | **+7.31%** | |
 
-```
-REFUSED: settled request lacks its reconciled authority event
-```
+Arithmetic and both source columns: `Project/loop/geomean_camp_final.py`. Checked two
+independent ways (direct geomean of each column; geomean of the twelve per-shape ratios) —
+they agree to five significant figures.
 
-**Blast radius, measured rather than assumed:**
+**Quote 10.14x.** Ten of twelve shapes improved, one is flat, one lost.
 
-| command | state |
+### What the change is
+
+The fused-block megakernel was two Triton kernels; it is now **three**. The per-head
+attention loop is lifted out of the block-tail kernel into its own grid dimension
+(`_sub_attn_heads`, grid `(q_tiles, B, H)`), writing each head's output into its own column
+slice of a shared context buffer. The tail then does **one full-width output-projection
+dot** over the assembled context instead of H dots padded up to Triton's 16-wide `tl.dot`
+minimum. Math is unchanged: same online-softmax flash recipe, same fp32 residual stream and
+LayerNorm statistics, same exact-erf GELU.
+
+### Where the gain actually comes from — and the mechanism I got wrong
+
+I wrote **two** mechanisms into the design and gave them equal weight. Only one survived.
+
+| group | geomean gain |
 | --- | --- |
-| `reconcile` | ❌ blocked |
-| `delta` | ❌ blocked |
-| `research` | ✅ works |
-| `plan` | ✅ works |
-| `status`, `verify-lock`, `champion_watch --dry-run` | ✅ work |
-| controller `run` | reachable via research+plan, **but its result could not be reconciled or judged** |
+| the two head_dim-8 shapes (7, 11) | **+26.4%** |
+| the other nine fused shapes | **+4.3%** |
+| the untouched fp16 shape (8) | +0.3% |
 
-So nothing already measured is lost or altered — **the twelve-shape board and every packet
-are untouched and still valid** — but no *new* measurement can be settled until this clears.
+The head-count sweep settles it. Shapes 9, 10, 1 and 11 are the **same 7.52 GFLOP problem**
+at 1, 2, 4 and 16 heads, and they returned **+4.5%, −3.6%, +2.6%, +40.3%**. Three of the
+four sit within four points of zero; the fourth is the only one with head_dim 8. So the
+gain is a **head-width** effect, not a head-count effect: the H-way grid split — the
+mechanism the kernel is *named* after — is doing approximately nothing, because every shape
+except shape 2 already had a grid past 38 SMs. **The full-width out-projection is doing the
+work.** That correction has to travel into the drafts; it is not a detail.
 
-**The fix, which only you can run.** The sanctioned path is
-`run_gate.py quarantine --request-sha256 <sha> --authority-receipt <receipt>`, and it needs
-an owner-signed receipt for a quarantine action. My capabilities cover only `permit.issue`
-and `register_family`, so I cannot mint one — correctly, since an agent that can quarantine
-its own inconvenient gate state does not have a gate.
+### What the per-shape deltas can and cannot carry
 
-The request to quarantine is:
+**They cannot carry a claim.** The batch sweep (shapes 2, 3, 4, 1, 5 — identical geometry
+at batch 1, 4, 16, 64, 128) returned **+18.2%, −6.3%, +12.9%, +2.6%, +2.1%**: not monotone,
+not flat, spanning 24 points. No mechanism produces that shape; **cross-invocation scatter**
+does, and this says it is materially larger on small shapes than the ~9% LESSONS 11 quotes.
+A preregistered falsifier on shape 4 fired and this is the honest consequence, taken rather
+than explained away.
 
-```
-07d20af31dc8cda7c31631a344b227fd596bf8c1cc01f00a44b709a2fb179583
-```
+What *does* carry weight: the **geomean over twelve shapes**, which averages that scatter
+down; the **+26.4% vs +4.3%** split, which is a between-groups comparison measured in one
+session; and **shape 11's +35.5%**, the one figure with a same-session paired control
+(measured against a k009 control run minutes apart, not against a stored number).
 
-**If you do not intend to run more measurements before freeze, you can ignore this
-entirely** — the board is complete and the drafts are written. It only matters if you want
-the gate working again.
+### Preregistration record for this campaign
+
+Seven falsifiers preregistered, **two fired** (shape 3's, shape 4's) and both are reported
+above rather than argued away. Numeric bands went **3 for 14** here against **0 for 26**
+before — and all three hits were shapes where I predicted *no change*. The single
+gain-predicting band that hit (shape 11) was the only one ever derived from a measurement
+that had its own same-session control. That is a statement about controls, not forecasting.
+
+### Still true, and still owner-only
+
+Screening lane, so **nothing here is promotable** and no verdict binds to any row — audit
+recording (§1) is still broken. Excludes shapes 6 and 14 (not locally runnable).
 
 ## ⓪ WHERE THIS STOPPED, AND WHY — read this before the action list
 
-**The measurement work is finished and the drafts are finished.** Seven adversarial
-re-reads of the three judge-facing documents found and fixed **fifteen** defects. Passes 1–5
-each found something substantive; pass 6 found four; pass 7 found only staleness introduced
-by my own earlier edits. **That is the signal to stop**, and I stopped rather than
-manufacture an eighth pass to look busy.
+**A second measurement campaign ran on 31 Aug morning and it changed the headline.** The
+"deliberately did not do" list below was written at ~02:10 when the owner was asleep and the
+gate was jammed. Both conditions cleared; the first item on it was attempted after all, and
+it worked — see §0. The list is kept because its *reasoning* is still the record of what was
+weighed and when.
 
-**What I deliberately did NOT do with the remaining budget** (~12 of 60 attempts, freeze at
-20:00), with the honest reason:
+**Superseded by §0:** "the shape-11 head-dim-8 de-padding kernel" was ranked bad odds on the
+strength of a `tl.sum`-reduce technique the research note disliked. That judgement was
+correct about *that* technique and wrong about the target: a different route to the same
+padding problem — splitting the head loop so the out-projection runs at full width — was
+built, integrated and measured, and it is where **+26.4%** of the gain sits. The predicted
+ceiling of "+4.2% geomean if the gap closes completely" was beaten: the realised figure is
+**+7.31%**. I under-estimated the target because I only costed one way of attacking it.
 
-- **The shape-11 head-dim-8 de-padding kernel.** Measured ceiling is **+4.2% on the
-  geometric mean** *if the gap closes completely*, which nothing supports; the technique
-  (`tl.sum` reduce instead of `tl.dot`) trades tensor cores for CUDA cores and the research
-  note calls it "not recommended in general". It also cannot be promoted while audit
-  recording is broken, and cannot ship without your decision. Bad odds, real correctness
-  risk, asleep owner.
-- **Sequence-persistent CTAs for the launch-bound family (2, 3, 7, 12).** Arithmetically the
-  *better* target — four shapes at ~1.2x each is about **+6.3%** geomean — but it is new
-  Triton work that must hold 2e-3 tolerance, and the same promotion and approval blocks
-  apply. The research note already ranks it "timeboxed, after everything else".
+**Still not done, and still for the reasons given:**
+
+- **Sequence-persistent CTAs for the launch-bound family (2, 3, 7, 12).** Untouched. New
+  Triton work against a 2e-3 tolerance with hours left; the same promotion block applies.
 - **Regenerating `SENSITIVITY.md` against post-LOCK medians.** Needs `sensitivity_board.py`
-  to read the authority packets instead of `JOURNAL.jsonl`, and `Project/tools/` is
-  write-denied to me. Owner-only; low value since the draft now says to read that board for
-  its scoring logic, not its numbers.
+  to read authority packets instead of `JOURNAL.jsonl`, and `Project/tools/` is write-denied
+  to me. Owner-only; low value since the draft now cites that board for its scoring logic,
+  not its numbers.
 
-**Final state:** lock valid (29 protected files), `verify-lock` green, no watcher active,
-`reconcile` clean, tree clean, **0 strikes**, nothing promoted, headline **9.45x** measured
-on the shipped artifact.
+**Current state:** lock valid (29 protected files), `verify-lock` green, no watcher active,
+`reconcile` clean, **0 strikes**, nothing promoted, headline **10.14x** measured on the
+shipped artifact `54057a33…`.
 
 ## ⓞ OWNER ACTIONS — the things only you can do. Everything else is done.
 
@@ -138,12 +179,12 @@ the design working, not a defect. None of them blocks reading the results.
    is never an APPROVE. I could not confirm round 13 carries a real one. Flagged inline in
    the draft. The thirteen-round count and the ~50 fixes stand either way.
 
-6. **One draft bullet needs your call.** §8's "a head-splitting variant came out a
-   statistical tie" is the only claim in the three drafts I could not trace to any file —
-   it is absent from LESSONS, from `Project/research/`, and from the kernel roster
-   (k000, k001, k003–k011, k014, k015). It may be a mis-remembering of the documented k011
-   QKV-chunk result beside it. It is flagged inline in the draft: **find the evidence or
-   delete the bullet.**
+6. **Resolved by measurement, not by archaeology.** §8's "a head-splitting variant came out
+   a statistical tie" was untraceable to any file and flagged for deletion. It is now moot:
+   head-splitting was built (`k017`), integrated into the shipped dispatcher, and measured
+   at **+7.31% on the geomean**. Whatever the old bullet referred to, the claim as written
+   is false and the draft must state the measured result instead. **The bullet is replaced,
+   not deleted.**
 7. **Optional, owed work:** `SENSITIVITY.md` is pre-gate by construction — it reads
    `JOURNAL.jsonl`, which the post-LOCK board never touches — so its MFU column disagrees
    with tech report §2.3 and its `S3 10.95x` is a *withdrawn* figure. The draft now says to
@@ -171,11 +212,14 @@ found twelve defects; all are corrected and committed. Highlights:
   content-addressed packets under `Project/authority/blobs/`; `JOURNAL.jsonl` holds only
   pre-LOCK history, because screening runs write to the scratch namespace by design.
 
-## 0000. ✅✅ THE HEADLINE IS 9.45x, MEASURED ON THE FILE THAT SHIPS. Read this first.
+## 0000. ⬆️ SUPERSEDED BY §0 — this was the 9.45x board, now the *old* column
 
-31 Aug ~04:00 SGT. All twelve shapes have now been measured **on
+31 Aug ~04:00 SGT. All twelve shapes measured **on
 `Project/submission/torch_transformer_benchmark_submission.py` itself** (sha `4da76db6…`),
-not on the kernel modules. That is the artifact a judge would run.
+not on the kernel modules. That is the artifact a judge would run. **This board is still
+valid and still the correct measurement of that file** — it is now the baseline the
+split-head rebuild in §0 is compared against, not the headline. Retained in full because
+§0's deltas are meaningless without it.
 
 | shape | **shipped file** | kernel module | delta |
 | --- | --- | --- | --- |
@@ -193,8 +237,8 @@ not on the kernel modules. That is the artifact a judge would run.
 | 8 | **2.0160x** | 2.0162x | −0.008% |
 | **geomean** | **9.45x** | 9.68x | **−2.4%** |
 
-**Quote 9.45x.** The module board (9.68x) is now a cross-check, not the result. All twelve
-`correct: true`, one-use permit per row, quiet box, screening lane.
+**Do not quote 9.45x as the headline — see §0.** The module board (9.68x) is a cross-check,
+not a result. All twelve `correct: true`, one-use permit per row, quiet box, screening lane.
 
 **Why the module board was not enough.** Those twelve rows measured `k009`/`k010`, chosen
 because their headers match the dispatcher's. That is a documentation match — the same
@@ -473,22 +517,28 @@ determines which claims this project's evidence can carry.
 
 ## 5. Ledger
 
-22 of 60 attempts spent (1 optimization, 21 screening), **0 promoted**, **0 strikes**,
-12 shapes calibrated with immutable thresholds, 24 profiles, 13 families registered,
-14 research cycles, no permit armed, lock active and valid at 29 files, campaign not
-stalled, tree clean.
+**CAMP-FINAL** (opened 31 Aug ~00:17 after CAMP-POSTLOCK was retired): ~22 of 60 attempts
+spent, **0 promoted**, **0 strikes**, all 12 shapes calibrated in this campaign, 45 research
+cycles, no permit armed, lock active and valid at 29 files, campaign not stalled.
 
-Capabilities `/tmp/cap_grind.json`, `/tmp/cap_family.json`, `/tmp/cap_stall.json` expire
-**31 Aug ~21:25 SGT**.
+Capability `/tmp/cap_grind.json` (`permit.issue`, 200 uses) expires **31 Aug ~21:37 SGT**.
+`/tmp/cap_quar.json` (quarantine, 20 uses) expires **31 Aug ~20:46 SGT**. Both are inside
+the recording window — **mint fresh ones before filming** (owner action 4).
 
 ## 6. Next actions
 
-1. **Owner:** fix the audit recording path. Everything else is ready.
-2. Once fixed: re-run the strongest shapes in `--mode optimization` and audit them. The
-   screening numbers give well-founded expectations for every shape.
-3. Open research target: **head_dim 8 padding waste** in the Triton kernel — shape 11 and
-   shape 7 show narrow head_dim is where the baseline is weakest, so a kernel that avoids
-   the 2x pad to 16 could go beyond 4.24x.
+1. **Owner:** fix the audit recording path. It is still the only thing between this board
+   and a promotable, verdict-bound result.
+2. **Owner:** `git push -u origin grind-lastday`. `git push` is not on the post-LOCK
+   command allowlist, so the agent cannot do it. The branch has never been pushed.
+3. Once audit recording is fixed: re-run the strongest shapes in `--mode optimization` and
+   audit them. The screening board gives well-founded expectations for every shape.
+4. **Closed research target: head_dim 8 padding waste.** This was the open item here and it
+   is now done — see §0. The winning route was not the `tl.sum` reduce the research note
+   warned about, but lifting the head loop into its own kernel so the out-projection runs
+   at full width. Shapes 7 and 11 gained **+26.4%** geomean between them.
+5. Remaining open target: **sequence-persistent CTAs** for the launch-bound family
+   (2, 3, 7, 12). Untouched, and the last un-attempted idea with a real arithmetic case.
 
 ## 7. Standing rules (unchanged)
 

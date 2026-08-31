@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788149804.1644094,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T11:31:44+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-9b01d63a85284e448e87d983.json",
+ "profile_record_id": "profile-9b01d63a85284e448e87d983",
+ "promotion_allowed": false,
+ "question": "On shape 3 at batch 4 does the tripled QKV grid reduce norm qkv time by less than the 53.5 percent seen on batch 1 and how does device time now split across the three fused kernels",
+ "request_id": "98697e074a21c041c18794d374ebf50c",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/295aa0fd190ad377f5df1365aeb3932fc4501703ec83e571004fe7104210840e.json",
+ "request_sha256": "295aa0fd190ad377f5df1365aeb3932fc4501703ec83e571004fe7104210840e",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 3,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "4a54ccfa8c22c04f5f23969a9779de458301f91178345bb7d8deec0cfc39a1df",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

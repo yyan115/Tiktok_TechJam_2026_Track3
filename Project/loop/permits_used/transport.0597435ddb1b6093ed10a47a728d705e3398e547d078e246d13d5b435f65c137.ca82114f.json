@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788150556.4737947,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T11:44:16+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-da728b009a598d1f3ed08163.json",
+ "profile_record_id": "profile-da728b009a598d1f3ed08163",
+ "promotion_allowed": false,
+ "question": "On the gated build at shape 2 does the static range wrapper on the split path change the norm qkv kernel timing against the ungated build",
+ "request_id": "ed5dd31b93933e242bbbea4c9e227ce9",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/0597435ddb1b6093ed10a47a728d705e3398e547d078e246d13d5b435f65c137.json",
+ "request_sha256": "0597435ddb1b6093ed10a47a728d705e3398e547d078e246d13d5b435f65c137",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 2,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

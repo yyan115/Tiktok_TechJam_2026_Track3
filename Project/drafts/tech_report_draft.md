@@ -26,14 +26,30 @@
 >    description* — a documentation match, not a measurement, and the same species
 >    of reasoning as step 2. So all twelve were measured a final time on
 >    `torch_transformer_benchmark_submission.py` itself, the artifact a judge would
->    run. **Geometric mean 9.45×, and that is the number this report quotes.**
+>    run. **Geometric mean 9.45×.**
+> 5. **Then we changed the kernel.** On the morning of 31 Aug the fused-block
+>    megakernel was re-split so the per-head attention loop runs as its own kernel
+>    and the output projection runs at full width (§3.5). The change went into
+>    `dispatcher_region.py`, the submission was rebuilt (sha `54057a33…`,
+>    byte-identity outside the sanctioned region re-verified), and **all twelve
+>    shapes were measured again on the rebuilt file** under the same protocol.
+>    **Geometric mean 10.14×, and that is the number this report quotes.**
 >
-> | | originally claimed | final, measured on the shipped file |
-> | --- | --- | --- |
-> | geomean, 12 primary shapes | 10.32× (also 10.95× on our own referee) | **9.45×** |
-> | best shape | 28.82× (shape 13) | **28.28×** (shape 13) |
-> | worst shape | 2.04× (shape 8) | **2.02×** (shape 8) |
-> | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* |
+> | | originally claimed | 9.45× board (step 4) | **final, shipped file `54057a33…`** |
+> | --- | --- | --- | --- |
+> | geomean, 12 primary shapes | 10.32× (also 10.95× on our own referee) | 9.45× | **10.14×** |
+> | best shape | 28.82× (shape 13) | 28.28× (shape 13) | **30.90×** (shape 13) |
+> | worst shape | 2.04× (shape 8) | 2.02× (shape 8) | **2.02×** (shape 8) |
+> | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* | — |
+>
+> **Note what step 5 does to step 1.** The final measured board (10.14×) is now
+> *slightly above* the withdrawn 10.32×-class original — but it is not a
+> vindication of it and must not be read as one. The original was measured without
+> a permit against baselines 6–63% off their own calibration; this one is measured
+> on the shipped artifact, under a one-use permit bound to its hash, on a quiet
+> box, with the full distribution in a content-addressed packet. **Two numbers of
+> similar size, one defensible and one not**, is precisely the distinction this
+> project exists to make.
 >
 > **Where that leaves the original number.** 9.45× against 10.32× means the
 > withdrawn board was **8.4% high** on the geometric mean. Per shape it scattered
@@ -81,9 +97,9 @@ We built an AI agent that authors CUDA/Triton kernels for a transformer
 layer, and — because AI optimizers are documented benchmark cheats — we
 built the referee first and gave the agent no authority over it. On an
 RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
-locally-runnable test shapes at a **geometric-mean 9.45× speedup**, ranging
+locally-runnable test shapes at a **geometric-mean 10.14× speedup**, ranging
 from **2.02×** on the one shape whose baseline is already doing real
-arithmetic rather than waiting on kernel launches, to **28.28×** on the
+arithmetic rather than waiting on kernel launches, to **30.90×** on the
 longest sequence, with every figure measured **on the submission file
 itself** under a one-use permit bound to its hash. All 14 shapes pass the
 precision test, on two different grades of evidence we keep distinct
@@ -171,9 +187,10 @@ levels of "is this really what ships":
   evidence than the runbook example that caused the original error, and it is
   the same species.
 - **§2.1.1** measures
-  `Project/submission/torch_transformer_benchmark_submission.py`
-  (sha256 `4da76db6…`) — the exact artifact a judge would execute — on all
-  twelve shapes. **That is the board we quote.**
+  `Project/submission/torch_transformer_benchmark_submission.py` — the exact
+  artifact a judge would execute — on all twelve shapes, twice: once at
+  sha `4da76db6…` and again at sha `54057a33…` after the split-head rebuild of
+  §3.5. **The `54057a33…` row is the board we quote.**
 
 ### 2.1 The kernel-module board (cross-check)
 
@@ -200,17 +217,58 @@ baseline counter evidence in `Project/loop/profile_evidence/`.
 ### 2.1.1 The same twelve shapes, measured on the file that ships — **the headline board**
 
 Identical protocol, one fresh permit per row, candidate =
-`torch_transformer_benchmark_submission.py` (sha256 `4da76db6…`).
+`torch_transformer_benchmark_submission.py`.
 
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| **shipped file** | **8.17×** | **13.14×** | **12.96×** | **8.92×** | **9.12×** | **20.96×** | **2.02×** | **4.35×** | **6.54×** | **12.59×** | **10.43×** | **28.28×** | **9.45×** |
-| kernel module (§2.1) | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
-| delta | −2.0% | −8.7% | +2.6% | +0.5% | −0.4% | −4.6% | −0.008% | −10.0% | −0.5% | −0.7% | −3.5% | −0.4% | **−2.4%** |
+| **shipped file `54057a33…`** | **8.38×** | **15.53×** | **12.15×** | **10.07×** | **9.31×** | **23.86×** | **2.02×** | **4.55×** | **6.30×** | **17.66×** | **10.54×** | **30.90×** | **10.14×** |
+| shipped file `4da76db6…` (pre-split) | 8.17× | 13.14× | 12.96× | 8.92× | 9.12× | 20.96× | 2.02× | 4.35× | 6.54× | 12.59× | 10.43× | 28.28× | 9.45× |
+| delta | +2.6% | +18.2% | **−6.3%** | +12.9% | +2.1% | +13.8% | +0.3% | +4.5% | −3.6% | **+40.3%** | +1.0% | +9.2% | **+7.3%** |
+| kernel module (§2.1, pre-split) | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
 
-**We quote 9.45×.** It is the artifact that ships, so it is the number that
-means anything. The module board agrees to 2.4% on the geometric mean and
-serves as a cross-check.
+**We quote 10.14×.** It is the artifact that ships, so it is the number that
+means anything. Both shipped-file rows are `correct: true` on every trial; the
+board arithmetic and both source columns are in
+`Project/loop/geomean_camp_final.py`, checked two independent ways (direct
+geomean of each column, and geomean of the twelve per-shape ratios).
+
+**Ten of twelve shapes improved; shape 3 lost 6.3% and shape 10 lost 3.6%.**
+Those two losses are reported, not smoothed: they are the honest cost of applying
+one design unconditionally across the fused route, and §2.1.2 explains why we do
+not read them — or most of the individual gains — as mechanism.
+
+### 2.1.2 What the per-shape deltas can carry, and what they cannot
+
+**The per-shape deltas above are dominated by cross-invocation scatter, and we
+will not build a story on them.** The two shipped-file boards were measured in
+different sessions. Shapes 2, 3, 4, 1 and 5 are **the same geometry at batch 1, 4,
+16, 64 and 128**, and they moved **+18.2%, −6.3%, +12.9%, +2.6%, +2.1%** — not
+monotone, not flat, spanning 24 points. No mechanism produces that shape. GPU
+clock state between invocations does, and this says the effect is larger on small
+launch-bound shapes than the ~9% our own noise notes record. We preregistered a
+falsifier on shape 4 stating that a move above 10% would mean the batch axis
+carried a real effect; **it fired**, and the conclusion we draw is that our
+per-shape resolution is worse than we thought — not that batch size matters.
+
+Three things survive that objection, and the report rests only on these:
+
+1. **The geometric mean over twelve shapes** (+7.3%), which averages the scatter
+   down rather than sampling it once.
+2. **A between-groups comparison measured inside one session**: the two
+   `head_dim = 8` shapes gained **+26.4%** between them, against **+4.3%** for the
+   other nine fused shapes (§3.5). Both groups carry the same scatter, so the
+   difference between them does not.
+3. **The one shape with a same-session paired control.** Shape 11 was measured
+   against a control run minutes apart on the same box, not against a stored
+   figure: **+35.5%**. That is the only per-shape number here with a controlled
+   comparison behind it.
+
+**The cheap calibration that makes this checkable.** Shape 8 routes to the fp16
+tensor-core branch, which the split-head change **does not touch by a single
+line**. Across the same session boundary it moved **+0.3%** — a compute-bound
+shape is a stable instrument, so this row is simultaneously a null control on the
+rebuild (nothing changed where nothing should) and a demonstration that the
+scatter above is a property of the small launch-bound shapes, not of the harness.
 
 **Correctness, quantified rather than asserted.** "PASS" understates what
 was checked. Each row runs 7 trials, and every trial compares the full
@@ -247,8 +305,8 @@ paired *inside* each one. Shape 9 is an outlier, not a trend. We report this
 because a suggestive four-point pattern that dies on its fifth point is
 worth more in a methods section than a tidy model that was never tested.
 
-**Three caveats that must travel with 9.45× wherever it is quoted**, and
-they apply to both boards equally:
+**Three caveats that must travel with 10.14× wherever it is quoted**, and
+they apply to every board in this section equally:
 
 1. It **excludes shape 6** (dedicated side lane), so it is **not** the
    official `geomean-shapes-1-13` scenario figure.
@@ -259,7 +317,7 @@ they apply to both boards equally:
    repair it. The measurements are permitted and reproducible; they are not
    independently adjudicated.
 
-**Read the spread, not just the mean.** 2.02× to 28.28× is a 14-fold range,
+**Read the spread, not just the mean.** 2.02× to 30.90× is a 15-fold range,
 and the mean is a summary rather than a description. §2.3 explains what
 separates the ends.
 
@@ -291,10 +349,20 @@ project exists to make, and we got to test it on ourselves.
 
 Where the old boards and the new ones disagree we quote **§2.1.1**, because
 it is the only board with a permit behind every row *and* the shipped file
-under test. Against §2.1.1's 9.45× the pre-gate 10.32× is **8.4%** high
-rather than 6.2%; the per-shape comparison in the table above is drawn
-against §2.1 because that is the board measured on the same kernel the
-pre-gate runs were nominally exercising.
+under test. The per-shape comparison in the table above is drawn against §2.1
+because that is the board measured on the same kernel the pre-gate runs were
+nominally exercising.
+
+**One uncomfortable coincidence, stated plainly.** The final board (10.14×) is
+now marginally *above* the withdrawn pre-gate 10.32×-class figure — 1.7% below
+it, well inside the scatter these comparisons carry. It would be easy, and
+wrong, to present that as the original having been right all along. It was not
+right; it was **undefended**, and it reached a similar number by a route that
+could not be checked. The pre-gate board also has no permit, no bound verdict
+and baselines 6–63% off calibration, and those defects are not retroactively
+cured by a later, differently-obtained number landing nearby. If anything the
+coincidence sharpens the point: **you cannot tell a defensible measurement from
+an undefended one by looking at the number.**
 
 ### 2.3 Utilisation, and where the remaining headroom is
 
@@ -333,11 +401,14 @@ MFU here counts *model* FLOPs only (projections, attention, FFN; causal halved).
 LayerNorm, GELU and softmax consume real GPU time but are not in the numerator, so
 these figures understate utilisation rather than overstate it.
 
-**These rows use the §2.1 kernel-module candidate times, not the §2.1.1 shipped-file
-ones**, as do the per-kernel diagnostics in §2.3.1. The two boards differ by −2.4% on
-the geometric mean and by −10.0% to +2.6% per shape, so treat this table as indicative
-to a few percent. The speedups in §2.1.1 are the figures measured on the shipped
-artifact and are the ones to quote.
+**These rows use the §2.1 kernel-module candidate times**, as do the per-kernel
+diagnostics in §2.3.1 — so they describe the **pre-split** kernel, one generation
+behind the shipped board in §2.1.1. Treat this table as a utilisation *portrait of
+the mechanism*, not as a companion to the headline: the split-head rebuild moved
+shape 11 by +40.3% and shapes 7 and 11 together by +26.4%, so their MFU rows in
+particular are now low. Regenerating this table against the `54057a33…` medians is
+listed as owed work in §11. The speedups in §2.1.1 are the figures measured on the
+shipped artifact and are the ones to quote.
 
 The reading that matters: **the small shapes are not compute-limited, they
 are launch- and grid-limited.** At ideal fusion every shape's arithmetic
@@ -434,6 +505,31 @@ entirely would take it to roughly 20.8× and the twelve-shape geometric mean to
 about 10.1×, a **+4.2%** improvement. That assumes the gap closes completely, which
 nothing yet supports, so it is recorded as a bounded target rather than a plan.
 
+> ### ✅ We then attacked that target, and this paragraph is the result — see §3.5
+>
+> The bounded target above was written at ~06:00 on 31 Aug. It was attacked at
+> ~09:45 and the fix shipped. **Shape 11 went to 17.66×** (from 12.59× on the same
+> artifact) and **the twelve-shape geometric mean to 10.14×** — against the "roughly
+> 20.8× / about 10.1× / +4.2%" written above.
+>
+> Two things about that comparison are worth more than the number.
+>
+> **First, the estimate was good but for a partly wrong reason.** The predicted
+> geomean (about 10.1×) landed almost exactly (10.14×), yet shape 11 came in at
+> 17.66× rather than 20.8× — so the gap did *not* close completely, and the geomean
+> still arrived because the fix also helped shape 7 (+13.8%) and shape 13 (+9.2%),
+> which this paragraph did not anticipate at all. An estimate that is right in
+> aggregate and wrong in composition is a warning, not a validation.
+>
+> **Second, we had written this target off hours earlier and the reasoning was
+> flawed.** The overnight status note ranked it *"bad odds"*: the technique on the
+> table was a `tl.sum` reduce, which trades tensor cores for CUDA cores and which
+> our own research note calls "not recommended in general". Every clause of that was
+> true — **about that one technique.** A different route to the same padding problem
+> (§3.5) had never been costed. The lesson recorded in `LESSONS.md` 49: a ceiling
+> estimate is only as general as the mechanism it was computed against, so write
+> *"this technique looks bad"* and never *"this target looks bad"*.
+
 Score-scenario board: `Project/results_side/SENSITIVITY.md` (regenerate with
 `python3 Project/tools/sensitivity_board.py` — verified working 31 Aug).
 
@@ -527,14 +623,21 @@ sequence length 128 — small enough that the GPU finishes each operation
 faster than the CPU can queue the next. The work is therefore mostly *not*
 about arithmetic.
 
-**The megakernel (`k009`, shipping on 11 of 12 runnable shapes).** An
-entire transformer block in two authored Triton kernels:
+**The megakernel (shipping on 11 of 12 runnable shapes).** An entire
+transformer block in authored Triton kernels — **two** in the `k009`
+generation described here, **three** in the shipped `54057a33…` build after
+the split described in §3.5:
 
 1. LayerNorm fused with the QKV projection, weights held in fp16 with FP32
    accumulation.
 2. FlashAttention-style causal attention over all heads with the output
    projection folded into the head loop, then residual + norm + GELU-FFN
    completed in-register.
+
+*(§3.5 splits step 2 in two: one kernel per attention head, then a tail that
+does the output projection at full width. The mechanism narrative in the rest
+of §3 is unaffected — it is about fusion versus launch overhead, and both
+generations fuse the block.)*
 
 The whole forward pass — all four layers — is then captured as **one CUDA
 graph** and replayed, which removes per-launch CPU cost entirely. This is
@@ -591,8 +694,69 @@ masking — the fast paths are an optimisation, not a dependency. `torch.compile
 as correctness fallbacks and as a measured comparison: on the official
 script, `torch.compile(mode="max-autotune")` reaches 7.00× on shape-3
 dials, 3.10× on shape-13 dials and 1.23× on shape-8 dials, against our
-12.96× / 28.28× / 2.02×. Our margin is largest exactly where compilation
+12.15× / 30.90× / 2.02×. Our margin is largest exactly where compilation
 stops helping — long sequences, and the launch-bound small shapes.
+
+### 3.5 Splitting the head loop — the last change, and the one mechanism that paid
+
+The final change to the shipped kernel is a **restructuring, not a new
+algorithm**: identical math, identical precision policy, identical fallbacks.
+The block's attention half was lifted out of the tail kernel and given its own
+grid dimension.
+
+| | before (`4da76db6…`) | after (`54057a33…`) |
+|---|---|---|
+| kernels per layer | 2 | 3 |
+| attention grid | folded into the tail, `(q_tiles, B)` | `_sub_attn_heads`, `(q_tiles, B, H)` |
+| output projection | `H` dots, each contracting over `HD_PAD` | **one** dot contracting over `D_PAD` |
+| extra traffic | — | one `[B, S, D]` fp16 context buffer round trip |
+
+Heads never interact inside attention, so the H-way split needs **no atomics and
+no barrier**: each program owns columns `h·HD … h·HD+HD` of its own rows in a
+shared context buffer. The tail then loads the assembled `[BLOCK_M, D]` tile and
+does the output projection in a single full-width `tl.dot`.
+
+**Why that matters is Triton's 16-wide `tl.dot` minimum.** At `head_dim` 8
+(shapes 7 and 11) every one of the old `H` output-projection dots contracted
+over a 16-wide axis of which **half was padding** — the mechanism §2.3.1
+diagnosed and then priced at "+4.2% geomean if the gap closes completely".
+Contracting over `D_PAD` once instead removes that waste entirely.
+
+**We designed for two mechanisms. Only one of them exists.**
+
+The kernel was built around *both* the full-width projection **and** H times the
+attention parallelism, and its own docstring gave them equal weight. The
+head-count sweep settles it. Shapes 9, 10, 1 and 11 are the same 7.52 GFLOP
+problem at 1, 2, 4 and 16 heads:
+
+| heads | head_dim | shape | delta from the split |
+|---|---|---|--:|
+| 1 | 128 | 9 | +4.5% |
+| 2 | 64 | 10 | −3.6% |
+| 4 | 32 | 1 | +2.6% |
+| 16 | **8** | 11 | **+40.3%** |
+
+Three of the four sit within four points of zero, and the fourth is the only one
+with `head_dim` 8. Grouped: the two `head_dim`-8 shapes gained **+26.4%**; the
+other nine fused shapes gained **+4.3%**. So the extra parallelism — the
+mechanism the kernel is *named* after — contributes approximately nothing,
+because every shape except batch-1 shape 2 already launched a grid past this
+card's 38 SMs. **The gain is a head-width effect, and the full-width output
+projection is what delivers it.** That was knowable from arithmetic before any
+run, and we did not do the arithmetic (`LESSONS.md` 50).
+
+**What the split costs, measured where it should hurt most.** One extra launch
+per layer and a context-buffer round trip. Shape 12 (sequence 32) has the
+smallest per-launch work on the board, so we preregistered it as the test: a
+drop of more than 5% would mean gating the split on sequence length. It returned
+**+1.0%** and hit its band. Inside the whole-forward CUDA graph the extra launch
+is free, so the design applies unconditionally on the fused route — **no routing
+condition was added**, and the dispatcher predicate is unchanged.
+
+**Both losses are on the board.** Shape 3 (−6.3%) and shape 10 (−3.6%) are the
+price of that unconditional application. Given §2.1.2's finding that per-shape
+resolution is worse than the losses themselves, adding a special case to chase
+either one would be fitting a routing rule to noise.
 
 ---
 
@@ -771,10 +935,13 @@ The submission ships the actual process artifacts, not a reconstruction.
   the organizers specified.
 - **CUDA-event timing with a wall-clock cross-check.** If the two disagree
   beyond a threshold the entry is flagged suspicious. Every packet carries
-  both numbers and the ratio: shape 13 reads event 28.2849× against wall
-  28.1431× (agreement 1.005), shape 8 event 2.0160× against wall 2.0179×
-  (agreement 1.0008). **No row in either board is flagged**; the
-  `suspicious` field is `false` on every packet we inspected.
+  both numbers and the ratio. On the shipped `54057a33…` board, shape 13
+  reads event **30.8989×** against wall **30.8763×** (agreement 1.0007) from
+  300 samples per arm — baseline median 170.147 ms, candidate median
+  5.5066 ms. On the previous board shape 13 read event 28.2849× against wall
+  28.1431× (agreement 1.005) and shape 8 event 2.0160× against wall 2.0179×
+  (agreement 1.0008). **No row in any board is flagged**; the `suspicious`
+  field is `false` on every packet we inspected.
 - **Correctness on 7 trials per entry** — five fixed seeds (1234–1238) plus
   two drawn at random per run, so a candidate cannot be tuned to the seed
   list — using the official predicate exactly:

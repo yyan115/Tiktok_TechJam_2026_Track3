@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788150015.2082314,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T11:35:15+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-69aa566a751d72fa9223375f.json",
+ "profile_record_id": "profile-69aa566a751d72fa9223375f",
+ "promotion_allowed": false,
+ "question": "On the rebuilt submission file at shape 2 how does device time split across the three fused kernels with the QKV chunk promoted to a grid dimension",
+ "request_id": "11c2057a456d997024c08349711ce205",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/c27ca3453c3fcd901a73b591be045de0e0cef719881aef9fec4e5901f03c1c2a.json",
+ "request_sha256": "c27ca3453c3fcd901a73b591be045de0e0cef719881aef9fec4e5901f03c1c2a",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 2,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "301d7063392bae4c918746ce4cd03d99e1140b3054fd1497080a6cb3e0c59096",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

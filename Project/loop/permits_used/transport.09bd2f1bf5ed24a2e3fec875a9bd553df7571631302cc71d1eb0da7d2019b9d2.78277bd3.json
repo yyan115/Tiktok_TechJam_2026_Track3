@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788149644.9522252,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T11:29:04+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-71a67b2cf926f0dba4fe9b56.json",
+ "profile_record_id": "profile-71a67b2cf926f0dba4fe9b56",
+ "promotion_allowed": false,
+ "question": "On shape 2 where the QKV projection previously ran as a single program does promoting the chunk to a grid dimension reduce the norm qkv kernel time and how does device time now split across the three fused kernels",
+ "request_id": "47e2ed2e92e4e11ed81f8ed85f6c4437",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/09bd2f1bf5ed24a2e3fec875a9bd553df7571631302cc71d1eb0da7d2019b9d2.json",
+ "request_sha256": "09bd2f1bf5ed24a2e3fec875a9bd553df7571631302cc71d1eb0da7d2019b9d2",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 2,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "4a54ccfa8c22c04f5f23969a9779de458301f91178345bb7d8deec0cfc39a1df",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

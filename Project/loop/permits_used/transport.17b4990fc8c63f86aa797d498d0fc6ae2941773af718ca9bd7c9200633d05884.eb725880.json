@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788145387.8402596,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T10:18:07+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-983dec0dd51b464a57c5a27f.json",
+ "profile_record_id": "profile-983dec0dd51b464a57c5a27f",
+ "promotion_allowed": false,
+ "question": "On shape 10 with two heads at head dim 64, how is device time split across the three fused path kernels of the rebuilt submission file",
+ "request_id": "c505f5fcee01601d78761fd56ce69100",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/17b4990fc8c63f86aa797d498d0fc6ae2941773af718ca9bd7c9200633d05884.json",
+ "request_sha256": "17b4990fc8c63f86aa797d498d0fc6ae2941773af718ca9bd7c9200633d05884",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 10,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}
