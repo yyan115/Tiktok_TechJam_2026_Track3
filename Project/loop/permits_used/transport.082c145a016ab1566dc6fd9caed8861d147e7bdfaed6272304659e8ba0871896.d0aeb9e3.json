@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788151718.2395277,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T12:03:38+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-07a5bc9c571938752a3ad662.json",
+ "profile_record_id": "profile-07a5bc9c571938752a3ad662",
+ "promotion_allowed": false,
+ "question": "Probe mode: raise on CUDA compile failure so the sandbox reports the reason instead of silently falling back to Triton",
+ "request_id": "c765321e09d23826b3e338732c21b86d",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/082c145a016ab1566dc6fd9caed8861d147e7bdfaed6272304659e8ba0871896.json",
+ "request_sha256": "082c145a016ab1566dc6fd9caed8861d147e7bdfaed6272304659e8ba0871896",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "0830fb8d7ff3f23f800d096168a43ee54df9e837b6890dd5cfe646e922784d0c",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

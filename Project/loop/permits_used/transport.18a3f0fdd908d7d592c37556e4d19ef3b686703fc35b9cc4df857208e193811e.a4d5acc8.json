@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788151469.0099473,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T11:59:29+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-f48af7176c692927bd9a3305.json",
+ "profile_record_id": "profile-f48af7176c692927bd9a3305",
+ "promotion_allowed": false,
+ "question": "Does the CUDA extension compile and run on this box and if so what is the norm qkv kernel time on shape 1 against the 49.3 microseconds the Triton version takes",
+ "request_id": "eaf38cdbd0d185d2b3caa51f10ba9860",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/18a3f0fdd908d7d592c37556e4d19ef3b686703fc35b9cc4df857208e193811e.json",
+ "request_sha256": "18a3f0fdd908d7d592c37556e4d19ef3b686703fc35b9cc4df857208e193811e",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "fa30d1f8d43f2d8bb71272cc14d230c24ecfefa6501b372ebd32d752cc175101",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

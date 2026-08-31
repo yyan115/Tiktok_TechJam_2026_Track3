@@ -700,12 +700,28 @@ class UserOptimizedTransformer(BaselineTransformer):
             c = _sub_pack_fused_layer(layer)
             # Splitting the QKV chunk across the grid trades a 3x wider launch
             # and one live weight tile instead of three against normalising the
-            # token tile three times. Measured, that trade is strongly positive
-            # at d_model 128 (shape 2 +27.6%, shape 3 +15.8% on the shipped
-            # file) and NEGATIVE at d_model 32 (shape 7 -5.1%), because a 32x32
-            # weight tile creates no register pressure to relieve while the
-            # duplicated LayerNorm is paid in full. Gate on the width.
-            qkv_chunks = 3 if D >= 64 else 1
+            # token tile three times. BOTH sides of that trade were measured on
+            # the shipped file, and the gate has two terms because the cost has
+            # two independent causes.
+            #
+            # WIDTH. At d_model 32 the weight tile is 2 KB, so there is no
+            # register pressure to relieve, while the duplicated LayerNorm is
+            # paid in full: shape 7 measured -5.1% before this term was added.
+            #
+            # TOKEN COUNT. The benefit is grid starvation relief and decays as
+            # the grid fills; the cost is a 3x re-read of x and grows linearly
+            # with tokens. Measured on the shipped artifact:
+            #
+            #     128 tokens  +24.1%      2048 tokens  +5.4%, +0.6%
+            #     512 tokens  +15.8%      8192 tokens  -0.1%, -1.3%
+            #                            65536 tokens  -6.9%   (shape 13)
+            #
+            # Shape 13 is the largest number on the board and the split cost it
+            # 6.9%, which is why the threshold is not optional. 4096 sits in the
+            # untested gap between the last measured gain and the first measured
+            # loss; no official shape lands there, so the choice is unambiguous
+            # for this board and is stated as a bound rather than a tuning.
+            qkv_chunks = 3 if (D >= 64 and tokens <= 4096) else 1
             grid1 = lambda meta: (triton.cdiv(tokens, meta["BLOCK_T"]),  # noqa: E731
                                   qkv_chunks)
             _sub_norm_qkv[grid1](

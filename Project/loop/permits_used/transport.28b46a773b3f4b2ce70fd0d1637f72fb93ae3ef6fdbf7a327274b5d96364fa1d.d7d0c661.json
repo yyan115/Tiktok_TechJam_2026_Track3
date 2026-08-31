@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788153071.8962317,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T12:26:11+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-094f4c7ec98857ac151f734d.json",
+ "profile_record_id": "profile-094f4c7ec98857ac151f734d",
+ "promotion_allowed": false,
+ "question": "With register resident weight fragments, a single vectorized input read, padded shared and a warm up config sweep what is the CUDA norm qkv time on shape 1 against 49.3 microseconds for Triton and 203 for the naive version",
+ "request_id": "cce57f02d36df4194e61b64a5b92f69d",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/28b46a773b3f4b2ce70fd0d1637f72fb93ae3ef6fdbf7a327274b5d96364fa1d.json",
+ "request_sha256": "28b46a773b3f4b2ce70fd0d1637f72fb93ae3ef6fdbf7a327274b5d96364fa1d",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "644dcb557503c2a2781fabd6a39698e3db36f6db9fb96d3894e60a02516e1b63",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

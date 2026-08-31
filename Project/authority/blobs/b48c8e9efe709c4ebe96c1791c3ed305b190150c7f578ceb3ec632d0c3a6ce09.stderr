@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/work/profile_worker.py", line 3124, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/work/profile_worker.py", line 3090, in main
+    manifest = run_profile(document, output_dir, request_path)
+  File "/work/profile_worker.py", line 2398, in run_profile
+    metrics, tool_version = collector(parsed, evidence, notes)
+                            ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/profile_worker.py", line 1615, in collect_torch_profiler
+    ctx = build_route(parsed)
+  File "/work/profile_worker.py", line 1322, in build_route
+    model = target_module.build(official, config)
+  File "/work/target.py", line 581, in build
+    raise RuntimeError(f"k023 CUDA compile failed: {_CUDA_ERROR}")
+RuntimeError: k023 CUDA compile failed: RuntimeError: Error building extension 'k023_norm_qkv_default': [1/3] /usr/local/cuda/bin/nvcc -MD -MF cuda.cuda.o.d -DTORCH_EXTENSION_NAME=k023_norm_qkv_default -DTORCH_API_INCLUDE_EXTENSION_H -isystem /opt/python-site-2/torch/include -isystem /opt/python-site-2/torch/include/torch/csrc/api/include -isystem /usr/local/cuda/include -isystem /usr/include/python3.14 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options '-fPIC' -O3 --use_fast_math -arch=sm_86 -std=c++20 -c /tmp/k023_build/cuda.cu -o cuda.cuda.o 
+FAILED: [code=1] cuda.cuda.o 
+/usr/local/cuda/bin/nvcc -MD -MF cuda.cuda.o.d -DTORCH_EXTENSION_NAME=k023_norm_qkv_default -DTORCH_API_INCLUDE_EXTENSION_H -isystem /opt/python-site-2/torch/include -isystem /opt/python-site-2/torch/include/torch/csrc/api/include -isystem /usr/local/cuda/include -isystem /usr/include/python3.14 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options '-fPIC' -O3 --use_fast_math -arch=sm_86 -std=c++20 -c /tmp/k023_build/cuda.cu -o cuda.cuda.o 
+In file included from /usr/local/cuda/include/cuda_runtime.h:82,
+                 from <command-line>:
+/usr/local/cuda/include/crt/host_config.h:137:2: error: #error -- unsupported GNU version! gcc versions later than 15 are not supported! The nvcc flag '-allow-unsupported-compiler' can be used to override this version check; however, using an unsupported host compiler may cause compilation failure or incorrect run time execution. Use at your own risk.
+  137 | #error -- unsupported GNU version! gcc versions later than 15 are not supported! The nvcc flag '-allow-unsupported-compiler' can be used to override this version check; however, using an unsupported host compiler may cause compilation failure or incorrect run time execution. Use at your own risk.
+      |  ^~~~~
+[2/3] c++ -MMD -
