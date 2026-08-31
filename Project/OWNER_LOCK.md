@@ -50,12 +50,32 @@ Open a terminal and go to the repository:
 cd /home/admin/Desktop/Repos/Tiktok_TechJam_2026_Track3
 ```
 
+> **⚠️ STOP — ARE YOU EDITING AN ALREADY-LOCKED FILE?**
+>
+> If a lock is already active and you are changing one of its protected files,
+> **do not follow steps 1–7 below.** They are the *first* activation and they
+> will refuse you: the controller rejects `lock.activate` when an activation
+> already exists under a different `lock_id`
+> (`Project/harness/trusted_controller.py:1572-1577`), and until you get past
+> that it refuses **every** command.
+>
+> Go straight to **"If you need to change a protected file later"** near the end
+> of this file. It is five steps and the action you mint is **`lock.rotate`**,
+> not `lock.activate`.
+>
+> Recorded 31 Aug 2026, after the agent read this section instead of that one
+> and handed the owner a procedure that jammed the controller mid-fix.
+
 Decide where the private keys live. Best is removable media or a separate
 volume, because the agent cannot read a USB stick that is not plugged in:
 
 ```bash
 export KEYS=/run/media/$USER/<your-stick>/techjam-owner-keys
 ```
+
+**On this machine the keys are at `~/techjam-keys`** (confirmed by the owner
+31 Aug). The two paths above are the generic recommendations; the live one is
+that. Capabilities land in `~/techjam-keys/capabilities/`.
 
 If you have no stick right now, you can use your home directory, but understand
 the trade: the agent runs as the same user, so only the guard rules — not the

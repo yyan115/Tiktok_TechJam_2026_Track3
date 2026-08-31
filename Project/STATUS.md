@@ -89,6 +89,32 @@ Verified correct in the same pass, so the picture is not uniformly bad:
 - **Strikes**: all thirteen family groups read `strikes: 0`.
 - **Gate**: `reconcile` runs clean, nothing stuck.
 
+## 3c. UNBLOCKED 31 Aug ~20:45 — shape 6 now passes end to end
+
+The owner applied the two one-line evaluator fixes (`mask.device != device` →
+`mask.device.type != device.type`), rebuilt and re-signed the lock, and rotated
+it. Verified independently from this session:
+
+- `verify-lock`: `valid: true`, `active: true`, 29 files, new `lock_id`
+  `lock-a764254ad96041fc59f5`, epoch `post-fix-20260831T123903Z`
+- `reconcile`: clean
+- no permit armed; controller reads 223 issued / 222 consumed, and the single
+  `open_permits` is the long-documented unconsumed probe, not a new jam
+
+**Shape 6 result reported by the owner: `correct: true`, memory flat, median
+70.66 ms, and it cost zero gate attempts.** That removes one of the two shapes
+that could have scored zero. Shape 14 is unblocked by the same fix and has not
+been run yet.
+
+**Two errors in the instructions this session gave for that fix, both corrected
+in `Project/OWNER_LOCK.md`:** the procedure needed `lock.rotate`, not
+`lock.activate` — a prior activation under a different `lock_id` makes the
+controller refuse everything (`trusted_controller.py:1572-1577`) — and the keys
+are at `~/techjam-keys`, not the removable-media path. The correct five-step
+procedure was already written in `OWNER_LOCK.md` under *"If you need to change a
+protected file later"*; the first-activation section was read instead. A
+signpost now sits at the top of that file.
+
 ## 4. What is unmeasured between §2 and §1
 
 These landed after `54057a33…` and have no twelve-shape board:
