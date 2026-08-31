@@ -48,6 +48,54 @@ lands.
 
 ---
 
+## PHASE 0-bis — THE BUDGET BLOCKER. Checked at revision 6, and it stops Phase 1 dead.
+
+**`F-shape12-graph|12` has `budget_attempts: 12` and `scientific_attempts: 12`. It is
+EXHAUSTED. Zero attempts remain on shape 12.**
+
+Phase 1 as written was *"three byte-identical screening runs on shape 12."* **It cannot
+run.** I picked shape 12 precisely because it is the noisiest shape on the board — and it is
+the one family I drained, five attempts today alone (ungated split, k027 control, gated
+build, and two replicates).
+
+Full picture, `budget_attempts: 12` per family, read from `gate_state.json`:
+
+| family | spent | **left** |
+|---|--:|--:|
+| **F-shape12-graph** | **12** | **0 — EXHAUSTED** |
+| F-shape1-graph | 10 | 2 |
+| F-shape13-graph | 10 | 2 |
+| F-shape11-graph | 8 | 4 |
+| F-shape10-graph | 6 | 6 |
+| the remaining fused families | 6–8 each | 4–6 each |
+
+Campaign-wide: **58 of 200** spent, so the *campaign* has room. The constraint is
+**per-family**, and it bites hardest on exactly the three shapes this plan leans on most:
+shape 12 (the resolution measurement), shape 13 (the only shape where the attention work
+pays), and shape 1 (the modal geometry).
+
+**This also blocks the bar itself.** Condition 6 requires every board row on one artifact —
+and the shape-12 row cannot be measured at all.
+
+### Two fixes, and both should be taken
+
+**1. Move what can move to the diagnostic lane, which costs zero attempts.** Diagnostics are
+free against the attempt budget and I have been running them all session. They measure
+per-kernel device time rather than end-to-end speedup — a different quantity — but they
+demonstrably capture the same variability: the shape-12 paired diagnostics swung **14–17%
+across all four kernels at once**, which is how the condition change was detected in the
+first place. So **Phase 1's resolution measurement moves to repeated diagnostics on the
+current artifact**, and Phase 3's lever *triage* moves there too. Attempts are then spent
+only on levers that survive triage, and on the final board.
+
+**2. Ask the owner to raise `budget_attempts`.** They have done this before — 60→200
+campaign-wide and 8→12 per family — in about a minute, and LESSONS 54 is the record of me
+treating that number as physics when it is a value the owner controls. **Shape 12 needs at
+least 2 (final board row + one replicate); shapes 1 and 13 need ~4 each.** Request it now,
+alongside the Phase 0 evaluator fix, rather than discovering it mid-run.
+
+---
+
 ## PHASE 1 — prove the instrument. Nothing else is meaningful first.
 
 **Why first.** On 31 Aug, byte-identical bytes returned **11.2516× and 9.7638× on shape 12
@@ -58,8 +106,18 @@ run-to-run reproducibility (LESSONS 59). Lengthening the autotuner's benchmarkin
 halved it to 5.1% **and raised the mean 9%** — the short window was crowning genuinely
 worse kernels. GPU clocks are now locked at 1665/7001 MHz.
 
-**Do:** three byte-identical screening runs of the current artifact on shape 12 (the
-noisiest shape on the board), locked clocks, quiet box.
+**Do — revised for the budget blocker above.** Shape 12 has zero attempts left, so this
+runs in the **diagnostic lane, which costs no attempt budget**: three repeated diagnostics
+of the current artifact on shape 12, locked clocks, quiet box.
+
+Read the spread across **the kernels that did not change** — that is the tell this project
+already learned to use. On shape 13 the two untouched kernels agreed to **0.2%** and the
+changed one moved 9.6%, which is what made that pair believable; on shape 12 all four moved
+**14–17% together**, which is what exposed the condition change. Unchanged kernels are a
+free, always-available null control, and they need no attempt.
+
+**If the owner raises shape 12's budget**, confirm with one end-to-end screening replicate,
+since speedup is the quantity actually claimed and device time is only a proxy for it.
 
 **Gate — per lever, not global.** The first draft said *"spread > 5% aborts the optimisation
 phases entirely."* **That is wrong and would have thrown away work that stays perfectly

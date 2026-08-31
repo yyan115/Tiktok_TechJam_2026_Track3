@@ -111,7 +111,7 @@ Stated bluntly so the gap is not softened.
 | 3 | ❌ | 92% of budget used, and unmeasurable until #1 |
 | 4 | ❌ | last measured spread 5.1% (autotune fixed); clocks now locked, unverified |
 | 5 | ❌ | depends on 4 |
-| 6 | ❌ | **zero shapes measured on the current artifact `f462e320`** |
+| 6 | ❌ | **zero shapes measured on the current artifact `f462e320`** — and shape 12's family has **0 of 12 attempts left**, so its row cannot be measured at all without an owner budget raise |
 | 7 | ❌ | the MFU table in the report is built on pre-split kernel-module times |
 | 8 | ❌ | `SENSITIVITY.md` is pre-gate by construction and quotes a withdrawn figure |
 | 9 | ❌ | four table rows still read "NO": `_sub_attn_heads`, the fp16 route, the mask sync, and the graph input copy (partial) |
