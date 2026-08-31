@@ -1,0 +1,13 @@
+Generating SQLite file /output/raw/nsys-timeline.sqlite from /output/raw/nsys-timeline.nsys-rep
+Processing [/output/raw/nsys-timeline.sqlite] with [/usr/local/cuda-13.0/nsight-systems-2025.3.2/host-linux-x64/reports/cuda_api_sum.py](nvtx=profile-measured)... 
+Time (%),Total Time (ns),Num Calls,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+40.5,6602225,1660,3977.2,3862.5,3327,22282,898.9,cudaLaunchKernel
+24.2,3933690,1,3933690.0,3933690.0,3933690,3933690,0.0,cudaProfilerStop
+17.7,2883421,640,4505.3,4398.0,3877,11732,732.2,cuLaunchKernel
+14.9,2419908,340,7117.4,7114.0,5892,13536,996.0,cudaMemcpyAsync
+1.1,172830,640,270.0,271.0,180,471,32.8,cuKernelGetFunction
+1.0,159553,1660,96.1,100.0,70,171,14.2,cuKernelGetName
+0.6,105688,480,220.2,230.0,160,310,30.5,cudaMemsetAsync
+0.0,3506,1,3506.0,3506.0,3506,3506,0.0,cudaDeviceSynchronize
+0.0,2084,1,2084.0,2084.0,2084,2084,0.0,cudaProfilerStart
+

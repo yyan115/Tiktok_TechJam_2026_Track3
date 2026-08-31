@@ -4,9 +4,11 @@
   "CAMP-FINAL": {
    "authority_event_id": "evt-20260831T001706.490874Z-fd5e75c4ad23",
    "authority_event_sha256": "bb700b95f3fefc188f9b6c6c9fae61b2f683a0ba989126b0b0cc98ae19ad7680",
-   "calibration_requests": 3,
+   "calibration_requests": 5,
    "calibration_requests_by_shape": {
     "11": 1,
+    "2": 1,
+    "3": 1,
     "7": 2
    },
    "calibrations": {
@@ -18,6 +20,36 @@
      "promotion_threshold": 1.0593060907002403,
      "request_id": "dc99d9bde9007617e4a9f4f13366ccd8",
      "request_sha256": "f0ae46fca02b471a1c4a4e9a7d0664960226cc4cd7accbb60fe250548f17e352",
+     "timing_config": {
+      "repeats": 100,
+      "rounds": 3,
+      "warmup": 20
+     },
+     "worker_environment_sha256": "7772f7d4a9f789f50dc025542540c5daa6d3a150d93143557db160977c9dc4be"
+    },
+    "2": {
+     "entry_id": "run-ebf0dc73869cecf9c0ea06194d8d8603",
+     "machine_state_sha256": "f723a2ef82f1aca6f7fac3a2bc852db202d66c58f2bf745355c0864756d653db",
+     "measurement_event_sha256": "271abd35b6d63dd52debf49abc4a8c9d12cbbbfe9e0b4ad32fa783724da86a57",
+     "noise": 0.0035838209883785055,
+     "promotion_threshold": 1.03,
+     "request_id": "f60b3dc7aa214e99e7fa1d0333e9b3d0",
+     "request_sha256": "0232a42d3b3f0888224f29f1629ae10438766646d5903b735eb7226430eeef86",
+     "timing_config": {
+      "repeats": 100,
+      "rounds": 3,
+      "warmup": 20
+     },
+     "worker_environment_sha256": "7772f7d4a9f789f50dc025542540c5daa6d3a150d93143557db160977c9dc4be"
+    },
+    "3": {
+     "entry_id": "run-ddc82141c0d8c2faea55a53eb8476712",
+     "machine_state_sha256": "f723a2ef82f1aca6f7fac3a2bc852db202d66c58f2bf745355c0864756d653db",
+     "measurement_event_sha256": "8325085c163cb9ffbbf8ace9c4da0fe500b8b3d7679dd49b07a75e97910a3cff",
+     "noise": 0.004751351269611126,
+     "promotion_threshold": 1.03,
+     "request_id": "74aea910162f03d75d3c523a7692b848",
+     "request_sha256": "c414977e085c904efdc7b8645a2c9b3553418898f00b12b8c2f42595576b82a6",
      "timing_config": {
       "repeats": 100,
       "rounds": 3,
@@ -44,7 +76,9 @@
    "campaign_id": "CAMP-FINAL",
    "families_tried": [
     "F-shape11-graph",
-    "F-shape7-graph"
+    "F-shape7-graph",
+    "F-shape2-graph",
+    "F-shape3-graph"
    ],
    "max_calibrations_per_shape": 3,
    "max_total_attempts": 60,
@@ -53,7 +87,7 @@
    "opened_epoch": 1788135426.7629273,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 4,
+   "scientific_attempts": 6,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -782,11 +816,12 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 3,
+   "scientific_attempts": 4,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
-    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6"
+    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6",
+    "68a626b396ede8d427652ec0158760081d57aec8496f0fb76f313e725e4f05fa"
    ],
    "strikes": 0
   },
@@ -802,11 +837,12 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 3,
+   "scientific_attempts": 4,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
-    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6"
+    "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6",
+    "68a626b396ede8d427652ec0158760081d57aec8496f0fb76f313e725e4f05fa"
    ],
    "strikes": 0
   },
@@ -1310,6 +1346,55 @@
    "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
    "tool": "nsys"
   },
+  "profile-3729e313cb1de9bcb5c90684": {
+   "artifact_path": "Project/loop/profile_evidence/profile-3729e313cb1de9bcb5c90684.json",
+   "artifact_sha256": "b23beecd73556363dcc0003f02b30afc58bb466ad4828d13fd4964be39b058b5",
+   "created_epoch": 1788140050.64262,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 12.0,
+    "gpu_busy_ns": 7071968.0,
+    "gpu_idle_fraction": 0.8849600212304378,
+    "gpu_span_ns": 61474003.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "23edd16b9e68243d8a739eb7fe87bbc9dc9c5eddd9606f5c17fc8816e0d78550",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-3729e313cb1de9bcb5c90684",
+   "reconciled_state_seq": 252,
+   "shape": 2,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
+  },
   "profile-3d9f7dabfba6348163f24495": {
    "artifact_path": "Project/loop/profile_evidence/profile-3d9f7dabfba6348163f24495.json",
    "artifact_sha256": "2ccd7ed60bf1f9fb3f0e9f98972ca627a44063ed4ad0c49a255bcf6037da3efe",
@@ -1571,6 +1656,55 @@
    ],
    "target_sha256": "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
    "tool": "torch-profiler"
+  },
+  "profile-962f5f0863071910d2433071": {
+   "artifact_path": "Project/loop/profile_evidence/profile-962f5f0863071910d2433071.json",
+   "artifact_sha256": "01d9db14c9778090bb625a0f46a7a1401237410c4f2d364813b653caa79ea666",
+   "created_epoch": 1788140248.9421258,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 12.0,
+    "gpu_busy_ns": 8982142.0,
+    "gpu_idle_fraction": 0.8246537464042092,
+    "gpu_span_ns": 51225172.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "f3e26dcdbd58e17107c5ae35f132ee04cf3e54aea1cf55e615453d34978bc4f3",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-962f5f0863071910d2433071",
+   "reconciled_state_seq": 260,
+   "shape": 3,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
   },
   "profile-aca09621876d52d876181c67": {
    "artifact_path": "Project/loop/profile_evidence/profile-aca09621876d52d876181c67.json",
@@ -2027,7 +2161,13 @@
   "be0c26459c067dde338c4e5337848fd4d40286ddfb72b01dae399dc7b00106d3",
   "351c8485d60c1b722c1a86babef352d998102f7c2514bf7fa7d928b0e8eeac85",
   "61bf2577359811f0f3adc4dc2aa257de3dd16b1207986e1868d9ad15aca561fa",
-  "105c3099e8f874330af8b801bcbd1b288a09c9f03c5e7cd2d989e5c587dfcd02"
+  "105c3099e8f874330af8b801bcbd1b288a09c9f03c5e7cd2d989e5c587dfcd02",
+  "271abd35b6d63dd52debf49abc4a8c9d12cbbbfe9e0b4ad32fa783724da86a57",
+  "7d486872f95c7918c83b613ea43ff36289252d84de900c2d80d19061d0f47c57",
+  "21890401d7a14847adf9ab2cdc82092d50f4fbad9c892b1dafb90ff96d24d2c1",
+  "8325085c163cb9ffbbf8ace9c4da0fe500b8b3d7679dd49b07a75e97910a3cff",
+  "ef28cddda4c30f7209e79d24fc9df72c35b7ac5a8e38b7877c4151dcebdf3870",
+  "f6225f72178b1072495eb9c561a7ebdabfa444efe39aa6ae8a6e59491cd55287"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -2109,11 +2249,17 @@
   "45cb01119fda769ad61a3fc12849d4bf3b04f38498c1a7d6585b1406006c98f7",
   "0d1785f554a4911b8d70fee509fe53a22b7502c95d3dabcceb16d4255b8030ad",
   "6d8318fb2afb8acf86392881e5d2942cd7dcb9f3d84832ee00adae473cddddf5",
-  "b6141c61bc876775f84aa310189289f9af3b2c59baa3520b041d4fd44d0ec413"
+  "b6141c61bc876775f84aa310189289f9af3b2c59baa3520b041d4fd44d0ec413",
+  "0232a42d3b3f0888224f29f1629ae10438766646d5903b735eb7226430eeef86",
+  "25e71dcb1d806dd22970e27f32bf05db09aac4e7979d3b4b09f770173cdff750",
+  "6c49973f67f5a4759f8a0999163f497b445bcd2df34fd88609af19199baf1b9c",
+  "c414977e085c904efdc7b8645a2c9b3553418898f00b12b8c2f42595576b82a6",
+  "6c8cfb9597acb7c61b9c4a58b8552654620578536cf3a2febaa6c9b5ee9afa57",
+  "12823fd1d124222be32c0b4b4b66df4f22b6b7201ad1bcc8b096eda2a2cc6987"
  ],
- "research_cycle": 30,
+ "research_cycle": 32,
  "research_open": false,
- "seq": 248,
+ "seq": 264,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -2194,6 +2340,12 @@
   "45cb01119fda769ad61a3fc12849d4bf3b04f38498c1a7d6585b1406006c98f7",
   "0d1785f554a4911b8d70fee509fe53a22b7502c95d3dabcceb16d4255b8030ad",
   "6d8318fb2afb8acf86392881e5d2942cd7dcb9f3d84832ee00adae473cddddf5",
-  "b6141c61bc876775f84aa310189289f9af3b2c59baa3520b041d4fd44d0ec413"
+  "b6141c61bc876775f84aa310189289f9af3b2c59baa3520b041d4fd44d0ec413",
+  "0232a42d3b3f0888224f29f1629ae10438766646d5903b735eb7226430eeef86",
+  "25e71dcb1d806dd22970e27f32bf05db09aac4e7979d3b4b09f770173cdff750",
+  "6c49973f67f5a4759f8a0999163f497b445bcd2df34fd88609af19199baf1b9c",
+  "c414977e085c904efdc7b8645a2c9b3553418898f00b12b8c2f42595576b82a6",
+  "6c8cfb9597acb7c61b9c4a58b8552654620578536cf3a2febaa6c9b5ee9afa57",
+  "12823fd1d124222be32c0b4b4b66df4f22b6b7201ad1bcc8b096eda2a2cc6987"
  ]
 }
