@@ -294,6 +294,56 @@ shape 14's timing is **32 serial batch-1 calls, not one literal batch-32 call**,
 which is a decomposition the shape requires on this hardware and which the packet
 states in its own `limitation` field.
 
+## Kernel Code
+
+All of it is in one file: **[`Project/submission/dispatcher_region.py`](Project/submission/dispatcher_region.py)**,
+1,363 lines. That file is the only thing we wrote — it is spliced verbatim into
+TikTok's script to produce the submission, and nothing outside it is changed.
+
+It is not one function. It is **eight Triton GPU kernels** plus **one class**
+that picks which of them to run:
+
+| line | what it is |
+|--:|---|
+| 45 | `_sub_gelu` — GELU activation |
+| 218 | `_sub_attn_fwd` — standalone attention |
+| 344 | `_sub_norm_qkv` — LayerNorm fused into the QKV projection |
+| 419 | `_sub_attn_heads` — causal flash attention, one program per (tile, batch, head) |
+| 573 | `_sub_attn_block_tail` — output projection, residual, norm and GELU-FFN in one |
+| 638 | `_sub_ln_fp16` — fp16 LayerNorm |
+| 668 | `_sub_gelu_fp16` — fp16 GELU |
+| 707 | `_sub_final_norm` — final norm |
+| **804** | **`class UserOptimizedTransformer`** — the dispatcher |
+| 931 | `_fused_forward` — the megakernel route, 12 of 14 shapes |
+| 1017 | `_fp16_forward` — the tensor-core route, shapes 8 and 14 |
+
+Here is the hot loop of the attention kernel, `_sub_attn_heads`. Key blocks
+strictly below the diagonal need no causal mask and no bounds mask, so they get
+their own loop with both removed, and the softmax runs in base 2 because NVIDIA
+hardware only has a base-2 exponential:
+
+```python
+if SPLIT:
+    full_end = (pid_m * BLOCK_M) // BLOCK_N * BLOCK_N
+    # Stage 1: entirely below the diagonal. No causal mask, no bounds mask.
+    for n_start in range(0, full_end, BLOCK_N):
+        offs_n = n_start + tl.arange(0, BLOCK_N)
+        k = tl.load(qkv_base + offs_n[:, None] * (3 * D) + D + h * HD + offs_hd[None, :],
+                    mask=hd_mask[None, :], other=0.0)
+        v = tl.load(qkv_base + offs_n[:, None] * (3 * D) + 2 * D + h * HD + offs_hd[None, :],
+                    mask=hd_mask[None, :], other=0.0)
+        qk = tl.dot(q, tl.trans(k)) * qk_scale
+        m_new = tl.maximum(m_i, tl.max(qk, axis=1))
+        alpha = tl.math.exp2(m_i - m_new)
+        p = tl.math.exp2(qk - m_new[:, None])
+        l_i = l_i * alpha + tl.sum(p, axis=1)
+        acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
+```
+
+That one change took the attention kernel on shape 13 from **632.7 µs to
+582.6 µs**, measured on paired diagnostics whose two untouched kernels agreed to
+within 0.2%.
+
 ## What the kernels do
 
 The baseline executes a transformer block as roughly forty separate GPU
