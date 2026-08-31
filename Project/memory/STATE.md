@@ -120,9 +120,14 @@ per row, verified-quiet box, `correct: true` on every row.
 | 8 | 2.0160x | **2.0216x** | +0.3% | fp16 branch, **untouched by this change** |
 | **geomean** | **9.4470x** | **10.1370x** | **+7.31%** | |
 
-Arithmetic and both source columns: `Project/loop/geomean_camp_final.py`. Checked two
-independent ways (direct geomean of each column; geomean of the twelve per-shape ratios) —
-they agree to five significant figures.
+**CITATION CORRECTED 31 Aug ~20:15 — this line used to send you to the wrong file.**
+It pointed at `Project/loop/geomean_camp_final.py` for the arithmetic above. That
+script holds the LATER, four-artifact board (`2778b747`, `599f5dad`, `301d7063`,
+`418952bf`), whose shape-11 row is 17.42 and whose geomean is 10.6858x. Running it
+does not reproduce the 10.1370x table above. §0b already said that board was never
+single-build; this citation was left behind. The table's twelve rows trace
+individually through `Project/loop/gate_log.jsonl` and the packets under
+`Project/authority/`, each carrying its own `target_sha256`.
 
 **Quote 10.14x.** Ten of twelve shapes improved, one is flat, one lost.
 

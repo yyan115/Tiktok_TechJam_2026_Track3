@@ -1,5 +1,21 @@
 # Track 3 demo video — shot list v2 (30 Aug)
 
+> **⚠️ EVERY SPEED NUMBER IN THIS SCRIPT IS ONE BUILD OUT OF DATE — flagged
+> 31 Aug ~20:15. Do not record against it until this is settled.**
+>
+> This script says **9.45×** in three places (lines ~146, ~210, and the §206
+> quote). That is the board for artifact `4da76db6…`.
+> `Project/drafts/tech_report_draft.md` §2.1.1 carries a newer twelve-shape
+> board, **10.14× on `54057a33…`**, also all `correct: true`, and the README
+> draft carries the same stale 9.45× this script does. Both boards are real;
+> this file was never updated when the newer one was taken.
+>
+> Neither describes the file now in `Project/submission/` (`630a456c…`), which
+> has never been measured. See `Project/STATUS.md`. **Read the final number off
+> whichever artifact actually ships, and make all three deliverables agree
+> before filming — a lower-third that disagrees with the tech report is the
+> single most damaging thing that could go on screen.**
+
 Target ~3:00. Required: uploaded to YouTube, **public**, linked in the
 Devpost description, no third-party trademarks or copyrighted music.
 

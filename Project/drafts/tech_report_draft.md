@@ -227,10 +227,22 @@ Identical protocol, one fresh permit per row, candidate =
 | kernel module (§2.1, pre-split) | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
 
 **We quote 10.14×.** It is the artifact that ships, so it is the number that
-means anything. Both shipped-file rows are `correct: true` on every trial; the
-board arithmetic and both source columns are in
-`Project/loop/geomean_camp_final.py`, checked two independent ways (direct
-geomean of each column, and geomean of the twelve per-shape ratios).
+means anything. Both shipped-file rows are `correct: true` on every trial.
+
+**Citation corrected 31 Aug ~20:15.** This paragraph previously pointed at
+`Project/loop/geomean_camp_final.py` for the board arithmetic. **That script
+computes a different board and following the citation would not reproduce this
+table.** Its twelve rows come from four separate artifacts (`2778b747`,
+`599f5dad`, `301d7063`, `418952bf`), its shape-11 value is 17.42 rather than
+17.66, and its geomean is 10.6858×. Both boards are real measurements taken
+under the same protocol; the difference is that the table above is twelve rows
+from **one** file and that script is twelve rows from **four**, which is why the
+mixed figure is not quoted as the speedup of an artifact. `STATE.md` §0b
+recorded that distinction when the later board was built and this citation was
+never updated to match. The values in the table above are traceable
+individually through the screening-lane records in `Project/loop/gate_log.jsonl`
+and the packets under `Project/authority/`, each carrying its own
+`target_sha256`.
 
 **Ten of twelve shapes improved; shape 3 lost 6.3% and shape 10 lost 3.6%.**
 Those two losses are reported, not smoothed: they are the honest cost of applying

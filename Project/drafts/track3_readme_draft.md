@@ -91,6 +91,20 @@ that is **167,559,168 element comparisons** across the twelve shapes
 on the module board. The top row is the **submission file itself**; the
 second is the kernel modules it routes to.
 
+> **⚠️ BOARD DRIFT — flagged 31 Aug ~20:15, not yet resolved. Do not publish
+> this file until the line below is settled.**
+>
+> The table below is the **9.45× board**, measured on artifact `4da76db6…`.
+> `Project/drafts/tech_report_draft.md` §2.1.1 carries a **newer, higher board:
+> 10.14× on artifact `54057a33…`**, twelve shapes, also all `correct: true`.
+> Both are real measurements under the same protocol. This file was simply
+> never updated when the newer one was taken.
+>
+> Neither board describes the file currently sitting in `Project/submission/`,
+> which is `630a456c…` and has never been measured at all. See
+> `Project/STATUS.md` §1 and §8. **Whichever artifact ships, all three
+> deliverables must carry that artifact's board and no other.**
+
 | shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | **shipped file** | **8.17×** | **13.14×** | **12.96×** | **8.92×** | **9.12×** | **20.96×** | **2.02×** | **4.35×** | **6.54×** | **12.59×** | **10.43×** | **28.28×** | **9.45×** |
