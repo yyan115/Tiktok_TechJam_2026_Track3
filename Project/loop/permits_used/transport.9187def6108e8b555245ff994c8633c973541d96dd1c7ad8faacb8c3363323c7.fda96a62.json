@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788158373.877649,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T13:54:33+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-408b588a1a75354429929041.json",
+ "profile_record_id": "profile-408b588a1a75354429929041",
+ "promotion_allowed": false,
+ "question": "With the output clone removed on shape 4 does the memcpy count per forward drop from two to one and how much device time does that return",
+ "request_id": "58b6247189963c4ed5c344b4ec88c9bf",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/9187def6108e8b555245ff994c8633c973541d96dd1c7ad8faacb8c3363323c7.json",
+ "request_sha256": "9187def6108e8b555245ff994c8633c973541d96dd1c7ad8faacb8c3363323c7",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 4,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}
