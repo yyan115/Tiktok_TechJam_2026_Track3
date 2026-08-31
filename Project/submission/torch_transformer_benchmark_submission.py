@@ -340,11 +340,23 @@ if _TRITON_OK:
     # processes, and those processes ran ~9% slower for no reason. On a single
     # graded run that is a coin flip we were losing some of the time.
     #
-    # NOT A COMPLETE FIX: ~5% spread remains, which is the GPU's own clock
-    # behaviour. Closing it needs `nvidia-smi --lock-gpu-clocks`, therefore
-    # root, which is deliberately outside the post-LOCK shell and is the
-    # owner's to run. Until it is, treat 5% as the resolution limit on this
-    # shape and quote no delta smaller than that.
+    # NOT A COMPLETE FIX: ~5% spread remains, and it is NOT ATTRIBUTED.
+    #
+    # This paragraph previously blamed the residual on the GPU's own clock
+    # behaviour and said closing it needed `nvidia-smi --lock-gpu-clocks`.
+    # That was written without checking the card. The clocks on this box ARE
+    # locked: `Project/loop/machine_state/batch_precalib_20260830T2216SGT.json`
+    # records 450 MHz at idle on 30 Aug, and the card now reads 1665 MHz at 2%
+    # utilisation and 47 W, which is a lock holding and not a boost residual.
+    # Whether the lock predates the two runs above is not recorded anywhere, so
+    # the clock explanation is withdrawn rather than replaced.
+    #
+    # What is left as a candidate cause is the autotuner itself: a longer
+    # measurement window narrows config selection variance but does not remove
+    # it, and nothing else in the loop varies between processes except the
+    # allocator's addresses and whatever else is on the machine. Treat 5% as
+    # the measured resolution limit on this shape and quote no delta smaller,
+    # but do not repeat the claim that root access would close it.
     #
     # Both spreads are from n=2. They establish the direction and the rough
     # magnitude; they do not establish 5.1% to two significant figures.
