@@ -154,12 +154,26 @@ if _TRITON_OK:
     # CUDA graph capture and well outside the timed region, so it does not enter
     # any reported number.
     #
-    # NOT A COMPLETE FIX. The other half is the GPU's own clock behaviour, which
-    # needs `nvidia-smi --lock-gpu-clocks` and therefore root, and root is
-    # deliberately outside the post-LOCK shell. Whether this change or the clock
-    # lock is the larger term is UNMEASURED — the honest test is to replicate
-    # one shape several times after each, separately, and see which collapses
-    # the spread.
+    # MEASURED, on shape 12, clocks NOT locked so this isolates the autotuner:
+    #
+    #   short defaults   9.7638x  11.2516x            spread 13.2%
+    #   200/800 ms      11.1744x  11.7428x            spread  5.1%
+    #
+    # Two things happened, and the second is the one worth having. The spread
+    # more than halved — and the LEVEL rose about 9%, from a mean near 10.5x to
+    # near 11.46x. A more careful choice is not just a more repeatable choice;
+    # the short window was crowning genuinely worse kernels on some fraction of
+    # processes, and those processes ran ~9% slower for no reason. On a single
+    # graded run that is a coin flip we were losing some of the time.
+    #
+    # NOT A COMPLETE FIX: ~5% spread remains, which is the GPU's own clock
+    # behaviour. Closing it needs `nvidia-smi --lock-gpu-clocks`, therefore
+    # root, which is deliberately outside the post-LOCK shell and is the
+    # owner's to run. Until it is, treat 5% as the resolution limit on this
+    # shape and quote no delta smaller than that.
+    #
+    # Both spreads are from n=2. They establish the direction and the rough
+    # magnitude; they do not establish 5.1% to two significant figures.
     _SUB_TUNE_WARMUP_MS = 200
     _SUB_TUNE_REP_MS = 800
 
