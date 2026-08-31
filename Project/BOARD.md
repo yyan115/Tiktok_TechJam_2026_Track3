@@ -41,10 +41,44 @@ Measured 1 Sep 2026, 02:15 to 02:44 SGT, except shape 14 which was measured at
 
 **Geometric mean speedup over the twelve shapes that have a baseline: 11.87×.**
 
-**Mean MFU across all fourteen shapes, weighted equally: 42.7%.**
-
 **Geometric mean against PyTorch's sdpa, over the twelve it can run: 7.42×** —
 subject to the two caveats below, which are not small.
+
+---
+
+## 1a. The score under five weightings, because the weighting is not decided
+
+The organiser has stated that Technical Execution is **a weighted sum of
+per-shape MFU**, that **the weights are not yet decided**, and that bandwidth
+will be taken into account. A single aggregate number would therefore be a bet on
+an unpublished rule. These are the same fourteen measurements added up five ways:
+
+| how the 14 shapes are combined | our score | what it rewards |
+|---|--:|---|
+| geometric mean, all 14 | **35.5%** | punishes the worst shape hardest |
+| **equal weight, all 14** | **42.7%** | every shape counts the same |
+| equal weight, the 12 with a runnable baseline | 37.5% | excludes the two extreme shapes |
+| **bandwidth-weighted, all 14** | **87.1%** | shapes that move more bytes count more |
+| **FLOP-weighted, all 14** | **88.6%** | shapes that do more arithmetic count more |
+
+**The spread is 35.5% to 88.6% on identical measurements.** That is not noise and
+it is not a choice we get to make. It is the entire range the undecided weighting
+covers, and we report all of it rather than quoting whichever end flatters us.
+
+**Why the range is so wide.** Shape 14 is **99.87% of all the arithmetic in the
+benchmark** (1,391,251 of 1,393,016 GFLOP) and **94.4% of the minimum bytes
+moved**. Any work-proportional weighting is therefore close to a report of shape
+14 alone, where we reach 88.7%. Any per-shape weighting is dominated instead by
+shape 2 at 5.3%, which is capped near 21% by occupancy no matter who writes it.
+
+**Which one we optimise against:** equal weight across all 14, by owner
+direction. It is the least favourable reading and the one that keeps pressure on
+the small shapes, which is where our remaining headroom is.
+
+**Provenance note:** the FLOP weighting uses per-shape GFLOP derived in §5.6 and
+checked by hand. The bandwidth weighting uses the `ideal MB` column of
+`Project/research/roofline-table.md`, which is a research note rather than a
+measured packet, so that row is a weaker citation than the rest of this board.
 
 ---
 

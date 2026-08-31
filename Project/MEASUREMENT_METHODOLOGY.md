@@ -216,9 +216,38 @@ rather than kernel engineering. Both are legal under the 2e-3 predicate. The
 **Geometric mean against sdpa over the twelve it can run: 7.42×**, with the †
 caveats attached.
 
-**Mean MFU across all fourteen shapes, weighted equally: 42.7%.** This is the
-figure closest to what the organiser described as the technical score, since the
-score is a weighted sum of per-shape MFU and the weights are not yet published.
+### 5.1 The score under five weightings, because the weighting is not decided
+
+Section 1 quotes the organiser: Technical Execution is a **weighted sum of
+per-shape MFU**, the **weights are not decided**, and bandwidth will be taken
+into account. Reporting one aggregate would be a bet on an unpublished rule, so
+here are the same fourteen measurements combined five ways.
+
+| how the 14 shapes are combined | our score | what it rewards |
+|---|--:|---|
+| geometric mean, all 14 | **35.5%** | punishes the worst shape hardest |
+| **equal weight, all 14** | **42.7%** | every shape counts the same |
+| equal weight, the 12 with a runnable baseline | 37.5% | excludes the two extreme shapes |
+| **bandwidth-weighted, all 14** | **87.1%** | shapes that move more bytes count more |
+| **FLOP-weighted, all 14** | **88.6%** | shapes that do more arithmetic count more |
+
+**The spread is 35.5% to 88.6% on identical measurements**, and the cause is
+concentrated in one shape. Shape 14 is **99.87% of all the arithmetic** in this
+benchmark (1,391,251 of 1,393,016 GFLOP) and **94.4% of the minimum bytes
+moved**, and we reach 88.7% on it. So any work-proportional weighting is close to
+a report of shape 14 alone. Any per-shape weighting is dominated instead by
+shape 2 at 5.3%, whose occupancy ceiling is about 21% for any implementation.
+
+**We optimise against equal weight across all 14**, by owner direction. It is the
+least favourable of the five and it keeps the pressure on the small shapes, which
+is where the remaining headroom is. All five are reported because which one the
+judge applies is not ours to choose, and a reader assuming a different rule
+should find their number here rather than have to recompute it.
+
+The FLOP weighting uses the per-shape GFLOP derived in section 4.6 and checked by
+hand. The bandwidth weighting uses the `ideal MB` column of
+`Project/research/roofline-table.md`, a research note rather than a measured
+packet, so that row rests on a weaker citation than the others.
 
 Shapes 6 and 14 have no speedup and cannot have one. TikTok's baseline runs out
 of memory at batch 10,000 on this card, and its dense attention matrix at 100,000

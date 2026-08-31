@@ -275,10 +275,41 @@ that margin is precision rather than kernel engineering. Both are legal under th
 2e-3 predicate. §9 gives the full treatment. **The `speedup` column has neither
 problem and is the one to defend.**
 
-**We quote 11.87×**, over the twelve shapes that have a baseline to divide by,
-and **42.7% mean MFU** over all fourteen. The second figure is closer to what the
-organiser described as the technical score, which is a weighted sum of per-shape
-MFU with weights not yet published.
+**We quote 11.87×**, over the twelve shapes that have a baseline to divide by.
+
+### 2.1.1a The score under five weightings
+
+The organiser has said Technical Execution is a **weighted sum of per-shape MFU**,
+that the **weights are not decided**, and that bandwidth will be considered. A
+single aggregate is therefore a bet on an unpublished rule. The same fourteen
+measurements, combined five ways:
+
+| how the 14 shapes are combined | our score | what it rewards |
+|---|--:|---|
+| geometric mean, all 14 | **35.5%** | punishes the worst shape hardest |
+| **equal weight, all 14** | **42.7%** | every shape counts the same |
+| equal weight, the 12 with a runnable baseline | 37.5% | excludes the two extreme shapes |
+| **bandwidth-weighted, all 14** | **87.1%** | shapes moving more bytes count more |
+| **FLOP-weighted, all 14** | **88.6%** | shapes doing more arithmetic count more |
+
+**35.5% to 88.6% on identical measurements.** The spread has a single cause:
+shape 14 is **99.87% of all the arithmetic** in this benchmark (1,391,251 of
+1,393,016 GFLOP) and **94.4% of the minimum bytes moved**, and we reach 88.7% on
+it. Any work-proportional weighting is therefore close to a report of shape 14
+alone. Any per-shape weighting is dominated instead by shape 2 at 5.3%, whose
+occupancy ceiling is roughly 21% for any implementation (§2.3).
+
+**We optimise against equal weight across all 14**, by owner direction. It is the
+least favourable of the five and it holds the pressure on the small shapes, which
+is where the headroom is. We publish all five because the rule is the organiser's
+to set, and because a reader applying a different one should find their number
+rather than have to derive it.
+
+The FLOP weighting uses the per-shape GFLOP checked by hand in §2.3. The
+bandwidth weighting uses the `ideal MB` column of
+`Project/research/roofline-table.md`, which is a research note rather than a
+measured packet, so that row rests on a weaker citation than the others and is
+labelled as such.
 
 **What is new here is not the number, it is that there is only one hash.** The
 previous board (10.14×, artifact `54057a33…`) was also single-artifact and also

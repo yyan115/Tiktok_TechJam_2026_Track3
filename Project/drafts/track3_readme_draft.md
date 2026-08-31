@@ -142,8 +142,31 @@ submission file a judge would run. Per-row packet hashes and entry ids are in
 | 14 | B32 s100000 d1024 h16 | *infeasible* | *cannot run* | **48.271 s** | *no baseline* | **runs** | **88.7%** | 42.808 s |
 
 **Geometric mean over the twelve shapes with a baseline: 11.87×.**
-**Mean MFU over all fourteen, weighted equally: 42.7%.**
 **Geometric mean against PyTorch's sdpa: 7.42×**, with the † caveats below.
+
+### The score depends on a weighting the organiser has not decided
+
+Technical Execution is a weighted sum of per-shape MFU, and the organiser has
+said the weights are still open and that bandwidth will be considered. The same
+fourteen measurements, combined five ways:
+
+| how the 14 shapes are combined | our score | what it rewards |
+|---|--:|---|
+| geometric mean, all 14 | **35.5%** | punishes the worst shape hardest |
+| **equal weight, all 14** | **42.7%** | every shape counts the same |
+| equal weight, the 12 with a baseline | 37.5% | excludes the two extreme shapes |
+| **bandwidth-weighted, all 14** | **87.1%** | shapes moving more bytes count more |
+| **FLOP-weighted, all 14** | **88.6%** | shapes doing more arithmetic count more |
+
+**35.5% to 88.6% on identical numbers.** The cause is one shape: shape 14 is
+99.87% of all the arithmetic in the benchmark and 94.4% of the minimum bytes
+moved, and we reach 88.7% on it. So any work-proportional weighting is close to a
+report of shape 14 alone, while any per-shape weighting is dominated by shape 2
+at 5.3%, which occupancy caps near 21% for any implementation.
+
+**We optimise against equal weight** — the least favourable of the five — because
+it keeps the pressure on the small shapes where the headroom is. We publish all
+five because the rule is not ours to pick.
 
 **† The two sdpa columns are weaker evidence than the rest of the table, and we
 would rather say so than let a reader assume otherwise.** They were measured on

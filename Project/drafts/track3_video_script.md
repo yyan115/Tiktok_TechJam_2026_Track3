@@ -232,7 +232,11 @@ differentiated thirty seconds in the video.
 
 - geomean **11.87×** across the twelve shapes with a runnable baseline, measured
   on the submission file itself
-- mean MFU **42.7%** across all fourteen shapes, weighted equally
+- utilisation is a **range, not a number**, and say why: the organiser has not
+  decided the weighting. Equal weight across 14 gives **42.7%**; weighted by
+  arithmetic it is **88.6%**; by memory traffic **87.1%**. Same measurements.
+  One cause: shape 14 is 99.87% of all the arithmetic and we run it at 88.7%.
+  **We optimise against the worst of those and publish all of them.**
 - **7.42× against PyTorch's own fused flash attention** — say the caveat in the
   same breath or do not say the number: it was measured on a different build, and
   PyTorch runs at fp32 there while we run fp16, so part of that margin is

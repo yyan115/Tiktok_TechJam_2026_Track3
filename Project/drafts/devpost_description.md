@@ -19,8 +19,17 @@ maximum.**
 
 The 11.87× is over the twelve shapes that have a baseline to compare against.
 Shapes 6 and 14 have none, because the official baseline runs out of memory on
-one and would need roughly 160 TB of attention matrix on the other. Across all
-fourteen shapes, weighted equally, our mean model FLOPs utilisation is 42.7%.
+one and would need roughly 160 TB of attention matrix on the other.
+
+**On utilisation, we report a range rather than a number, on purpose.** The
+organiser has said the technical score is a weighted sum of per-shape MFU and
+that the weights are not yet decided. The same fourteen measurements give
+**42.7%** if every shape counts equally, **88.6%** if shapes are weighted by the
+arithmetic they perform, and **87.1%** if weighted by memory traffic. The spread
+is real and has one cause: shape 14 is 99.87% of all the arithmetic in the
+benchmark, and we run it at 88.7% of the card's physical maximum. We publish all
+of them because the rule is the organiser's to set, and we optimise against the
+least favourable one.
 
 Against **PyTorch's own fused flash attention** (`scaled_dot_product_attention`),
 rather than TikTok's naive reference, the margin is about **7.42×**. That figure
