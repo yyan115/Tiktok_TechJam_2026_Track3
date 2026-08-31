@@ -7,7 +7,7 @@ This project combines modern kernel-agent techniques with cryptographic signing
 and loop engineering, so that the agent doing the optimising cannot drift off
 task and cannot falsify its own results. It never measures its own work: every
 number below came out of a locked program the agent has no write access to,
-under a single-use permit signed with a key only the human owner holds.
+under a single-use permit drawn from a run budget only the human owner can sign.
 
 **Run on my own desktop — one NVIDIA RTX 3060 Ti, a consumer card with 8 GB.**
 
@@ -56,8 +56,8 @@ is hash-pinned under a signature whose private key only the human owner holds.
   Triton/CUDA    bound to        29 files,      no home,       every trial,     GPT-5.6,
                  its sha256      Ed25519        read-only      hash-chained     blind
                      ▲
-                     │ only the human owner holds the key to sign one
-                     │
+                     │ the owner signs ONE capability worth N runs; the system
+                     │ spends it one permit at a time and stops dead at zero
   └ AI edits ┘   └──────── AI has no key and no write access, ever ────────┘
 ```
 
