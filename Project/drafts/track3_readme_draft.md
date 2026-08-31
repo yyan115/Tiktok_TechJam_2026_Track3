@@ -34,34 +34,20 @@ The agent that writes the kernels is **structurally forbidden from measuring
 them**. It can edit the first box and nothing else; every stage after the permit
 is hash-pinned under a signature whose private key only the human owner holds.
 
-```mermaid
-flowchart LR
-    K["<b>AI writes the kernel</b><br/>Triton / CUDA<br/><i>can edit only this</i>"]
-    O(["<b>Human owner</b><br/><i>holds the only signing key</i>"])
-    P{"<b>One-use permit</b><br/>bound to that exact<br/>file's sha256"}
-    C["<b>Locked referee</b><br/>29 files, Ed25519-signed<br/><i>re-hashed before every run</i>"]
-    S["<b>Sandbox</b><br/><i>no network · no home<br/>source mounted read-only</i>"]
-    E["<b>Evidence packet</b><br/>300 raw samples<br/>every correctness trial<br/><i>content-addressed, hash-chained</i>"]
-    A["<b>Rival AI audits</b><br/>GPT-5.6, blind<br/><i>sees the packet, not the author</i>"]
-
-    K -- "asks to be measured" --> P
-    O -- "signs a capability" --> P
-    P --> C --> S --> E
-    E -.-> A
-    A -.-> |"hard verdict halts everything"| O
-
-    style K fill:#e8f0fe,stroke:#4285f4,color:#000
-    style O fill:#fef7e0,stroke:#f9ab00,color:#000
-    style C fill:#fce8e6,stroke:#d93025,color:#000
-    style S fill:#fce8e6,stroke:#d93025,color:#000
-    style E fill:#e6f4ea,stroke:#34a853,color:#000
-    style A fill:#f3e8fd,stroke:#a142f4,color:#000
+```
+  AI writes  ─▶  PERMIT      ─▶  LOCKED     ─▶  SANDBOX    ─▶  EVIDENCE     ┄▶  AUDIT
+  the kernel     one-use,        REFEREE        no network,    300 samples,     rival AI,
+  Triton/CUDA    bound to        29 files,      no home,       every trial,     GPT-5.6,
+                 its sha256      Ed25519        read-only      hash-chained     blind
+                     ▲
+                     │ only the human owner holds the key to sign one
+                     │
+  └ AI edits ┘   └──────── AI has no key and no write access, ever ────────┘
 ```
 
-**272 permits issued, 271 consumed.** The kernel agent has never held write
-access to any box to the right of the permit. The audit leg is dashed on
-purpose: 81 verdicts are in the ledger, but **none is bound to the board above**
-— see the caveat in Results and the schema defect described below.
+**272 permits issued, 271 consumed.** The audit leg is dotted on purpose: 81
+verdicts are in the ledger, but **none is bound to the board above** — see the
+caveat in Results.
 
 ## Project overview
 
