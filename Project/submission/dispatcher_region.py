@@ -1003,20 +1003,37 @@ class UserOptimizedTransformer(BaselineTransformer):
                 for s0 in range(0, S, CH):
                     s1 = min(s0 + CH, S)
                     a = F.linear(context[:, s0:s1], c["out_proj"][0], c["out_proj"][1])
-                    x2 = x[:, s0:s1] + a.float()
+                    x2 = x[:, s0:s1] + a
                     h16c = _sub_ln_to_fp16(layer.norm2, x2)
                     hid = F.linear(h16c, c["ffn_in"][0], c["ffn_in"][1])
                     hid = _sub_gelu_fp16_(hid)
                     fo = F.linear(hid, c["ffn_out"][0], c["ffn_out"][1])
-                    x_new[:, s0:s1] = x2 + fo.float()
+                    x_new[:, s0:s1] = x2 + fo
                 x = x_new
                 continue
+            # THE RESIDUAL ADDS DROP THEIR EXPLICIT .float().
+            #
+            # `x + attn_out.float()` materialises a FULL fp32 copy of attn_out
+            # and then adds it. `x + attn_out` reaches the identical result in
+            # one kernel: x is fp32, attn_out is fp16, and PyTorch's type
+            # promotion widens the operand during the add. fp16 -> fp32 is
+            # lossless, so this is bit-identical arithmetic, not a precision
+            # trade -- the same distinction the erf-GELU note above draws.
+            #
+            # WHY IT IS WORTH A COMMENT ON A ONE-TOKEN CHANGE. On shape 8 the
+            # generic at::native elementwise kernels are 24.98% of device time
+            # across 640 launches (profile-f1d7f9b7c0c65d29471227df), and the
+            # call counts identify them exactly: 320 calls = 4 per layer are the
+            # `.contiguous()` copies after the q/k/v/context transposes (8.85%),
+            # and 160 + 160 = 2 + 2 per layer are these casts and adds (16.13%).
+            # This route is the ONE dispatcher branch where that whole class of
+            # work was never fused away, and it carries 420.91 GFLOP.
             attn_out = F.linear(context, c["out_proj"][0], c["out_proj"][1])
-            x = x + attn_out.float()
+            x = x + attn_out
             h16 = _sub_ln_to_fp16(layer.norm2, x)
             hidden = F.linear(h16, c["ffn_in"][0], c["ffn_in"][1])
             hidden = _sub_gelu_fp16_(hidden)
-            x = x + F.linear(hidden, c["ffn_out"][0], c["ffn_out"][1]).float()
+            x = x + F.linear(hidden, c["ffn_out"][0], c["ffn_out"][1])
         return self.final_norm(x)
 
     def _fast_forward(self, x):
