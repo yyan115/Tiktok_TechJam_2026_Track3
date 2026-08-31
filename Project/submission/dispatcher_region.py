@@ -326,6 +326,7 @@ if _TRITON_OK:
         SEQ,
         D: tl.constexpr,
         HD: tl.constexpr, HD_PAD: tl.constexpr,
+        SPLIT: tl.constexpr,
         BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr,
     ):
         """One CTA per (q-tile, batch, head): causal flash attention for that
@@ -366,10 +367,23 @@ if _TRITON_OK:
         already 1.16e-3 against a 2e-3 criterion. No room, and this change
         spends none — shape 13 came back at 0.9e-3 to 1.7e-3, unmoved.
 
-        This pays on shape 13 and essentially nowhere else: eleven of the
-        twelve measurable shapes are seq_len 128 or 32, giving one to four
-        q-tiles, so there is almost nothing below the diagonal to skip. Shape 1
-        measured 24.828 us against 24.722 shipped — flat, as expected.
+        THE SPLIT IS GATED, AND THE GATE WAS PAID FOR. It pays on shape 13 and
+        essentially nowhere else: eleven of the twelve measurable shapes are
+        seq_len 128 or 32, giving one to four q-tiles, so there is almost
+        nothing below the diagonal to skip. Ungated it was not free on those
+        shapes — a same-session paired control on shape 12 (seq_len 32, ONE
+        q-tile, where `full_end` is always 0 and stage 1 provably never
+        executes) measured **10.4146x with the old kernel against 9.8389x with
+        the split, -5.5%**. The loop that never runs still costs, which is what
+        a dead loop body does to register allocation and therefore occupancy.
+        `SPLIT` is a constexpr computed on the host from the sequence length,
+        so when it is False Triton emits only the second loop and the code is
+        the original single-loop kernel again. `exp2` stays on unconditionally
+        because it is free everywhere.
+
+        Shape 1 (seq_len 128) measured 24.845 us against 24.722 shipped and
+        8.7858x end to end, its best figure to date, so the harm is confined to
+        the very shortest sequences.
         """
         pid_m = tl.program_id(0)
         pid_b = tl.program_id(1)
@@ -388,24 +402,29 @@ if _TRITON_OK:
         l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
         acc = tl.zeros([BLOCK_M, HD_PAD], dtype=tl.float32)
 
-        full_end = (pid_m * BLOCK_M) // BLOCK_N * BLOCK_N
+        if SPLIT:
+            full_end = (pid_m * BLOCK_M) // BLOCK_N * BLOCK_N
+            # Stage 1: entirely below the diagonal. No causal mask, no bounds
+            # mask. Emitted ONLY when the host says the sequence is long enough
+            # for this to be worth its register footprint.
+            for n_start in range(0, full_end, BLOCK_N):
+                offs_n = n_start + tl.arange(0, BLOCK_N)
+                k = tl.load(qkv_base + offs_n[:, None] * (3 * D) + D + h * HD + offs_hd[None, :],
+                            mask=hd_mask[None, :], other=0.0)
+                v = tl.load(qkv_base + offs_n[:, None] * (3 * D) + 2 * D + h * HD + offs_hd[None, :],
+                            mask=hd_mask[None, :], other=0.0)
+                qk = tl.dot(q, tl.trans(k)) * qk_scale
+                m_new = tl.maximum(m_i, tl.max(qk, axis=1))
+                alpha = tl.math.exp2(m_i - m_new)
+                p = tl.math.exp2(qk - m_new[:, None])
+                l_i = l_i * alpha + tl.sum(p, axis=1)
+                acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
+                m_i = m_new
+        else:
+            full_end = 0
 
-        # Stage 1: entirely below the diagonal. No causal mask, no bounds mask.
-        for n_start in range(0, full_end, BLOCK_N):
-            offs_n = n_start + tl.arange(0, BLOCK_N)
-            k = tl.load(qkv_base + offs_n[:, None] * (3 * D) + D + h * HD + offs_hd[None, :],
-                        mask=hd_mask[None, :], other=0.0)
-            v = tl.load(qkv_base + offs_n[:, None] * (3 * D) + 2 * D + h * HD + offs_hd[None, :],
-                        mask=hd_mask[None, :], other=0.0)
-            qk = tl.dot(q, tl.trans(k)) * qk_scale
-            m_new = tl.maximum(m_i, tl.max(qk, axis=1))
-            alpha = tl.math.exp2(m_i - m_new)
-            p = tl.math.exp2(qk - m_new[:, None])
-            l_i = l_i * alpha + tl.sum(p, axis=1)
-            acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
-            m_i = m_new
-
-        # Stage 2: the diagonal band, where the mask is real work.
+        # Stage 2: the diagonal band, where the mask is real work. With SPLIT
+        # false this is the whole loop and the kernel is the original.
         for n_start in range(full_end, (pid_m + 1) * BLOCK_M, BLOCK_N):
             offs_n = n_start + tl.arange(0, BLOCK_N)
             n_mask = offs_n < SEQ
@@ -822,7 +841,7 @@ class UserOptimizedTransformer(BaselineTransformer):
             grid2 = lambda meta: (triton.cdiv(S, meta["BLOCK_M"]), B, H)  # noqa: E731
             _sub_attn_heads[grid2](
                 qkv, ctx, qk_scale, S,
-                D=D, HD=HD, HD_PAD=hd_pad,
+                D=D, HD=HD, HD_PAD=hd_pad, SPLIT=(S >= 256),
             )
             grid3 = lambda meta: (triton.cdiv(S, meta["BLOCK_M"]), B)  # noqa: E731
             _sub_attn_block_tail[grid3](
