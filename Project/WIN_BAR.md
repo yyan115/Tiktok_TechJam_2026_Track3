@@ -68,8 +68,18 @@ every speedup is proportionally an MFU gain, and the two are the same objective.
 
 | # | condition | how it is settled |
 |---|---|---|
-| **9** | Every component >15% of device time on any shape is **either searched with a measured outcome, or explicitly closed with the measurement that closed it** | `Project/memory/HOTSPOT_COVERAGE.md` has no "NO" in the beam column without a measured reason beside it |
-| **10** | The three named untried levers are each **measured or closed**: sequence-persistent CTAs · shape 8's 24% elementwise · shrinking `_sub_attn_heads`' live set | a screening row or a written arithmetic kill for each |
+| **9** | **Every component in the `HOTSPOT_COVERAGE.md` table** — not a percentage cut-off — is either searched with a measured outcome, or explicitly closed with the measurement that closed it | no "NO" left in the beam column without a measured reason beside it |
+| **10** | **All eight levers in `WIN_PLAN.md` Phase 3** are each measured or killed on paper | a screening row, or a written arithmetic kill, for every one of 3a–3h |
+
+> **Condition 9 originally read ">15% of device time", and condition 10 named three
+> levers.** Both were wrong within an hour of being written. The 15% threshold would have
+> excluded `_sub_final_norm` (3.0–10.9%) and the mask synchronisation (0.3–5.0%) — and
+> those are *exactly* the two things a later pass found unsearched. **A threshold chosen to
+> bound effort quietly re-scopes the claim it is attached to.** The table enumerates seven
+> components; requiring all seven costs nothing extra and cannot be gamed by picking a
+> number. Three levers became eight over two revisions (`WIN_PLAN.md` Phase 3), and this
+> file did not follow until challenged — the same correction-drift failure recorded as
+> LESSONS 48, committed against my own bar.
 
 ### E. Every claim traces to an artifact
 
@@ -94,8 +104,8 @@ Stated bluntly so the gap is not softened.
 | 6 | ❌ | **zero shapes measured on the current artifact `f462e320`** |
 | 7 | ❌ | the MFU table in the report is built on pre-split kernel-module times |
 | 8 | ❌ | `SENSITIVITY.md` is pre-gate by construction and quotes a withdrawn figure |
-| 9 | ❌ | shape 8's fp16 route: never searched, 24% of its time untouched |
-| 10 | ❌ | none of the three attempted |
+| 9 | ❌ | four table rows still read "NO": `_sub_attn_heads`, the fp16 route, the mask sync, and the graph input copy (partial) |
+| 10 | ❌ | none of the eight attempted |
 | 11 | ❌ | several figures trace to notes rather than packets |
 | 12 | ❌ | three documents, three different headline numbers |
 
