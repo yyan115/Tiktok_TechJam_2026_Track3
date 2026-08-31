@@ -8,9 +8,21 @@
 
 ## An AI agent that writes GPU kernels — and a referee it is not allowed to touch
 
-**Geometric-mean 10.3× speedup on the organizers' own untouched benchmark
-script, across all twelve locally-runnable test shapes, on a consumer
-RTX 3060 Ti. Every shape passes the precision test. The two shapes that
+> **⛔ THE 10.3× BELOW IS A WITHDRAWN NUMBER. DO NOT PUBLISH THIS PARAGRAPH.**
+> Found 31 Aug ~20:20. `10.3×` is the rounded pre-gate `10.32×` figure that was
+> withdrawn on 31 Aug and corrected out of the tech report, README and video
+> script — this file was missed, and `STATE.md` compounded it by recording that
+> "devpost_description.md is clean — it carries no numeric claims", which is
+> false. This is the most exposed instance of the three, because Devpost text is
+> public and this sentence is the first thing a reader sees.
+>
+> **Replace with the board of whichever artifact actually ships.** The two live
+> candidates are `10.14×` on `54057a33…` (twelve shapes, one build, all
+> `correct: true`) and an unmeasured newer file. See `Project/STATUS.md`.
+
+**Geometric-mean [PENDING — see the block above]× speedup on the organizers' own
+untouched benchmark script, across all twelve locally-runnable test shapes, on a
+consumer RTX 3060 Ti. Every shape passes the precision test. The two shapes that
 cannot run on 8 GB in their official form are solved by block decomposition
 on the same card and verified against exact references.**
 

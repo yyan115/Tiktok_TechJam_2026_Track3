@@ -483,7 +483,16 @@ deliverables quoted the dead pre-gate board as fact:
 | `track3_readme_draft.md` | 10.32× geomean | **2.94×** |
 | `track3_video_script.md` | 10.3× geomean, 28.8× best shape | **2.94×**, best **8.11×** |
 
-`devpost_description.md` is clean — it carries no numeric claims.
+~~`devpost_description.md` is clean — it carries no numeric claims.~~
+
+**FALSE. Corrected 31 Aug ~20:20.** `devpost_description.md:11` opens with
+**"Geometric-mean 10.3× speedup"**, which is the rounded pre-gate `10.32×` —
+the very figure this section withdraws. So the file was not clean, it was
+carrying the withdrawn headline in its first sentence, and it was the only one
+of the four never checked because this line said it did not need checking. The
+number is now replaced with a `[PENDING]` and a stop banner. **A claim that a
+file needs no audit is itself a claim and must be tested like any other**
+(LESSONS 46 on meta-claims, LESSONS 48 on corrections that skip a file).
 
 **All three now carry an unmissable WITHDRAWN block with the corrected table**, placed
 above the stale text rather than replacing it, so the correction is auditable. The

@@ -59,6 +59,36 @@ match.
 match the table. This must be fixed before submission. It does not make 10.14x
 wrong.
 
+## 3b. The four deliverables disagree with each other
+
+Checked line by line this hour. Every one of these is a real measurement; the
+problem is that no two of them describe the same artifact.
+
+| file | headline it carries | artifact that board describes |
+|---|---|---|
+| `drafts/tech_report_draft.md` §2.1.1 | **10.14×** | `54057a33…` |
+| `drafts/track3_readme_draft.md` | **9.45×** | `4da76db6…` |
+| `drafts/track3_video_script.md` | **9.45×** (3 places) | `4da76db6…` |
+| `drafts/devpost_description.md` | **10.3×** | **withdrawn pre-gate figure** |
+| `Project/submission/` on disk | — | `630a456c…`, never measured |
+
+The Devpost one is the serious one: `10.3×` is the rounded `10.32×` that was
+withdrawn on 31 Aug, it was the **first sentence** of the public description,
+and `STATE.md` had recorded that this file "carries no numeric claims" — so it
+was the only draft never re-checked, because a note said it did not need it.
+All four now carry stop banners. **None of the numbers was changed**, because
+picking one is the §8 decision, not a cleanup task.
+
+Verified correct in the same pass, so the picture is not uniformly bad:
+
+- **LOCK**: `verify-lock` returns `valid: true`, `protected_file_count: 29`.
+  The integrity claim in the report holds.
+- **Correctness arithmetic**: the README's "23,937,024 output elements × 7
+  trials = 167,559,168 comparisons" is right. Summing `batch × seq × d_model`
+  over the twelve shapes gives 23,937,024 exactly.
+- **Strikes**: all thirteen family groups read `strikes: 0`.
+- **Gate**: `reconcile` runs clean, nothing stuck.
+
 ## 4. What is unmeasured between §2 and §1
 
 These landed after `54057a33…` and have no twelve-shape board:
