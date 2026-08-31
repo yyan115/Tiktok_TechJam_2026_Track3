@@ -74,57 +74,50 @@ caveat in Results.
 
 The pieces:
 
-- **Pinned shapes.** The official script's defaults match none of the 14
-  test shapes (defaults are batch 8, `d_model` 512, causal *off*). All 14
-  live in `Project/shapes.json`; the runner takes a shape id, never loose
-  dials, so the agent cannot benchmark an easier problem.
-- **A frozen referee.** `Project/harness/runner.py` is hash-pinned and
-  protected by tool deny-rules plus a shell guard hook. It re-hashes the
-  official benchmark on every run.
-- **A tripwire per documented cheat.** Wall-clock cross-check against CUDA
-  events (side-stream timing), perturbed fresh-memory re-runs (output
-  caching keyed on input address), shape assertions (silently shrinking the
-  problem), and for provenance the candidate is snapshotted into a
-  **content-addressed blob at permit issue**, with that hash bound into the
-  permit, the request and the result packet — so the audited bytes and the
-  measured bytes are the same object, not two objects asserted to match.
-  (The earlier rule was "commit to git before measuring"; our own auditor
-  found that insufficient, because a packet could still cite the current
-  source hash rather than the measured one.)
-- **A second model as auditor.** A new champion fires an audit by a different
-  model family (GPT-5.6 via Codex CLI) that is given only the evidence packet —
-  no commentary from the optimizer, no knowledge of who wrote the code — and
-  returns a typed verdict. Hard verdicts pause the machine; only the human owner can clear
-  them. **81 verdicts are in the ledger and 28 of them are rule violations
-  against us**, in `Project/audits/verdicts.jsonl`.
+- **Pinned shapes.** All 14 live in `Project/shapes.json`. The runner takes a
+  shape id, never loose dials, so the agent cannot benchmark an easier problem.
+- **A frozen referee.** `Project/harness/runner.py` is hash-pinned and re-hashes
+  the official benchmark on every run.
+- **A tripwire per known cheat.** Wall-clock cross-checked against CUDA events
+  catches side-stream timing; fresh-memory re-runs catch output caching; shape
+  assertions catch a silently shrunken problem.
+- **Provenance by hash, not by promise.** The candidate is copied into a
+  content-addressed blob when its permit is issued, and that hash is bound into
+  the permit, the request and the result packet — so the bytes audited and the
+  bytes measured are the same object.
+- **A second model as auditor.** A different model family (GPT-5.6 via Codex
+  CLI) gets only the evidence packet and returns a typed verdict. Hard verdicts
+  pause the machine; only the owner can clear them. **81 verdicts, 28 of them
+  rule violations against us**, in `Project/audits/verdicts.jsonl`.
 
-  Two honest qualifications on that, both stated rather than buried.
+Two caveats on the auditor, stated rather than buried: when the Codex quota ran
+out we fell back to Claude, and same-family review is a weaker claim than
+cross-family. And **no verdict is bound to any row of the board above** — our
+verdict schema uses `allOf`, which OpenAI's structured-output mode rejects, so
+the request fails before the model ever reads the packet.
 
-  The auditor backend is a *choice*. When the Codex quota ran out we wired
-  Claude as a fallback, and same-family review is a weaker independence claim
-  than cross-family review. Every artifact records which backend ran and whether
-  it was an independent vendor.
+### The loop: research, plan, three strikes
 
-  And **no audit verdict is bound to any row of the results below.** Earlier
-  versions of this file said the audit *recorder* was broken. That diagnosis was
-  wrong and is corrected here. The recorder is fine and **the auditor never
-  starts**: our verdict schema (`Project/audits/verdict_schema.json`, line 70)
-  uses `allOf`, which OpenAI's structured-output mode does not permit, so the
-  request fails with HTTP 400 before the model reads the packet, and Codex exits
-  1 with empty stdout.
+Optimising was not free-running. Every attempt had to pass a gate that starts
+**closed**, and reading the research base is checked, not promised:
 
-  This reproduced live on 1 September. The shape-6 measurement enqueued an audit,
-  the watcher launched the auditor three times inside a minute, all three
-  returned the same schema error, each failure was written into the hash-chained
-  audit journal, and the entry escalated to `owner_attention`. Every part of the
-  machinery worked except the schema. The fix is one edit to a file the
-  optimizing agent is denied write access to, correctly, since an agent that can
-  repair its own auditor does not have one.
+1. **Research.** Must cite at least two existing notes from `Project/research/`
+   and carry the current hash of the index, which proves it was read this cycle.
+2. **Plan.** Refused unless research happened this cycle. Needs a hypothesis, a
+   **numeric** prediction, kill criteria, and citations as `file:line` — the
+   gate resolves each one and copies the quoted text into the log, so an
+   invented citation does not survive.
+3. **One run.** The gate shuts the moment it executes. Whether it improved is
+   read from the referee's own journal, never from the agent's claim.
+4. **Three strikes.** Three attempts with no improvement closes that direction,
+   forces a written postmortem, and the agent must go somewhere else.
 
-The kernels are the deliverable; the governance is the idea. This design came
-out of a failure in a sibling track, where an agent with authority over its own
-measurement produced numbers we had to throw away — which is why the measurement
-system here was built first and the agent was never given a key to it.
+`Project/memory/` carries the decisions and lessons between sessions, so a
+mistake made once is not available to make twice.
+
+The kernels are the deliverable; the governance is the idea. It came out of a
+failure in a sibling track, where an agent with authority over its own
+measurement produced numbers we had to throw away.
 
 ## Results
 
