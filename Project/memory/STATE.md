@@ -16,7 +16,53 @@ Updated: 2026-08-31 ~10:30 SGT. Branch `grind-lastday`.
 
 ---
 
-## 🟢 0. THE HEADLINE MOVED: 9.45x → **10.14x**, measured on the file that ships.
+## 🔴 0a. TWO THINGS ONLY THE OWNER CAN DO. Everything on the GPU is stopped until then.
+
+31 Aug ~15:30 SGT. Both are control-plane, not code.
+
+1. **Mint a `permit.issue` capability slip.** Every measurement — screening,
+   diagnostic, correctness — needs one, and the file is deleted once spent
+   (`Project/OWNER_LOCK.md:302-317`). There is none on disk, so the agent cannot
+   run anything on the GPU: not the gate lanes, and not a local smoke either
+   (`Project/tools/smokes/*.py` is deliberately off the post-LOCK Bash allowlist
+   because standing order 3 forbids raw-dial benchmarking). This is the design
+   working, not a defect.
+2. **Quarantine one jammed request.** `reconcile` refuses with *"controller
+   request c284693ec34d85323fe77aa78ebd1280 is unreconciled
+   (permit-704718cd58d63e8c812ac19c8059b55e)"*. A shape-13 diagnostic consumed
+   its permit and emitted `run_started` at 07:12:32Z, then the run was
+   interrupted before any terminal event. The permit cannot be re-consumed and
+   the gate has no self-service abandon path; `run_gate.py quarantine` needs an
+   owner-signed authority receipt. **Blast radius, measured command by command:**
+   `reconcile` blocked; `research`, `plan`, `diagnostic`, `status`, `verify-lock`
+   all still work (a fresh diagnostic request was accepted at 15:12 while jammed);
+   nothing already measured is altered. Per LESSONS 47, report the table, not
+   "the gate is broken".
+
+**Waiting on those: `Project/kernels/k028_attn_fa2.py` (sha `83fbbe30…`), committed,
+unmeasured.** Diagnostic request `8309505e6e34d8ae1251b7414019c45e` is already emitted
+and waiting for a permit; its file is
+`Project/loop/requests/39332467320b731bffbf1f685622abb03a8f8326008a204a16a40f72c0e2b69b.json`.
+
+## 🟡 0b. THE BOARD BELOW IS MEASURED ON BYTES THAT NO LONGER SHIP.
+
+Correction recorded 31 Aug ~15:30 SGT, from the `Project/memory/HOTSPOT_COVERAGE.md`
+audit. Two separate problems with the numbers in section 0c:
+
+- **The 10.14x table is on artifact `54057a33…`, which stopped being the shipping
+  artifact hours ago.** At least five builds followed it.
+- **The later 10.6858x board was never on one build.** Its rows come from four
+  different artifacts: shapes 4, 5, 9, 10, 12, 13 on `2778b747…`; shapes 1 and 11
+  on `418952bf…`; shapes 2 and 7 on `599f5dad…`; shape 3 on `301d7063…`. Only
+  **shape 8** has ever been measured on the current artifact `9d7e67ab…`
+  (2.0386x, `correct: true`, seven seeds, 07:00Z).
+
+Nothing here was averaged across builds dishonestly — each row is a real measurement —
+but a geomean whose rows come from four artifacts is **not** "the speedup of the file
+that ships", and it must not be quoted as one. **Eleven rows on `9d7e67ab…` are
+outstanding**, and every one of them needs an owner capability slip (item 0a).
+
+## 🟢 0c. THE HEADLINE MOVED: 9.45x → **10.14x**, measured on the file that shipped THEN.
 
 31 Aug ~10:30 SGT. A new kernel design is **integrated into
 `Project/submission/dispatcher_region.py`**, the submission is rebuilt (`verified: true`,

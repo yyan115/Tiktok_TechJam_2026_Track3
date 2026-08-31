@@ -41,10 +41,17 @@ BOARD = {
     8:  (2.0160,  2.036889481918028,  "2778b747", "fp16 branch"),
 }
 
-# The output clone removal, measured on six shapes. Ordered by candidate time,
-# which is what the two-term model says should order it: the clone costs a
+# The output clone removal, measured on SEVEN shapes -- six gains and one loss.
+# This comment used to say "six shapes" while the dict below held seven entries;
+# the seventh is shape 4 at -3.75%, and dropping it is how the claim
+# "+0.9% to +7.0%" stayed true. Corrected 31 Aug.
+#
+# Sorted by candidate time because the two-term model predicts that ordering: a
 # fixed allocator+launch charge (dominant on short forwards) PLUS a
-# byte-proportional copy (dominant on long ones).
+# byte-proportional copy (dominant on long ones). The prediction is only PARTLY
+# borne out -- the largest gain is on the shortest forward (12) and the smallest
+# on the longest (8), but shape 5 at 1.02 ms beats shapes 9 and 10 at 0.55 ms,
+# and shape 4 is negative outright. Trend with an outlier, not a law.
 CLONE = {  # shape: (before, after, candidate_ms, output_MB)
     12: (10.6037, 11.350418084860467, 0.16, 1),
     4:  (10.6088, math.sqrt(9.98281247605889 * 10.445406955272059), 0.19, 1),
