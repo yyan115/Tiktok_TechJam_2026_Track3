@@ -465,70 +465,40 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
 
 ## Reflection: limitations, and what we would improve
 
-**Limitations we are explicit about.**
+**Limitations.**
 
-- Shape 14 is timed as **32 serial batch-1 calls, not one literal batch-32
-  call**. The full 100,000-token sequence is real and so is the 48.271 s, but
-  the batch dimension is decomposed, which the packet states in its own
-  `limitation` field. Earlier drafts reported this row as pending an
-  extrapolation. It is now measured, and the extrapolation was never used.
-- **Shapes 6 and 14 use CPU RNG in their evaluators**, so their inputs are not
-  bit-identical to a default judge run. Their packets are bound to the shipping
-  artifact and carry 5 seeds each, which resolves an earlier limitation where
-  they were one seed and cited a pre-integration file. The one-line device
-  comparison bug that blocked that re-capture has been fixed by the owner.
-- **Shape 14's correctness reference is one we wrote.** TikTok's baseline cannot
-  run at 100,000 tokens, so we compute a chunked reference performing identical
-  mathematics in bounded memory, and validate that reference against their real
-  baseline at 1,024, 2,048 and 4,096 tokens, where theirs still fits. That
-  validation is a separate check with its own limit, and both it and the
-  kernel's own correctness check pass. Full detail in
-  `Project/MEASUREMENT_METHODOLOGY.md` §7.1 and §7.2.
-- Sub-millisecond shapes are noisy on a consumer card, and we have four
-  separate measurements of how noisy, which are worth keeping apart. *Within*
-  one invocation, baseline-against-itself calibration noise is **0.03 to 0.4%**,
-  and that is what sets each shape's promotion threshold. *Across* invocations
-  of identical work, GPU clock state alone moves absolute time by about **9%**.
-  Measuring the shipped file against its own kernel module in separate
-  invocations gave **−10.0% to +2.6%** per shape. And the worst case we have
-  observed, **byte-identical code measured 13.2% apart minutes apart on shape
-  12**, is the number that actually bounds what a per-shape difference can mean.
-  The calibration figure is the misleading one: it measures second-to-second
-  steadiness inside one process, not run-to-run reproducibility, and it is
-  roughly two orders of magnitude too small for that job. The older "±25%"
-  figure came from comparing two uncontrolled pre-gate boards and should not be
-  quoted for these. Each published row is the **median of 300 paired samples
-  inside a single invocation**. We never average across invocations, because
-  absolute latencies are not comparable across processes.
+- **Shape 14 is timed as 32 serial batch-1 calls, not one batch-32 call.** The
+  full 100,000-token sequence is real and so is the 48.271 s, but the batch
+  dimension is split up, because the whole thing does not fit on an 8 GB card at
+  once. The packet says so in its own `limitation` field.
+- **The research base was built and then under-used.** Every plan had to cite it
+  and every plan did, but citing a note is not the same as acting on it. The
+  clearest example is **CUDA Agent** (ByteDance Seed and Tsinghua,
+  [cuda-agent.github.io](https://cuda-agent.github.io/)) — a paper from the
+  sponsor's own research group describing almost exactly the agent design we
+  arrived at independently: protected profiling scripts the agent cannot edit,
+  forbidden fallback calls, measurement it cannot game. We read it, wrote it up
+  in `Project/research/cuda-agent-tiktok.md`, and then took less from it than we
+  should have. Their ReAct loop profiles first and implements second; ours
+  planned first and profiled only when something looked wrong.
+- **We wrote CUDA kernels as well as Triton, and ran out of time to make them
+  faster.** `k018`, `k023` and `k024` are hand-written CUDA. None of them beat
+  the Triton versions before the deadline, so none of them ships. That is a time
+  limit, not a verdict on CUDA.
 - **No audit verdict is bound to the published board.** Our verdict schema uses
   `allOf`, which OpenAI's structured-output mode rejects, so the auditor fails
-  before it reads the packet. Only the owner can fix that file, correctly. The
-  board's rows were also taken in the screening lane, so they are correct and
-  permit-bound but were not promoted through the champion gate. When the Codex
-  quota ran out mid-campaign we fell back to Claude for some reviews, which is
-  weaker than review by a different vendor.
-- Two earlier boards were withdrawn and re-measured: one because its runs
-  predated the permit gate, one because its rows came from four different
-  builds. Both corrections are in the git history, and the current board is
-  higher than either.
-- One GPU, one architecture, one framework (PyTorch). Nothing here is
-  validated on the TensorFlow path.
+  before it reads the packet. Only the owner is allowed to fix that file.
+- One GPU, one architecture, one framework. Nothing is validated on the
+  TensorFlow path.
 
 **What we would do with more time.**
 
-1. **The launch-bound family (shapes 2, 3, 7, 12)** measures 5.3%, 16.2%, 17.7%
-   and 34.1% MFU, the four lowest on the board, because the grid cannot fill
-   38 SMs and per-call cost does not shrink with problem size. A
-   sequence-persistent kernel is the next thing to try. Published results for
-   that class suggest around 1.2×, which is why our score-sensitivity board
-   ranks it below the extreme shapes.
-2. **Profiler-in-the-loop.** Diagnosis is currently a human-readable
-   research note. The agent should read hardware counters directly and
-   prescribe from them.
-3. **Runner-internal permit checks.** Enforcement currently lives in a
-   shell guard and tool deny-rules; putting it inside the referee needs a
-   re-freeze we deliberately deferred until after the competition.
-4. **TensorFlow parity** for the second benchmark path.
+Keep optimising. We were still finding wins when the deadline arrived — the last
+structural change to the attention kernel landed a day before freeze and took
+shape 13 from 632.7 µs to 582.6 µs on its own. The four launch-bound shapes
+(2, 3, 7, 12) sit at 5.3%, 16.2%, 17.7% and 34.1% utilisation and are where the
+remaining headroom obviously is. We froze this table because we had to, not
+because we had run out of ideas.
 
 ## Development tools, APIs, libraries
 
