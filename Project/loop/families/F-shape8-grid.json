@@ -1,0 +1,13 @@
+{
+  "family_id": "F-shape8-grid",
+  "shape": 8,
+  "mechanism": "work-decomposition",
+  "bottleneck": "occupancy-resource-pressure",
+  "changed_resource": "grid-parallelism",
+  "expected_counter_change": {"achieved_occupancy": "increase"},
+  "parent_family_id": null,
+  "budget_attempts": 12,
+  "budget_minutes": 90,
+  "admission": "controller-authorized",
+  "allow_new_attempts": true
+}

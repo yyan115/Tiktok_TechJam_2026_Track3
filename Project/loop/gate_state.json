@@ -512,7 +512,19 @@
   "7b6a81d8289f7f44359844f19f3a1f054a4479ad5a7ef765bad9ae8885b0a18d",
   "bf657e856aed00527cbdc5be341e565d4d06e73bb6810c5b098cb8c6c185553b",
   "284727245ac02b62727965ee1dc326e8ed129e246285941c5532bd7e4ccb8a8e",
-  "afbfee305422bd8cda67933aa29225a1f49d548a4b8080f93747f21947d58bd9"
+  "afbfee305422bd8cda67933aa29225a1f49d548a4b8080f93747f21947d58bd9",
+  "276dd434f05ff6d85c5eb203fd4428d1cfd4ed8a43f98dd8af7dbe336582233d",
+  "cef7543bdfc8e3e9d8aed9390b6fd3d45e59c4fef0f69d63ee041ec431546e79",
+  "4f6b2e7f56d475f2fc46ff547721bd7715646074ab53b9e6f2ec4aff2b804d97",
+  "ca3817f3fe9a717ab827d0ac5f9442f8428b14d0060f8fe6f8f9aba977ffe78f",
+  "66755d03913646cc2659d052d4cd351ccd941e457c355e8a5ec06a3a0d204869",
+  "cbdbd3e9f363065b9a7a08de5c7861c88a1848e05e164c815296128b5c5b9202",
+  "5a824cf91859e7b6674dcdb855935b9a06ee193d99bfb3f90cd80ea4487a5717",
+  "1918abdcf3c0054b505d068c3b1622be470d100363a2fcd8a3b433ad3329d899",
+  "bd9d1e94666ae987dbcb2a0ce1b3a30fb4ed4a91d0c97d6489a6596f9dba4e35",
+  "587de970058b678c321130a7e60085dc6b4896b16f63d4151b390fd3d9a139bb",
+  "680e5de194c198fa1ba9982e52d9847c140d515bfa14491943949329661368fa",
+  "49df79aa390758e7877db636fd6752b881828b2d54fec35013d29666a10b50d6"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -532,6 +544,14 @@
    "authority_event_sha256": "b5a990b1c2d767317a5e64dcb589e3753ca227fc6333712e5da1b99aa980193e",
    "subject_sha256": "22d58ffe2a5353c3f7f971ace0aa7c706e93e2f955b9c7095c2abd346fe0d85c"
   },
+  "F-shape1-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:10:54+0800",
+   "admitted_epoch": 1788207054.1575196,
+   "authority_event_id": "evt-20260831T201053.774483Z-3c6cdce18193",
+   "authority_event_sha256": "4636b11b54ba4391bbf104d983ec7c314566e79d6b49dea7a3e71420e8a63b0a",
+   "subject_sha256": "5ab29022fb81c6ffbf53ecef4ff01bfde03df1567cba7d74547764a986ef769f"
+  },
   "F-shape10-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T22:37:11+0800",
@@ -540,6 +560,14 @@
    "authority_event_sha256": "2913ceb8454e04f1ff373a53694f3822442422257c33d836bb6c33640797e279",
    "subject_sha256": "274e662ea017c2637b6c3aa55e8837152781d7e92a7143c20c911a5ce69e80ee"
   },
+  "F-shape10-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:15+0800",
+   "admitted_epoch": 1788207075.2826722,
+   "authority_event_id": "evt-20260831T201114.894972Z-3e77fdef82d3",
+   "authority_event_sha256": "572caa4abdbc64067d216ad72bc0be2c1bec5dc254ab60f9ea95ee4604b018a3",
+   "subject_sha256": "00005cc96e2ee51126714563808035d325d09544885db4f9ed13d6a1e11ac88e"
+  },
   "F-shape11-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T22:37:54+0800",
@@ -547,6 +575,14 @@
    "authority_event_id": "evt-20260830T143749.348645Z-4999ba6e4d3e",
    "authority_event_sha256": "20daeda03f1b17379bfa8e4fe5d069e4d9e8d2bfca97db90d80110f1c6171c9a",
    "subject_sha256": "88065d60df11cf23035919f639196a2e0444abea687667e8564b504e38cb5b46"
+  },
+  "F-shape11-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:17+0800",
+   "admitted_epoch": 1788207077.732731,
+   "authority_event_id": "evt-20260831T201117.344310Z-057d16104ad7",
+   "authority_event_sha256": "27cbbf2b3e040c8752f9aeb20f1faa290d33e33d3d56502be06af34883a83c9c",
+   "subject_sha256": "a622b927abb3293033abb4cc46b38efee07342a9510e4d132d1d000661ea826b"
   },
   "F-shape12-fusion": {
    "action": "resolve_family_novelty",
@@ -564,6 +600,14 @@
    "authority_event_sha256": "64bac464dabea09e8593eca25049e6c72415ff174d68781d309b14f535489ef9",
    "subject_sha256": "079e7197b6201fa4f55790472be0db7503b467df4c50770e7fafd07aba777f3e"
   },
+  "F-shape12-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:20+0800",
+   "admitted_epoch": 1788207080.206895,
+   "authority_event_id": "evt-20260831T201119.819237Z-e35ace39fa79",
+   "authority_event_sha256": "db7761532addca81b69069e47b01f488a114eb14c57e5bfe6dbf0e0e90c00e4a",
+   "subject_sha256": "8cd85466913fdde1fd7351c810150c749812efca0feb8c497638fed3e8355d8f"
+  },
   "F-shape13-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T22:38:05+0800",
@@ -571,6 +615,14 @@
    "authority_event_id": "evt-20260830T143800.372076Z-543740a6b8ea",
    "authority_event_sha256": "ee27e18a5e94b412a535edfacfd2e4202586904ffebacc6f7d0ac2f77166f032",
    "subject_sha256": "1c8e62bdb4a0f7e785de454a15868a0b71d1e38544dcf027613de4706300387c"
+  },
+  "F-shape13-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:38+0800",
+   "admitted_epoch": 1788207098.2337465,
+   "authority_event_id": "evt-20260831T201137.847374Z-89adf4be7a72",
+   "authority_event_sha256": "eabcb5959498bea4cf6c0857f2ec4c1adcac244127989c5a1a6f498656160c64",
+   "subject_sha256": "329a141c05bd277363bf0b6a993bfc0e60500ef008d92820ba89ef559f672e16"
   },
   "F-shape2-graph": {
    "action": "register_family",
@@ -580,6 +632,14 @@
    "authority_event_sha256": "2b09468efa0da9435072a61e2790d355e77f174453b68a57a805721fe959be86",
    "subject_sha256": "f5f5c1cf22167bc0a417306d6d9ac3aa42c174c313cb17f0b46ec7134c319418"
   },
+  "F-shape2-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:10:56+0800",
+   "admitted_epoch": 1788207056.425736,
+   "authority_event_id": "evt-20260831T201056.038531Z-c815ed7ae607",
+   "authority_event_sha256": "715e87b7dd686a0cf3d36f0901460bce256e7266ba58bb4a8578d9b4ee6e8ab0",
+   "subject_sha256": "e48894ffb198632f147560f40c890993e9b982eeb3c061c37200e3b6bc0fdd82"
+  },
   "F-shape3-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T23:48:51+0800",
@@ -587,6 +647,14 @@
    "authority_event_id": "evt-20260830T154845.972366Z-08446a612a07",
    "authority_event_sha256": "09bbda8cf7df5dee95ef08922cc25a8f057170dc3078bf8c783d44a40be25afe",
    "subject_sha256": "891999bbb04a09b1c961660dfd021391d06a3d986cf24fb3d9f9ea6784cb741b"
+  },
+  "F-shape3-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:10:59+0800",
+   "admitted_epoch": 1788207059.3756106,
+   "authority_event_id": "evt-20260831T201058.987967Z-6af791b92ef9",
+   "authority_event_sha256": "71864d8f6a6a5482923a3716d4e4164176ebf53561e72061da006096dce9aa69",
+   "subject_sha256": "3c15357326bb2996a3f10920860f59aeb8e484d29c03dd45b61de0565ef9e8ba"
   },
   "F-shape4-graph": {
    "action": "register_family",
@@ -596,6 +664,14 @@
    "authority_event_sha256": "9eb508a23db9a45bbf0084d7421bd4a82dc123e1dadb9a4711a879c9de8da88b",
    "subject_sha256": "ee0ae2b21f1b27e4215a40b28504bd1404e8c169ce1f79dec9c2cc697efeb082"
   },
+  "F-shape4-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:02+0800",
+   "admitted_epoch": 1788207062.3352056,
+   "authority_event_id": "evt-20260831T201101.949115Z-29eb89354dcc",
+   "authority_event_sha256": "cc727a9c721ca87ae671e2ebb7f3de7e356e482392f8e0dbc242addae875dc1a",
+   "subject_sha256": "119420dc810673cb2a6d5775bca4ed6bb625ebe7e4961d3bec8633fffe137097"
+  },
   "F-shape5-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T22:36:16+0800",
@@ -603,6 +679,14 @@
    "authority_event_id": "evt-20260830T143611.379551Z-04de119d9f91",
    "authority_event_sha256": "1c2f8353b67a636c5816dfa4c53ab9b6899abbd1cee23bb42827a814d9b7441a",
    "subject_sha256": "4e9fc57743b860a4cfcd89994850790adde6a307617833aec9cc582769acd8fa"
+  },
+  "F-shape5-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:05+0800",
+   "admitted_epoch": 1788207065.1377943,
+   "authority_event_id": "evt-20260831T201104.741497Z-5c6f113dd8a5",
+   "authority_event_sha256": "a3b7fe6c5c45ac986ee219296932a9578fe99dbfa695f01288279204c9475eb0",
+   "subject_sha256": "b0521f5f37eca434d6df10b8f64d033e793f3be9044f6b1140e0c383e660e66b"
   },
   "F-shape7-graph": {
    "action": "register_family",
@@ -612,6 +696,14 @@
    "authority_event_sha256": "ebe69c26817047402ee08c3a408448b7edd32ef81b24a414475a12c4d00d519e",
    "subject_sha256": "e710f20a83e49a827ae265215c08740d320566e3b0d55959a63c51551e7e0346"
   },
+  "F-shape7-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:07+0800",
+   "admitted_epoch": 1788207067.8638165,
+   "authority_event_id": "evt-20260831T201107.474133Z-3922befb353b",
+   "authority_event_sha256": "f4efc48baa0e33a83c65e260b23ae85519542c9f242a391ff422808a1b156ae9",
+   "subject_sha256": "163e99f491ac9372db199a6991d7f3381f71e10acfdb8f783a7a10c9d2a204cc"
+  },
   "F-shape8-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T23:59:00+0800",
@@ -620,6 +712,14 @@
    "authority_event_sha256": "7b445c22151b9026a3c2a49b0663ec60c16f761fe37f8e887711e265c9d733b6",
    "subject_sha256": "58f3da5c5d8ad2b8e9718849c6763ac9d9e01a6e3fafd85cb68cbcc82db753f4"
   },
+  "F-shape8-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:10+0800",
+   "admitted_epoch": 1788207070.4850626,
+   "authority_event_id": "evt-20260831T201110.097554Z-a7237b3f3391",
+   "authority_event_sha256": "e43e4d6db701a02f98bfd148c7be5f3544bc5723b17fd59697cbfa2115b5628f",
+   "subject_sha256": "dcb4e85c70c80d247de2e07f31e01ea173c7b36087aff6c7a38bf4fb7a9a84c2"
+  },
   "F-shape9-graph": {
    "action": "register_family",
    "admitted": "2026-08-30T22:37:00+0800",
@@ -627,6 +727,14 @@
    "authority_event_id": "evt-20260830T143654.848882Z-2e96d55184fe",
    "authority_event_sha256": "b62a9c23ffd7febd17aa323ee28d25277e0c13228dc803c18690a0f18d153570",
    "subject_sha256": "33f383ea42470a0478fe8143957e05862979e5f4e0617a9a9541e9b3b2eb08db"
+  },
+  "F-shape9-grid": {
+   "action": "register_family",
+   "admitted": "2026-09-01T04:11:12+0800",
+   "admitted_epoch": 1788207072.8795822,
+   "authority_event_id": "evt-20260831T201112.486886Z-dd6e9f536db5",
+   "authority_event_sha256": "ddb72e27403f463f3d6df5014247af9933e0b3f8d938ba1fd6ae5396c6016271",
+   "subject_sha256": "b1afc594d504a5d1d93d397883f424f0ac73cfba529a949240f869677f9ea3ae"
   }
  },
  "family_registry": {
@@ -660,6 +768,21 @@
    "parent_family_id": null,
    "shape": 1
   },
+  "F-shape1-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape1-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 1
+  },
   "F-shape10-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -675,6 +798,21 @@
    "parent_family_id": null,
    "shape": 10
   },
+  "F-shape10-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape10-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 10
+  },
   "F-shape11-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -687,6 +825,21 @@
    },
    "family_id": "F-shape11-graph",
    "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 11
+  },
+  "F-shape11-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape11-grid",
+   "mechanism": "work-decomposition",
    "parent_family_id": null,
    "shape": 11
   },
@@ -720,6 +873,21 @@
    "parent_family_id": null,
    "shape": 12
   },
+  "F-shape12-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape12-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 12
+  },
   "F-shape13-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -732,6 +900,21 @@
    },
    "family_id": "F-shape13-graph",
    "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 13
+  },
+  "F-shape13-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape13-grid",
+   "mechanism": "work-decomposition",
    "parent_family_id": null,
    "shape": 13
   },
@@ -750,6 +933,21 @@
    "parent_family_id": null,
    "shape": 2
   },
+  "F-shape2-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape2-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 2
+  },
   "F-shape3-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -762,6 +960,21 @@
    },
    "family_id": "F-shape3-graph",
    "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 3
+  },
+  "F-shape3-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape3-grid",
+   "mechanism": "work-decomposition",
    "parent_family_id": null,
    "shape": 3
   },
@@ -780,6 +993,21 @@
    "parent_family_id": null,
    "shape": 4
   },
+  "F-shape4-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape4-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 4
+  },
   "F-shape5-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -792,6 +1020,21 @@
    },
    "family_id": "F-shape5-graph",
    "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 5
+  },
+  "F-shape5-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape5-grid",
+   "mechanism": "work-decomposition",
    "parent_family_id": null,
    "shape": 5
   },
@@ -810,6 +1053,21 @@
    "parent_family_id": null,
    "shape": 7
   },
+  "F-shape7-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape7-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 7
+  },
   "F-shape8-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -825,6 +1083,21 @@
    "parent_family_id": null,
    "shape": 8
   },
+  "F-shape8-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape8-grid",
+   "mechanism": "work-decomposition",
+   "parent_family_id": null,
+   "shape": 8
+  },
   "F-shape9-graph": {
    "admission": "controller-authorized",
    "allow_new_attempts": true,
@@ -837,6 +1110,21 @@
    },
    "family_id": "F-shape9-graph",
    "mechanism": "cuda-graph-replay",
+   "parent_family_id": null,
+   "shape": 9
+  },
+  "F-shape9-grid": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "occupancy-resource-pressure",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "grid-parallelism",
+   "expected_counter_change": {
+    "achieved_occupancy": "increase"
+   },
+   "family_id": "F-shape9-grid",
+   "mechanism": "work-decomposition",
    "parent_family_id": null,
    "shape": 9
   }
@@ -6914,7 +7202,7 @@
  ],
  "research_cycle": 82,
  "research_open": false,
- "seq": 760,
+ "seq": 772,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",

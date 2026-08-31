@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -115,13 +116,61 @@ exactly into their schema fields.
 """
 
 
+_JSON_TYPE_OF = {
+    bool: "boolean", int: "integer", float: "number",
+    str: "string", list: "array", dict: "object", type(None): "null",
+}
+
+
+def _codex_output_schema() -> Path:
+    """Return an OpenAI-acceptable copy of the strict verdict schema.
+
+    Structured-output mode rejects allOf/if/then/else outright and requires an
+    explicit "type" on every property, so codex cannot consume the strict
+    schema: it fails the request with invalid_json_schema before the model
+    runs.  The strict schema stays byte-identical on disk because
+    audit_authority validates every stored verdict against it, and each
+    recorded audit binds verdict_schema_sha256 to those exact bytes -- editing
+    it would mark every existing audit verdict_schema_changed_since_audit.
+
+    Dropping the conditional costs nothing: it only required a non-empty
+    retest_request when the verdict is RETEST, and audit_authority still
+    enforces that when the response is recorded.
+    """
+    strict_bytes = SCHEMA_PATH.read_bytes()
+    digest = hashlib.sha256(strict_bytes).hexdigest()
+    derived_path = Path(tempfile.gettempdir()) / f"verdict_schema.codex.{digest[:16]}.json"
+    if not derived_path.exists():
+        def adapt(node: object) -> None:
+            if isinstance(node, dict):
+                for key in ("allOf", "if", "then", "else", "not"):
+                    node.pop(key, None)
+                if "type" not in node and "$ref" not in node:
+                    if "const" in node:
+                        node["type"] = _JSON_TYPE_OF[type(node["const"])]
+                    elif isinstance(node.get("enum"), list) and node["enum"]:
+                        node["type"] = _JSON_TYPE_OF[type(node["enum"][0])]
+                for value in node.values():
+                    adapt(value)
+            elif isinstance(node, list):
+                for value in node:
+                    adapt(value)
+
+        derived = json.loads(strict_bytes)
+        adapt(derived)
+        partial = derived_path.with_name(derived_path.name + ".partial")
+        partial.write_text(json.dumps(derived, indent=2) + "\n")
+        partial.replace(derived_path)
+    return derived_path
+
+
 def _codex_argv(executable: Path, prompt: str) -> list[str]:
     """Codex enforces the schema itself via --output-schema."""
     return [
         str(executable), "exec", "-s", "read-only",
         "--ignore-user-config", "--ephemeral", "--color", "never",
         "-c", 'model_reasoning_effort="high"',
-        "--output-schema", str(SCHEMA_PATH), prompt,
+        "--output-schema", str(_codex_output_schema()), prompt,
     ]
 
 
