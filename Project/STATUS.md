@@ -1,5 +1,59 @@
 # STATUS — what is measured, on what file. Read this before any other document.
 
+## 0. THE BOARD — 31 Aug ~21:30 SGT. One artifact, eleven shapes, all correct.
+
+**Artifact `630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378`.**
+Quiet box verified before and during: `champion_watch --dry-run` `active: []`,
+GPU 0–1% utilisation, clocks locked at 1665 MHz throughout, no new GPU process
+appeared at any point. One screening-lane permit per row. `correct: true` on
+every row, zero strikes.
+
+| shape | previous (`54057a33…`) | **this artifact** | delta |
+|---|--:|--:|--:|
+| 13 | 30.90× | **32.41×** | +4.9% |
+| 7 | 23.86× | **30.10×** | +26.2% |
+| 2 | 15.53× | **25.82×** | +66.2% |
+| 3 | 12.15× | **20.77×** | +70.9% |
+| 11 | 17.66× | **19.01×** | +7.7% |
+| 4 | 10.07× | **10.82×** | +7.4% |
+| 5 | 9.31× | **10.31×** | +10.7% |
+| 1 | 8.38× | **9.39×** | +12.1% |
+| 10 | 6.30× | **7.11×** | +12.8% |
+| 9 | 4.55× | **5.12×** | +12.6% |
+| 8 | 2.02× | **2.39×** | +18.1% |
+| **geomean, 11 shapes** | **10.10×** | **12.22×** | **+21.0%** |
+
+**Eleven of eleven improved.** The previous column is the same eleven shapes off
+the `54057a33…` board with shape 12 excluded from both, so the two geomeans are
+like for like.
+
+**Shape 12 is not on this board.** Its family attempt budget reads 12 of 12 and
+raising it needs an owner ceremony that was judged not worth spending, since
+shape 12 is the noisiest shape measured (13.2% replicate spread, LESSONS 59) and
+sits mid-pack. Quote it separately with its own artifact hash or not at all.
+
+**The gain is ordered by token count, which is the mechanism confirming itself.**
+The host synchronisation removed from `forward()` is a fixed cost per iteration,
+so it should matter most where there is least device work to hide it behind:
+
+| tokens | 512 | 128 | 8192 | 8192 | 16384 | 2048 | 65536 |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| shape | 3 | 2 | 9 | 1 | 5 | 4 | 13 |
+| gain | +70.9% | +66.2% | +12.6% | +12.1% | +10.7% | +7.4% | +4.9% |
+
+The two smallest-token shapes gain six to ten times what the largest does. Shape
+8 is the exception and is explained separately: it is device-bound at 99.8% busy
+and its +18.1% comes from the fp16 elementwise removal, which cut device time
+15.2% on a paired diagnostic — a device-side change, not a host-side one.
+
+**Caveats that travel with this board.** Screening lane, so nothing here is
+promoted and no verdict binds to any row. Eleven of fourteen shapes: shape 12
+has no budget, shape 6 is side-lane (passes, 70.66 ms, provisional timing on a
+busy box), shape 14 not yet run. Per-shape deltas are cross-invocation and carry
+scatter (LESSONS 51); the geomean and the eleven-of-eleven direction are what
+carry weight, not any single row.
+
+
 Written 31 Aug ~20:15 SGT. Every line below was checked against generated state
 this hour, not from notes. Where a claim came from prose it says so.
 
