@@ -16,51 +16,69 @@ Updated: 2026-08-31 ~10:30 SGT. Branch `grind-lastday`.
 
 ---
 
-## 🔴 0a. TWO THINGS ONLY THE OWNER CAN DO. Everything on the GPU is stopped until then.
+## 🟢 0a. ATTENTION KERNEL OPENED FOR THE FIRST TIME. Shipping artifact is now `7609fa17…`.
 
-31 Aug ~15:30 SGT. Both are control-plane, not code.
+31 Aug ~16:20 SGT. `_sub_attn_heads` holds 12–49% of device time across the fused
+shapes and had never had a dedicated architectural search — `_sub_norm_qkv` and
+`_sub_attn_block_tail` had both had beams. See LESSONS 57 for how that happened.
+Three changes, all standard FlashAttention-2, none previously present:
 
-1. **Mint a `permit.issue` capability slip.** Every measurement — screening,
-   diagnostic, correctness — needs one, and the file is deleted once spent
-   (`Project/OWNER_LOCK.md:302-317`). There is none on disk, so the agent cannot
-   run anything on the GPU: not the gate lanes, and not a local smoke either
-   (`Project/tools/smokes/*.py` is deliberately off the post-LOCK Bash allowlist
-   because standing order 3 forbids raw-dial benchmarking). This is the design
-   working, not a defect.
-2. **Quarantine one jammed request.** `reconcile` refuses with *"controller
-   request c284693ec34d85323fe77aa78ebd1280 is unreconciled
-   (permit-704718cd58d63e8c812ac19c8059b55e)"*. A shape-13 diagnostic consumed
-   its permit and emitted `run_started` at 07:12:32Z, then the run was
-   interrupted before any terminal event. The permit cannot be re-consumed and
-   the gate has no self-service abandon path; `run_gate.py quarantine` needs an
-   owner-signed authority receipt. **Blast radius, measured command by command:**
-   `reconcile` blocked; `research`, `plan`, `diagnostic`, `status`, `verify-lock`
-   all still work (a fresh diagnostic request was accepted at 15:12 while jammed);
-   nothing already measured is altered. Per LESSONS 47, report the table, not
-   "the gate is broken".
+1. **Base-2 softmax.** `log2(e)` folded into the score scale on the host, so the
+   softmax calls `exp2` directly instead of `exp` (which is `exp2` plus a
+   multiply on NVIDIA hardware). One fewer multiply per score element per
+   iteration, at zero cost — the scale multiply was already there. **Ungated,
+   applies to every shape.**
+2. **Causal loop split**, gated at `seq_len >= 256`. Key blocks strictly below
+   the tile's first row are visible to every row in it, so the mask and the
+   bounds check are provable there and come off the loop entirely.
+3. **NOT done, deliberately:** folding the scale into `q` before the dot would
+   remove the score-tile multiply outright, but `q` is fp16 and that rounds the
+   scale into 11 bits. Measured error is already 1.16e-3 of a 2e-3 budget.
 
-**Waiting on those: `Project/kernels/k028_attn_fa2.py` (sha `83fbbe30…`), committed,
-unmeasured.** Diagnostic request `8309505e6e34d8ae1251b7414019c45e` is already emitted
-and waiting for a permit; its file is
-`Project/loop/requests/39332467320b731bffbf1f685622abb03a8f8326008a204a16a40f72c0e2b69b.json`.
+**Measured, all `correct: true`, seven seeds, zero failed elements:**
 
-## 🟡 0b. THE BOARD BELOW IS MEASURED ON BYTES THAT NO LONGER SHIP.
+| shape | seq | before | **on `7609fa17…`** | note |
+| --- | --- | --- | --- | --- |
+| 13 | 1024 | 31.9119x | **33.6523x** | **+5.5%**; kernel 632.7 → 582.6 us |
+| 12 | 32 | 11.3504x | **11.2516x** | flat; split gated OFF here |
+| 1 | 128 | 8.5217x | 8.7858x (ungated build) | needs a re-run on `7609fa17` |
+
+**THE GATE WAS PAID FOR, NOT GUESSED.** Ungated, shape 12 measured **9.8389x
+against a same-session k027 control at 10.4146x, −5.5%** — on a shape where
+`full_end` is always 0 and stage 1 *provably never executes*. A dead loop body
+still costs register allocation and therefore occupancy. Gating it recovered the
+row to 11.2516x. This is the same-session paired control that the two earlier
+shipped regressions (shape 7 −5.1%, shape 13 −6.9%) never got.
+
+**Nine rows outstanding on `7609fa17…`:** 2, 3, 4, 5, 7, 8, 9, 10, 11, plus a
+re-run of 1. Each needs a diagnostic (for counter-evidence bound to these bytes)
+then a `delta` screening run — `delta` needs no research cycle, which is the
+fast path.
+
+**Correction to a claim made earlier in this session:** I reported `reconcile` as
+jammed by an interrupted shape-13 diagnostic and asked for an owner quarantine.
+That was a misread — the line was `PENDING`, which is informational, and the
+request settled on its own. One `quarantine_request` slip use was spent on an
+authority receipt that turned out unnecessary; the quarantine itself refused
+with "already settled", so nothing was suppressed. Blast radius of that class of
+PENDING, measured: nothing is blocked by it.
+
+## 🟡 0b. THE 10.14x AND 10.69x BOARDS BELOW ARE NOT SINGLE-BUILD NUMBERS.
 
 Correction recorded 31 Aug ~15:30 SGT, from the `Project/memory/HOTSPOT_COVERAGE.md`
 audit. Two separate problems with the numbers in section 0c:
 
-- **The 10.14x table is on artifact `54057a33…`, which stopped being the shipping
-  artifact hours ago.** At least five builds followed it.
+- **The 10.14x table is on artifact `54057a33…`**, which stopped being the
+  shipping artifact hours ago. At least seven builds have followed it.
 - **The later 10.6858x board was never on one build.** Its rows come from four
   different artifacts: shapes 4, 5, 9, 10, 12, 13 on `2778b747…`; shapes 1 and 11
-  on `418952bf…`; shapes 2 and 7 on `599f5dad…`; shape 3 on `301d7063…`. Only
-  **shape 8** has ever been measured on the current artifact `9d7e67ab…`
-  (2.0386x, `correct: true`, seven seeds, 07:00Z).
+  on `418952bf…`; shapes 2 and 7 on `599f5dad…`; shape 3 on `301d7063…`.
 
 Nothing here was averaged across builds dishonestly — each row is a real measurement —
 but a geomean whose rows come from four artifacts is **not** "the speedup of the file
-that ships", and it must not be quoted as one. **Eleven rows on `9d7e67ab…` are
-outstanding**, and every one of them needs an owner capability slip (item 0a).
+that ships", and it must not be quoted as one. **Until the nine outstanding rows are
+measured on `7609fa17…`, there is no defensible board geomean. Quote per-shape
+measured rows with their artifact hash, or quote nothing.**
 
 ## 🟢 0c. THE HEADLINE MOVED: 9.45x → **10.14x**, measured on the file that shipped THEN.
 
