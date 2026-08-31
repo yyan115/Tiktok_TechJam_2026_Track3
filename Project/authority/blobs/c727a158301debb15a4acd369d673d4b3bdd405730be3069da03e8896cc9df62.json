@@ -1,0 +1,111 @@
+{
+  "binding": {
+    "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e",
+    "submission_sha256": "1fc10524a2bca366709aaea30fa08d0db3d1f2e67482b58a2f976f75fd9d9d75"
+  },
+  "candidate": {
+    "note": "bound for downstream evaluation; not executed by this oracle-only check",
+    "path": "Project/submission/torch_transformer_benchmark_submission.py",
+    "sha256": "1fc10524a2bca366709aaea30fa08d0db3d1f2e67482b58a2f976f75fd9d9d75"
+  },
+  "criterion": "oracle must match pinned dense within 1e-3 abs. TF32 is mandated by the official numerical profile and carries about 4.9e-4 relative precision, so a 1e-4 bound sits below the format noise floor and is unreachable by any implementation. 1e-3 remains twice as strict as the competition 2e-3 requirement.",
+  "entry_id": "20260831-151827-7f916c",
+  "env": {
+    "cuda": "13.0",
+    "driver": "610.57.04",
+    "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+    "gpu": "NVIDIA GeForce RTX 3060 Ti",
+    "hostname": "admin",
+    "python": "3.14.7",
+    "torch": "2.12.0+cu130",
+    "triton": "3.7.0"
+  },
+  "numerical_state": {
+    "NVIDIA_TF32_OVERRIDE": null,
+    "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": null,
+    "atol": 0.002,
+    "cuda_matmul_allow_tf32": true,
+    "cudnn_allow_tf32": true,
+    "dtype": "float32",
+    "input_scale": 1.0,
+    "matmul_precision": "high",
+    "padding_ratio": 0.0,
+    "rtol": 0.02
+  },
+  "official": {
+    "official_commit": "31c1a27",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e"
+  },
+  "passed": true,
+  "results": [
+    {
+      "batch": 2,
+      "max_abs_err": 0.000622093677520752,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 0.0005995631217956543,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 0.000592455267906189,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 1024
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 0.00052604079246521,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 2048
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 0.0005967617034912109,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 2048
+    },
+    {
+      "batch": 2,
+      "max_abs_err": 0.0006063580513000488,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 2048
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 0.0004855990409851074,
+      "mismatch_at_1e-4": 0,
+      "seed": 1234,
+      "seq": 4096
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 0.0005792379379272461,
+      "mismatch_at_1e-4": 0,
+      "seed": 1235,
+      "seq": 4096
+    },
+    {
+      "batch": 1,
+      "max_abs_err": 0.0004935264587402344,
+      "mismatch_at_1e-4": 0,
+      "seed": 1236,
+      "seq": 4096
+    }
+  ],
+  "schema_version": "shape14-oracle-validation-v2",
+  "timestamp": "2026-08-31T23:18:27+0800",
+  "type": "shape14_oracle_validation"
+}

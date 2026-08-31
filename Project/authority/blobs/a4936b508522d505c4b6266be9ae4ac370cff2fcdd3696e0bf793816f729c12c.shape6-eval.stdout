@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "entry_id": "20260831-150048-97fe61",
+  "correctness_passed": true,
+  "memory_flat": true,
+  "median_ms": 60.2608642578125,
+  "packet": "/sandbox/Project/results_side/shape6_submission_20260831-150048-330419.json"
+}

@@ -1,0 +1,63 @@
+{
+  "batch_size": 8,
+  "binding": {
+    "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e",
+    "submission_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
+  },
+  "candidate": {
+    "full_batch_runtime_routes": [
+      {
+        "reason": null,
+        "route": "fast",
+        "specialization": "('fp16', (8, 2048, 1024, 16, 1024, 2, True), ((8, 2048, 1024), torch.float32, 'cuda', 0, (2097152, 1024, 1), torch.strided), (8, 6))"
+      }
+    ],
+    "path": "Project/submission/torch_transformer_benchmark_submission.py",
+    "sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+    "slice_runtime_routes": [
+      {
+        "reason": null,
+        "route": "fast",
+        "specialization": "('fp16', (8, 2048, 1024, 16, 1024, 2, True), ((1, 2048, 1024), torch.float32, 'cuda', 0, (2097152, 1024, 1), torch.strided), (8, 6))"
+      }
+    ]
+  },
+  "entry_id": "20260831-153331-b4ecc8",
+  "input_generator": "pinned official CUDA-device Generator",
+  "mask": "pinned official all-true CUDA mask",
+  "max_abs_difference": 0.0,
+  "max_abs_difference_limit": 1e-05,
+  "numerical_state": {
+    "NVIDIA_TF32_OVERRIDE": null,
+    "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": null,
+    "atol": 0.002,
+    "cuda_matmul_allow_tf32": true,
+    "cudnn_allow_tf32": true,
+    "dtype": "float32",
+    "input_scale": 1.0,
+    "matmul_precision": "high",
+    "padding_ratio": 0.0,
+    "rtol": 0.02
+  },
+  "official": {
+    "official_commit": "31c1a27",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e"
+  },
+  "official_predicate": {
+    "abs_error_sum": 0.0,
+    "elements": 16777216,
+    "max_abs_error": 0.0,
+    "nonfinite_elements": 0,
+    "violations": 0
+  },
+  "passed": true,
+  "schema_version": "shape14-decomposition-v2",
+  "seed": 1234,
+  "seq_len": 2048,
+  "submission_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+  "timestamp": "2026-08-31T15:33:31.443521+00:00",
+  "type": "shape14_batch_decomposition_check"
+}

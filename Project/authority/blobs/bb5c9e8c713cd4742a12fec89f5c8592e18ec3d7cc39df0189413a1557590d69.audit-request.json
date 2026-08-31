@@ -1,0 +1,23 @@
+{
+  "artifact_type": "audit_request",
+  "artifact_version": 2,
+  "attempt_id": "1788188462-2724721-2b39596a7372d17e",
+  "attempt_nonce_sha256": "ae26dd69d901e08f83742ff7229e0cc6313585be3e34537cd56765f38294f507",
+  "auditor_backend": "codex",
+  "auditor_independent_vendor": true,
+  "candidate_sha256": "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+  "candidate_source_path": "Project/authority/blobs/630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378.py",
+  "codex": {
+    "invoked_path": "/usr/local/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+    "resolved_path": "/usr/local/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+    "sha256": "9739cbc928b9c573be83256acd46668f5dd4f119d2d09e05246895ca2aaf0c9a"
+  },
+  "created": "2026-08-31T23:01:02+0800",
+  "entry_id": "20260831-150048-97fe61",
+  "lane": "shape6",
+  "measurement_event_sha256": "e698867a759b7a252d683221b537402e2c3fa85ea34cfdc24cfe147b3ec7e418",
+  "packet_path": "Project/authority/blobs/762c0e1e60af9063a127fc6c1d1427ba3688241448ab107608c53001b975203f.json",
+  "packet_sha256": "762c0e1e60af9063a127fc6c1d1427ba3688241448ab107608c53001b975203f",
+  "schema_path": "Project/audits/verdict_schema.json",
+  "schema_sha256": "b58f71cadc98f557ff0bd99095c5ad442cd7bac8db3233ab7e1d27cf34ac7a8c"
+}

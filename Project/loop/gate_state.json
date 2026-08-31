@@ -223,11 +223,11 @@
    "opened_epoch": 1788135426.7629273,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 69,
+   "scientific_attempts": 70,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
-   "side_evaluation_requests": 0,
+   "side_evaluation_requests": 1,
    "side_evaluations": [],
    "stall_nonce": null,
    "stall_research_cycle": 28,
@@ -6044,7 +6044,8 @@
   "3224ea0d29cfb7c0cd5ac557284fe255ffdcdd8143a0f1222e56799bca396b09",
   "8d14957a9ca56b86345c6a924b4bbf79be21941ba278ce8295d4cf92a6445d4d",
   "30b99514dc745d89552d9901da776f756f7119b5b64650046954b0bf006ac97f",
-  "112344eeb79a95962ab7a0c2ecc13ea0938351e9c4aa6603a1af9ed930089bed"
+  "112344eeb79a95962ab7a0c2ecc13ea0938351e9c4aa6603a1af9ed930089bed",
+  "3ff12f74d47bddad7a2e283500b0a5441b13d062b0b25dbf432add64cb90bc24"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -6290,11 +6291,12 @@
   "941a9c92059dbea86fe342de36185a59634bd2747c6d49248f8b62d5b9275398",
   "2c2cd02b7b0347223657ef5d7cdef461ac61649a987f7a3e81b218af2081e7ec",
   "c2008809ab5fa9c1228b788cde30e8ac18a4e57e040c7fba7863c87d0df78c4d",
-  "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf"
+  "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf",
+  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb"
  ],
  "research_cycle": 82,
  "research_open": true,
- "seq": 693,
+ "seq": 695,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -6539,6 +6541,7 @@
   "941a9c92059dbea86fe342de36185a59634bd2747c6d49248f8b62d5b9275398",
   "2c2cd02b7b0347223657ef5d7cdef461ac61649a987f7a3e81b218af2081e7ec",
   "c2008809ab5fa9c1228b788cde30e8ac18a4e57e040c7fba7863c87d0df78c4d",
-  "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf"
+  "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf",
+  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb"
  ]
 }

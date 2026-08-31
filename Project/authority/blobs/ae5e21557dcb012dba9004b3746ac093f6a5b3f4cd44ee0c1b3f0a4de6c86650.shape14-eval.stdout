@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "entry_id": "20260831-165326-77499e",
+  "median_of_sums_ms": 48271.039306640625,
+  "peak_gib": 2.8,
+  "packet": "/sandbox/Project/results_side/shape14_streamed_20260831-165326-345771.json"
+}

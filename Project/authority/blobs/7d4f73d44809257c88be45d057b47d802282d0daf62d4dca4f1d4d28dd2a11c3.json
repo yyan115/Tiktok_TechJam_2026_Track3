@@ -1,0 +1,369 @@
+{
+  "binding": {
+    "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e",
+    "submission_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
+  },
+  "candidate": {
+    "name": "UserOptimizedTransformer (generated submission)",
+    "path": "Project/submission/torch_transformer_benchmark_submission.py",
+    "runtime_routes": [
+      {
+        "reason": null,
+        "route": "fast",
+        "specialization": "('fp16', (32, 100000, 1024, 16, 1024, 2, True), ((1, 100000, 1024), torch.float32, 'cuda', 0, (102400000, 1024, 1), torch.strided), (8, 6))"
+      }
+    ],
+    "sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
+  },
+  "config": {
+    "batch_size": 32,
+    "causal": true,
+    "d_model": 1024,
+    "ffn_dim": 1024,
+    "num_heads": 16,
+    "num_layers": 2,
+    "seq_len": 100000
+  },
+  "correctness": {
+    "elements": 16384000000,
+    "max_abs_error": 0.000982522964477539,
+    "mean_abs_error": 9.917678770806337e-05,
+    "nonfinite_elements": 0,
+    "passed": true,
+    "predicate": "official-abs-OR-rel",
+    "reference": "streamed fp32 oracle (validated vs pinned dense)",
+    "trials": [
+      {
+        "base_seed": 1234,
+        "elements": 3276800000,
+        "max_abs_error": 0.000982522964477539,
+        "mean_abs_error": 9.91746905227944e-05,
+        "nonfinite_elements": 0,
+        "violations": 0,
+        "worst_slice_index": 24
+      },
+      {
+        "base_seed": 1235,
+        "elements": 3276800000,
+        "max_abs_error": 0.0009496212005615234,
+        "mean_abs_error": 9.917581825099002e-05,
+        "nonfinite_elements": 0,
+        "violations": 0,
+        "worst_slice_index": 21
+      },
+      {
+        "base_seed": 1236,
+        "elements": 3276800000,
+        "max_abs_error": 0.0009200051426887512,
+        "mean_abs_error": 9.917523165137674e-05,
+        "nonfinite_elements": 0,
+        "violations": 0,
+        "worst_slice_index": 24
+      },
+      {
+        "base_seed": 1237,
+        "elements": 3276800000,
+        "max_abs_error": 0.0008971281349658966,
+        "mean_abs_error": 9.917926036078246e-05,
+        "nonfinite_elements": 0,
+        "violations": 0,
+        "worst_slice_index": 10
+      },
+      {
+        "base_seed": 1238,
+        "elements": 3276800000,
+        "max_abs_error": 0.0009014904499053955,
+        "mean_abs_error": 9.917893775437326e-05,
+        "nonfinite_elements": 0,
+        "violations": 0,
+        "worst_slice_index": 3
+      }
+    ],
+    "violations": 0,
+    "worst_base_seed": 1234,
+    "worst_slice_index": 24
+  },
+  "entry_id": "20260831-165326-77499e",
+  "env": {
+    "cuda": "13.0",
+    "driver": "610.57.04",
+    "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+    "gpu": "NVIDIA GeForce RTX 3060 Ti",
+    "hostname": "admin",
+    "python": "3.14.7",
+    "torch": "2.12.0+cu130",
+    "triton": "3.7.0"
+  },
+  "evaluator_sha256": "a0c5e0886163a5b596469b500a349423a3a55fe9ec9c9a0d94129571f5268c41",
+  "limitation": "official dense baseline infeasible at this shape; reference is the validated streamed oracle; timing is 32 serial B=1 submission calls, not one literal B=32 call",
+  "memory": {
+    "max_peak_allocated_bytes": 3009595392,
+    "max_peak_allocated_gib": 2.8029041290283203,
+    "max_peak_reserved_bytes": 3422552064,
+    "max_peak_reserved_gib": 3.1875,
+    "peak_allocated_bytes_per_repeat": [
+      3009595392,
+      3009595392,
+      3009595392
+    ],
+    "peak_reserved_bytes_per_repeat": [
+      3422552064,
+      3422552064,
+      3422552064
+    ]
+  },
+  "numerical_state": {
+    "NVIDIA_TF32_OVERRIDE": null,
+    "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": null,
+    "atol": 0.002,
+    "cuda_matmul_allow_tf32": true,
+    "cudnn_allow_tf32": true,
+    "dtype": "float32",
+    "input_scale": 1.0,
+    "matmul_precision": "high",
+    "padding_ratio": 0.0,
+    "rtol": 0.02
+  },
+  "official": {
+    "official_commit": "31c1a27",
+    "official_manifest_sha256": "33e5ce39dfd99cb4f59e64a766224d3050a58e49dd2f2c2763a8aac1dde9f289",
+    "official_sha256": "5529c96a80799b51f68092e1444a30b17994554dffdf52da98ba701489a7f36e"
+  },
+  "passed": true,
+  "predicate": "official-abs-OR-rel",
+  "required_artifacts": {
+    "batch_decomposition": {
+      "path": "Project/results_side/shape14_decomposition_20260831-153331-443739.json",
+      "schema_version": "shape14-decomposition-v2",
+      "sha256": "baa5f3c64a48ee70ce13151b17b8ca55d853db57b40b512955201fd6cd9ee790"
+    },
+    "oracle_validation": {
+      "path": "Project/results_side/shape14_validation_20260831-153325-309370.json",
+      "schema_version": "shape14-oracle-validation-v2",
+      "sha256": "054e8dfe496f6d5d76e0ebc718b130e396cc941cd306329a95ba4040a8a15051"
+    }
+  },
+  "schema_version": "shape14-streamed-v2",
+  "seeding": {
+    "correctness_base_seeds": [
+      1234,
+      1235,
+      1236,
+      1237,
+      1238
+    ],
+    "generator": "pinned official CUDA-device Generator per B=1 slice",
+    "mask": "pinned official all-true CUDA mask per B=1 slice",
+    "slice_seed_formula": "base_seed * 1000 + batch_index",
+    "timing_base_seed": 101234,
+    "timing_repeat_policy": "same 32 deterministic slices in every repeat"
+  },
+  "seeds": [
+    1234,
+    1235,
+    1236,
+    1237,
+    1238
+  ],
+  "shape": {
+    "batch_size": 32,
+    "causal": true,
+    "d_model": 1024,
+    "ffn_dim": 1024,
+    "id": 14,
+    "num_heads": 16,
+    "num_layers": 2,
+    "seq_len": 100000
+  },
+  "submission_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+  "timestamp": "2026-08-31T16:53:26.304634+00:00",
+  "timing": {
+    "gpu_compute_median_of_sums_ms": 48271.039306640625,
+    "gpu_compute_sum_ms_per_repeat": [
+      48271.039306640625,
+      48276.46911621094,
+      48267.12536621094
+    ],
+    "protocol": "32 serial B=1 submission calls; CUDA events exclude input staging",
+    "slice_times_ms": {
+      "orientation": "batch_index x timing_repeat",
+      "values": [
+        [
+          1508.060791015625,
+          1511.4033203125,
+          1507.9718017578125
+        ],
+        [
+          1507.5126953125,
+          1508.1309814453125,
+          1507.5904541015625
+        ],
+        [
+          1508.0001220703125,
+          1510.39306640625,
+          1508.0423583984375
+        ],
+        [
+          1507.8624267578125,
+          1510.253173828125,
+          1509.6988525390625
+        ],
+        [
+          1507.6417236328125,
+          1507.89208984375,
+          1507.33642578125
+        ],
+        [
+          1507.7213134765625,
+          1508.003173828125,
+          1507.9027099609375
+        ],
+        [
+          1507.9898681640625,
+          1509.8111572265625,
+          1507.78369140625
+        ],
+        [
+          1508.3955078125,
+          1509.489013671875,
+          1507.542236328125
+        ],
+        [
+          1510.6611328125,
+          1508.182373046875,
+          1507.5775146484375
+        ],
+        [
+          1508.00927734375,
+          1508.863037109375,
+          1507.7607421875
+        ],
+        [
+          1509.2965087890625,
+          1507.9119873046875,
+          1507.7432861328125
+        ],
+        [
+          1509.2685546875,
+          1508.3980712890625,
+          1507.528076171875
+        ],
+        [
+          1507.854248046875,
+          1507.673828125,
+          1507.658935546875
+        ],
+        [
+          1507.728515625,
+          1508.1768798828125,
+          1507.7962646484375
+        ],
+        [
+          1509.259521484375,
+          1507.893310546875,
+          1508.5355224609375
+        ],
+        [
+          1508.293701171875,
+          1507.798095703125,
+          1507.5001220703125
+        ],
+        [
+          1511.3973388671875,
+          1507.783935546875,
+          1507.822265625
+        ],
+        [
+          1507.804931640625,
+          1508.152099609375,
+          1507.781494140625
+        ],
+        [
+          1509.4111328125,
+          1508.1143798828125,
+          1509.288818359375
+        ],
+        [
+          1508.3045654296875,
+          1509.6031494140625,
+          1511.747314453125
+        ],
+        [
+          1509.58642578125,
+          1507.7958984375,
+          1509.21240234375
+        ],
+        [
+          1508.15869140625,
+          1509.8160400390625,
+          1507.615234375
+        ],
+        [
+          1507.7755126953125,
+          1508.39453125,
+          1508.8782958984375
+        ],
+        [
+          1507.783935546875,
+          1509.7125244140625,
+          1509.0316162109375
+        ],
+        [
+          1507.690185546875,
+          1507.650390625,
+          1509.1893310546875
+        ],
+        [
+          1509.53271484375,
+          1507.862548828125,
+          1509.378662109375
+        ],
+        [
+          1508.288818359375,
+          1509.665771484375,
+          1507.3355712890625
+        ],
+        [
+          1508.5167236328125,
+          1509.3216552734375,
+          1508.6920166015625
+        ],
+        [
+          1508.0400390625,
+          1507.678466796875,
+          1509.6876220703125
+        ],
+        [
+          1507.85400390625,
+          1508.02392578125,
+          1508.0672607421875
+        ],
+        [
+          1509.258544921875,
+          1507.9595947265625,
+          1509.5972900390625
+        ],
+        [
+          1508.079833984375,
+          1508.66064453125,
+          1507.8311767578125
+        ]
+      ]
+    },
+    "staging_inclusive_wall_median_ms": 48378.26163400314,
+    "staging_inclusive_wall_ms_per_repeat": [
+      48378.26163400314,
+      48381.31541799521,
+      48372.22703100997
+    ],
+    "timing_repeats": 3,
+    "warmup_slices": 3
+  },
+  "tolerance": {
+    "atol": 0.002,
+    "rtol": 0.02
+  },
+  "type": "shape14_side_evaluation"
+}
