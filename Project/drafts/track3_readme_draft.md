@@ -3,10 +3,28 @@
 **An AI agent that writes GPU kernels, and a referee it is not allowed to
 touch.**
 
-On an NVIDIA RTX 3060 Ti (consumer, 8 GB), authored Triton/CUDA kernels run
-the track's 14 test shapes with a **geometric-mean 11.87× speedup** across
-the twelve that have a runnable official baseline, ranging from 2.37× on the
-one already near its arithmetic roofline to 31.51× on the longest sequence.
+This project combines modern kernel-agent techniques with cryptographic signing
+and loop engineering, so that the agent doing the optimising cannot drift off
+task and cannot falsify its own results. It never measures its own work: every
+number below came out of a locked program the agent has no write access to,
+under a single-use permit signed with a key only the human owner holds.
+
+**Run on my own desktop — one NVIDIA RTX 3060 Ti, a consumer card with 8 GB.**
+
+- **11.87× geometric-mean speedup** over the twelve of fourteen shapes that have
+  a runnable official baseline — from 2.37× on the shape already near its
+  arithmetic limit to **31.51×** on the longest sequence.
+- **Shape 14 reaches 88.7% of what the card can physically do**: 100,000 tokens
+  at batch 32, a shape the official code cannot run at all on this hardware.
+- **We beat PyTorch's own `sdpa` on every shape**, by 5.4× to 20.9× — and on the
+  two extreme shapes it cannot run at all while ours does.
+- **Where we had to supply our own reference, we held it to a bar 20× tighter
+  than the competition's.** Shape 14 is too large for TikTok's baseline to run,
+  so we wrote a streamed reference and validated it against their real
+  implementation at 1,024, 2,048 and 4,096 tokens to within **1e-4 with zero
+  mismatching elements**. The competition's own tolerance is 2e-3.
+- **94 correctness trials, 17,370,759,168 elements compared, zero violations.**
+- Across all fourteen shapes weighted equally, mean utilisation is **42.7%**.
 
 **Every row is measured on one artifact**,
 `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`, which is the
@@ -15,18 +33,13 @@ matters more than it sounds: earlier versions of this board drew its rows from
 four different builds, and a geometric mean over such a board is not a statement
 about any one program.
 
-All 14 shapes pass the precision test (`abs_err ≤ 0.002 OR rel_err ≤ 0.02`): the
-twelve with a runnable official baseline on 7 trials each under the official
-predicate, and shapes 6 and 14 against validated oracles on 5 seeds each, since
-no official baseline for those exists on this hardware. That is **94 trials and
-17,370,759,168 element comparisons with zero violations**.
-
-The two shapes that cannot run in their official form on this hardware run on
-the same card and are verified against exact references. The larger of them,
-100,000 tokens at batch 32, reaches **88.7% of the card's physical maximum**.
-
-Across all fourteen shapes weighted equally, mean model FLOPs utilisation is
-**42.7%**.
+On correctness we went past what was asked. The official script checks five
+fixed seeds; we check **seven — five fixed plus two drawn at random per run**,
+so a kernel cannot be tuned to the seed list. The twelve shapes with a runnable
+baseline are checked that way under the official predicate
+(`abs_err ≤ 0.002 OR rel_err ≤ 0.02`); shapes 6 and 14 are checked against
+validated references on five seeds each, since no official baseline for them
+exists on this hardware.
 
 ## How it works
 
