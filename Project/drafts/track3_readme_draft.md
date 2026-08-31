@@ -1,7 +1,7 @@
-# Transformer Kernel Optimization on a Consumer GPU — TikTok TechJam 2026, Track 3
+# Cryptographically Signed Agent Loop for GPU Kernels
 
-**An AI agent writes the GPU kernels. A separate locked program measures them,
-and the agent has no way to change it.**
+**TikTok TechJam 2026, Track 3.** An AI agent writes the GPU kernels. A separate
+locked program measures them, and the agent has no way to change it.
 
 This project combines modern kernel-agent techniques with cryptographic signing
 and loop engineering, so the agent doing the optimising stays on task and cannot
