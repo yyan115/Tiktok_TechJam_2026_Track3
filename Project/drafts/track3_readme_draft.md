@@ -96,8 +96,7 @@ The pieces:
   no commentary from the optimizer, no knowledge of who wrote the code — and
   returns a typed verdict. Hard verdicts pause the machine; only the human owner can clear
   them. **81 verdicts are in the ledger and 28 of them are rule violations
-  against us** (see the tech report §4, which quotes two that changed the
-  code).
+  against us**, in `Project/audits/verdicts.jsonl`.
 
   Two honest qualifications on that, both stated rather than buried.
 
@@ -122,10 +121,10 @@ The pieces:
   optimizing agent is denied write access to, correctly, since an agent that can
   repair its own auditor does not have one.
 
-The kernels are the deliverable; the governance is the idea. Details of
-both are in **[`Project/drafts/tech_report_draft.md`](Project/drafts/tech_report_draft.md)**
-(the tech report), including the incident in a sibling track that caused us
-to rebuild the authority model from scratch.
+The kernels are the deliverable; the governance is the idea. This design came
+out of a failure in a sibling track, where an agent with authority over its own
+measurement produced numbers we had to throw away — which is why the measurement
+system here was built first and the agent was never given a key to it.
 
 ## Results
 
@@ -294,6 +293,92 @@ shape 14's timing is **32 serial batch-1 calls, not one literal batch-32 call**,
 which is a decomposition the shape requires on this hardware and which the packet
 states in its own `limitation` field.
 
+## Setup and installation
+
+```bash
+git clone <repo-url> && cd Tiktok_TechJam_2026_Track3
+
+# Kernels and benchmark.
+python3 -m pip install torch triton
+
+# Required by the harness. The trusted controller verifies an Ed25519-signed
+# LOCK over 29 files before it will run anything, so the LOCK check and
+# reproduction step 3 below both need this.
+python3 -m pip install cryptography
+
+nvidia-smi
+```
+
+Every number in this README was measured on **torch 2.12.0+cu130, triton 3.7.0,
+CUDA 13.0, driver 610.57.04**. Note that `pip install torch` gives you whichever
+CUDA build matches your driver, which is not necessarily cu130; pin from
+PyTorch's own wheel index if you need to match our environment exactly.
+
+Requires an NVIDIA GPU with compute capability ≥ 8.0. Everything here was
+developed and measured on an RTX 3060 Ti (sm_86, 8 GB); kernels tuned for
+this card's 99 KB shared-memory-per-block limit will need re-tuning on a
+datacenter card, and autotuned configs from big GPUs will not run here.
+
+## Steps to reproduce our results
+
+```bash
+# 1. The submission itself — the official script with ONLY the sanctioned
+#    UserOptimizedTransformer region replaced. Any shape's dials work.
+python3 Project/submission/torch_transformer_benchmark_submission.py \
+        --batch-size 64 --seq-len 1024 --d-model 128 --heads 4 \
+        --ffn-dim 128 --layers 4 --causal
+
+# 2. Prove that everything outside the replaced region is byte-identical
+#    to the official script.
+python3 Project/tools/build_submission.py --check-only
+
+#    And prove the measurement system itself was never edited: 29 files are
+#    hash-pinned under an Ed25519 signature whose private key only the owner
+#    holds. Prints "valid": true, "active": true.
+python3 Project/harness/trusted_controller.py verify-lock
+
+# 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
+#    a shim onto the trusted controller and will NOT time anything without a
+#    one-use permit -- that refusal is the design, not a bug:
+#      error: the following arguments are required: --permit
+#    The full permitted sequence (request -> permit -> run) is in
+#    Project/RUNBOOK.md; the request step needs an owner-signed capability.
+python3 Project/harness/runner.py run --shape 13 \
+        --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
+
+# 4. Regenerate the score-sensitivity board.
+python3 Project/tools/sensitivity_board.py        # -> Project/results_side/SENSITIVITY.md
+
+#    NOTE: `runner.py leaderboard` no longer exists -- the LOCK replaced runner.py
+#    with a shim onto the trusted controller, which has no such subcommand. The
+#    post-LOCK speedup board is NOT in Project/results/JOURNAL.jsonl; see below.
+
+# 5. The two shapes that don't fit in 8 GB. Their evaluators
+#    (Project/tools/shape6_local_eval.py, Project/tools/shape14_eval.py) are
+#    reachable only through the side-evaluator lane -- run_gate.py side-evaluate
+#    -> trusted_controller.py -- which, like the runner above, requires a
+#    one-use permit. Their evidence packets are in Project/results_side/, and
+#    their board rows cite the authority blobs listed in BOARD.md section 2.
+```
+
+**Where the published numbers actually live:**
+
+- The **speedup board** — every row of both tables above — is in the
+  controller's append-only authority log, `Project/authority/events.jsonl`,
+  as `measurement_recorded` events, each carrying a content-addressed
+  measurement packet under `Project/authority/blobs/<packet_sha>.json` with
+  the full 300-sample baseline and candidate distributions, the permit id,
+  the candidate sha256 and the environment. The scientific record of *why*
+  each run happened is `Project/loop/gate_log.jsonl`.
+- `Project/results/JOURNAL.jsonl` holds the **pre-LOCK** history. The
+  post-LOCK board is deliberately not in it: screening-lane runs write to
+  the scratch namespace, not the primary journal, which is what stops a
+  characterisation run from being mistaken for a champion.
+- Side-evaluator packets for shapes 6 and 14 are in `Project/results_side/`.
+
+Each entry records the GPU, driver, CUDA, torch, Triton, dtype, TF32 flags,
+code hash and harness version, so only like-for-like profiles are compared.
+
 ## Kernel Code
 
 All of it is in one file: **[`Project/submission/dispatcher_region.py`](Project/submission/dispatcher_region.py)**,
@@ -407,93 +492,6 @@ fp32 accumulation while `torch.compile` and SDPA run the model in fp32 with
 TF32 matmul, so part of the margin is precision rather than kernel engineering.
 Both clear the competition's precision requirement, so both are legal, but the
 difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
-
-## Setup and installation
-
-```bash
-git clone <repo-url> && cd Tiktok_TechJam_2026_Track3
-
-# Kernels and benchmark.
-python3 -m pip install torch triton
-
-# Required by the harness. The trusted controller verifies an Ed25519-signed
-# LOCK over 29 files before it will run anything, so the LOCK check and
-# reproduction step 3 below both need this.
-python3 -m pip install cryptography
-
-nvidia-smi
-```
-
-Every number in this README was measured on **torch 2.12.0+cu130, triton 3.7.0,
-CUDA 13.0, driver 610.57.04**. Note that `pip install torch` gives you whichever
-CUDA build matches your driver, which is not necessarily cu130; pin from
-PyTorch's own wheel index if you need to match our environment exactly.
-
-Requires an NVIDIA GPU with compute capability ≥ 8.0. Everything here was
-developed and measured on an RTX 3060 Ti (sm_86, 8 GB); kernels tuned for
-this card's 99 KB shared-memory-per-block limit will need re-tuning on a
-datacenter card, and autotuned configs from big GPUs will not run here.
-
-## Steps to reproduce our results
-
-```bash
-# 1. The submission itself — the official script with ONLY the sanctioned
-#    UserOptimizedTransformer region replaced. Any shape's dials work.
-python3 Project/submission/torch_transformer_benchmark_submission.py \
-        --batch-size 64 --seq-len 1024 --d-model 128 --heads 4 \
-        --ffn-dim 128 --layers 4 --causal
-
-# 2. Prove that everything outside the replaced region is byte-identical
-#    to the official script.
-python3 Project/tools/build_submission.py --check-only
-
-#    And prove the measurement system itself was never edited: 29 files are
-#    hash-pinned under an Ed25519 signature whose private key only the owner
-#    holds. Prints "valid": true, "active": true.
-python3 Project/harness/trusted_controller.py verify-lock
-
-# 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
-#    a shim onto the trusted controller and will NOT time anything without a
-#    one-use permit -- that refusal is the design, not a bug:
-#      error: the following arguments are required: --permit
-#    The full permitted sequence (request -> permit -> run) is in
-#    Project/RUNBOOK.md; the request step needs an owner-signed capability.
-python3 Project/harness/runner.py run --shape 13 \
-        --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
-
-# 4. Regenerate the score-sensitivity board. (VERIFIED 31 Aug: this one works.)
-python3 Project/tools/sensitivity_board.py        # -> Project/results_side/SENSITIVITY.md
-
-#    NOTE: `runner.py leaderboard` no longer exists -- the LOCK replaced runner.py
-#    with a shim onto the trusted controller, which has no such subcommand. The
-#    post-LOCK speedup board is NOT in Project/results/JOURNAL.jsonl; see below.
-
-# 5. The two shapes that don't fit in 8 GB. Their evaluators
-#    (Project/tools/shape6_local_eval.py, Project/tools/shape14_eval.py) are
-#    reachable only through the side-evaluator lane -- run_gate.py side-evaluate
-#    -> trusted_controller.py -- which, like the runner above, requires a
-#    one-use permit. Their evidence packets are in Project/results_side/, and
-#    their board rows cite the authority blobs listed in BOARD.md section 2.
-```
-
-**Where the published numbers actually live** (corrected 31 Aug after
-checking, rather than asserted):
-
-- The **speedup board** — every row of both tables above — is in the
-  controller's append-only authority log, `Project/authority/events.jsonl`,
-  as `measurement_recorded` events, each carrying a content-addressed
-  measurement packet under `Project/authority/blobs/<packet_sha>.json` with
-  the full 300-sample baseline and candidate distributions, the permit id,
-  the candidate sha256 and the environment. The scientific record of *why*
-  each run happened is `Project/loop/gate_log.jsonl`.
-- `Project/results/JOURNAL.jsonl` holds the **pre-LOCK** history. The
-  post-LOCK board is deliberately not in it: screening-lane runs write to
-  the scratch namespace, not the primary journal, which is what stops a
-  characterisation run from being mistaken for a champion.
-- Side-evaluator packets for shapes 6 and 14 are in `Project/results_side/`.
-
-Each entry records the GPU, driver, CUDA, torch, Triton, dtype, TF32 flags,
-code hash and harness version, so only like-for-like profiles are compared.
 
 ## Repository map
 
