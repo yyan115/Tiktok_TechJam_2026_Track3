@@ -322,7 +322,7 @@ if _TRITON_OK:
     @triton.jit
     def _sub_attn_heads(
         QKV, Ctx,
-        scale,
+        qk_scale,
         SEQ,
         D: tl.constexpr,
         HD: tl.constexpr, HD_PAD: tl.constexpr,
@@ -335,6 +335,41 @@ if _TRITON_OK:
         barrier — each program owns columns h*HD .. h*HD+HD of its own rows.
         This is what buys H times the attention parallelism on the shapes whose
         (q_tiles, B) grid could not fill 38 SMs.
+
+        THE INNER LOOP IS SPLIT IN TWO, and the softmax is base-2. Measured on
+        shape 13 (seq 1024), paired diagnostics minutes apart on the same box:
+        this kernel fell from **632.656 us to 571.813 us, -9.6%**, while the two
+        untouched kernels moved 2.4% and 1.6% — which is what the noise looks
+        like. `correct: true`, seven seeds, zero failed elements. Three parts:
+
+        1. `qk_scale` arrives as HD**-0.5 * log2(e), so scores are already in
+           base 2 and the softmax calls `exp2` directly. NVIDIA hardware has
+           only a base-2 exponential; `exp(x)` is `exp2(x * log2 e)`, so this
+           deletes one multiply per element of the score tile per iteration
+           and adds nothing — the scale multiply was already there.
+        2. Every key block strictly below the tile's first row is visible to
+           every row in the tile, so `offs_m >= offs_n` is unconditionally
+           true there. The old loop still evaluated it, a full
+           [BLOCK_M, BLOCK_N] select, on every iteration. Stage 1 drops it.
+        3. In stage 1 `offs_n < SEQ` is provable, so the bounds mask comes off
+           the score tile and off both the K and V loads too.
+
+        `full_end` is rounded DOWN to a BLOCK_N boundary, which is what keeps
+        it correct for every BLOCK_M/BLOCK_N pair in the autotune set including
+        BLOCK_N > BLOCK_M: any whole block inside [0, full_end) is then
+        entirely below the diagonal. The union of the two loops is exactly the
+        old loop's block sequence.
+
+        NOT DONE, deliberately: folding the scale into `q` before the dot would
+        delete the score-tile multiply outright, but `q` is fp16 and that would
+        round the scale into an 11-bit mantissa. Measured max absolute error is
+        already 1.16e-3 against a 2e-3 criterion. No room, and this change
+        spends none — shape 13 came back at 0.9e-3 to 1.7e-3, unmoved.
+
+        This pays on shape 13 and essentially nowhere else: eleven of the
+        twelve measurable shapes are seq_len 128 or 32, giving one to four
+        q-tiles, so there is almost nothing below the diagonal to skip. Shape 1
+        measured 24.828 us against 24.722 shipped — flat, as expected.
         """
         pid_m = tl.program_id(0)
         pid_b = tl.program_id(1)
@@ -353,20 +388,37 @@ if _TRITON_OK:
         l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
         acc = tl.zeros([BLOCK_M, HD_PAD], dtype=tl.float32)
 
-        n_end = (pid_m + 1) * BLOCK_M
-        for n_start in range(0, n_end, BLOCK_N):
+        full_end = (pid_m * BLOCK_M) // BLOCK_N * BLOCK_N
+
+        # Stage 1: entirely below the diagonal. No causal mask, no bounds mask.
+        for n_start in range(0, full_end, BLOCK_N):
+            offs_n = n_start + tl.arange(0, BLOCK_N)
+            k = tl.load(qkv_base + offs_n[:, None] * (3 * D) + D + h * HD + offs_hd[None, :],
+                        mask=hd_mask[None, :], other=0.0)
+            v = tl.load(qkv_base + offs_n[:, None] * (3 * D) + 2 * D + h * HD + offs_hd[None, :],
+                        mask=hd_mask[None, :], other=0.0)
+            qk = tl.dot(q, tl.trans(k)) * qk_scale
+            m_new = tl.maximum(m_i, tl.max(qk, axis=1))
+            alpha = tl.math.exp2(m_i - m_new)
+            p = tl.math.exp2(qk - m_new[:, None])
+            l_i = l_i * alpha + tl.sum(p, axis=1)
+            acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
+            m_i = m_new
+
+        # Stage 2: the diagonal band, where the mask is real work.
+        for n_start in range(full_end, (pid_m + 1) * BLOCK_M, BLOCK_N):
             offs_n = n_start + tl.arange(0, BLOCK_N)
             n_mask = offs_n < SEQ
             k = tl.load(qkv_base + offs_n[:, None] * (3 * D) + D + h * HD + offs_hd[None, :],
                         mask=n_mask[:, None] & hd_mask[None, :], other=0.0)
             v = tl.load(qkv_base + offs_n[:, None] * (3 * D) + 2 * D + h * HD + offs_hd[None, :],
                         mask=n_mask[:, None] & hd_mask[None, :], other=0.0)
-            qk = tl.dot(q, tl.trans(k)) * scale
+            qk = tl.dot(q, tl.trans(k)) * qk_scale
             qk = tl.where(offs_m[:, None] >= offs_n[None, :], qk, float("-inf"))
             qk = tl.where(n_mask[None, :], qk, float("-inf"))
             m_new = tl.maximum(m_i, tl.max(qk, axis=1))
-            alpha = tl.exp(m_i - m_new)
-            p = tl.exp(qk - m_new[:, None])
+            alpha = tl.math.exp2(m_i - m_new)
+            p = tl.math.exp2(qk - m_new[:, None])
             l_i = l_i * alpha + tl.sum(p, axis=1)
             acc = acc * alpha[:, None] + tl.dot(p.to(tl.float16), v)
             m_i = m_new
@@ -714,7 +766,10 @@ class UserOptimizedTransformer(BaselineTransformer):
         d_pad = max(16, triton.next_power_of_2(D))
         hd_pad = max(16, triton.next_power_of_2(HD))
         ffn_pad = max(16, triton.next_power_of_2(FFN))
-        scale = HD ** -0.5
+        # log2(e) folded in once on the host so the attention kernel's single
+        # fp32 score multiply does double duty and its softmax reaches the
+        # hardware's ex2 without a second multiply per score element.
+        qk_scale = (HD ** -0.5) * 1.4426950408889634
 
         bufs = getattr(self, "_sub_bufs", None)
         if bufs is None or bufs["a"].shape != x.shape:
@@ -766,7 +821,7 @@ class UserOptimizedTransformer(BaselineTransformer):
             )
             grid2 = lambda meta: (triton.cdiv(S, meta["BLOCK_M"]), B, H)  # noqa: E731
             _sub_attn_heads[grid2](
-                qkv, ctx, scale, S,
+                qkv, ctx, qk_scale, S,
                 D=D, HD=HD, HD_PAD=hd_pad,
             )
             grid3 = lambda meta: (triton.cdiv(S, meta["BLOCK_M"]), B)  # noqa: E731
