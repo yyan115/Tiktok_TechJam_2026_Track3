@@ -1531,6 +1531,55 @@
    "target_sha256": "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
    "tool": "torch-profiler"
   },
+  "profile-aca09621876d52d876181c67": {
+   "artifact_path": "Project/loop/profile_evidence/profile-aca09621876d52d876181c67.json",
+   "artifact_sha256": "1cf654a4c3bb5f81fa03fcc223be0d481f627fec51118bb3595cf872c927e34e",
+   "created_epoch": 1788135746.3076391,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 115.0,
+    "cuda_api_calls_by_name": {
+     "cuKernelGetFunction": 640,
+     "cuKernelGetName": 1660,
+     "cuLaunchKernel": 640,
+     "cudaDeviceSynchronize": 1,
+     "cudaLaunchKernel": 1660,
+     "cudaMemcpyAsync": 340,
+     "cudaMemsetAsync": 480,
+     "cudaProfilerStart": 1,
+     "cudaProfilerStop": 1
+    },
+    "device_activity_records": 2640.0,
+    "distinct_kernels": 13.0,
+    "gpu_busy_ns": 239330855.0,
+    "gpu_idle_fraction": 0.008287509422695627,
+    "gpu_span_ns": 241330887.0,
+    "graph_launch_api_calls": 0.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 115.0,
+    "kernel_instances_total": 2300.0,
+    "kernel_launch_api_calls": 2300.0,
+    "kernel_launches": 115.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 2300.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "nvtx:profile-measured",
+    "profiled_iterations": 20.0,
+    "worker_machine_state_sha256": "7d078d77d93401b9e83190ac23823fbb95f1cd6849ca190bf71d78a209a9b93a",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-aca09621876d52d876181c67",
+   "reconciled_state_seq": 227,
+   "shape": 11,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2feee730569c95b34d6af589a9cfd3d9d861c2419db434b89e5944f0a942ec96",
+   "tool": "nsys"
+  },
   "profile-aefff5c4bd7c52202306238c": {
    "artifact_path": "Project/loop/profile_evidence/profile-aefff5c4bd7c52202306238c.json",
    "artifact_sha256": "132a3b6025505001bf0523a2dd61b3e3b7695e877c10c01e6790b90317ae3889",
@@ -1849,7 +1898,8 @@
   "16960f0394a020d56f69833a9140c7ea3e6fed28d9e56b4af49a6bcc4ebe8073",
   "9c19e824124ac99d7f05cc5184d952721876231aa69a055decd7bfbd2166d871",
   "f028e6bfc98edbaeb8c10afa11d51b2996efbade38d04dec1e5a8112720e180b",
-  "624a6cf9108cebd9dfe605395a3216be7100391a999484fc2f093928d38cd23c"
+  "624a6cf9108cebd9dfe605395a3216be7100391a999484fc2f093928d38cd23c",
+  "60b2df06ba0b19bfcfc596b9bc7fd8fe3703629a9240e27eb407c7ea1898effb"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -1922,11 +1972,12 @@
   "5e853b1f500245518928328fce4657553167cdaf83253378795d8a05815fb5e8",
   "99822f2d1baf7006adb4d96420945053cbc876fc5e0e30dc3d21135a11e13bbd",
   "65c4a677fd1dc1bd5b1f9c6392e23f2862d557b7a206f2780481eb3e26e118c6",
-  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc"
+  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc",
+  "763992c23d0c726b9a0a62021d215849b36fe792411ea8e2cbe1954cee954b0d"
  ],
- "research_cycle": 28,
- "research_open": false,
- "seq": 224,
+ "research_cycle": 29,
+ "research_open": true,
+ "seq": 227,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1998,6 +2049,7 @@
   "5e853b1f500245518928328fce4657553167cdaf83253378795d8a05815fb5e8",
   "99822f2d1baf7006adb4d96420945053cbc876fc5e0e30dc3d21135a11e13bbd",
   "65c4a677fd1dc1bd5b1f9c6392e23f2862d557b7a206f2780481eb3e26e118c6",
-  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc"
+  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc",
+  "763992c23d0c726b9a0a62021d215849b36fe792411ea8e2cbe1954cee954b0d"
  ]
 }
