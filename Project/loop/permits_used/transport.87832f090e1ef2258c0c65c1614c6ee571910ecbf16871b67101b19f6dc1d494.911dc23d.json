@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788201059.5699885,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-09-01T01:45:59+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-d28e00d3d505dac324ef9067.json",
+ "profile_record_id": "profile-d28e00d3d505dac324ef9067",
+ "promotion_allowed": false,
+ "question": "Counter evidence bound to the final artifact for shape 1, the reference batch sixty four case, on the build carrying the storage offset fix and the restored output clone",
+ "request_id": "24e85279f5f734d7a8c839d584e124dc",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/87832f090e1ef2258c0c65c1614c6ee571910ecbf16871b67101b19f6dc1d494.json",
+ "request_sha256": "87832f090e1ef2258c0c65c1614c6ee571910ecbf16871b67101b19f6dc1d494",
+ "route": "fused-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

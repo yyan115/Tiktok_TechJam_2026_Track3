@@ -12,7 +12,86 @@ Then read all of `Project/memory/LESSONS.md`, every session, and
 
 **If a command and a document disagree, the command is right** — including this one.
 
-Updated: 2026-08-31 ~10:30 SGT. Branch `grind-lastday`.
+Updated: 2026-09-01 ~03:00 SGT. Branch `grind-lastday`.
+
+---
+
+## ✅ NEW — THE BOARD IS DONE. All 14 shapes on one artifact. Read this before §0a.
+
+1 Sep ~03:00 SGT. **`c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`**
+is the shipping artifact and **every one of the 14 rows is measured on it**. This
+is the first board in the project where that is true, and it is what
+`Project/BOARD.md` now holds, with a packet sha256 and entry id per row.
+
+| | |
+|---|---|
+| geomean, 12 shapes with a baseline | **11.87×** |
+| mean MFU, all 14 weighted equally | **42.7%** |
+| best speedup | 31.513× (shape 13) |
+| worst speedup | 2.366× (shape 8) |
+| best MFU | **88.7%** (shape 14, 48.271 s) |
+| correctness | 94 trials, 17,370,759,168 elements, **0 violations** |
+| strikes / promoted | 0 / 0 (screening lane, by design) |
+
+Per-shape: 1 **8.998** · 2 **26.691** · 3 **19.776** · 4 **10.643** · 5 **9.823** ·
+6 *no baseline, 60.3873 ms, 59.8% MFU* · 7 **29.149** · 8 **2.366** · 9 **4.933** ·
+10 **6.846** · 11 **18.377** · 12 **11.642** · 13 **31.513** ·
+14 *no baseline, 48.271 s, 88.7% MFU*.
+
+**Everything below this section that quotes 9.45×, 10.14× or 10.6858× is
+superseded.** Those boards are kept because their *corrections* are the record of
+how this project learned to measure. Do not quote their numbers.
+
+`Project/MEASUREMENT_METHODOLOGY.md` and all four drafts now carry this board and
+agree with each other. `Project/loop/cards.jsonl` gained card **C33** for the
+newly registered `F-shape12-fusion` family.
+
+## 🔴 THE AUDITOR DIAGNOSIS IN EVERY DOCUMENT WAS WRONG. Real cause found 1 Sep.
+
+**"The audit recorder is broken" is false.** The recorder is fine. **The auditor
+never starts.**
+
+`Project/audits/verdict_schema.json:70` uses an `allOf`/`if`/`then`/`else`
+conditional. OpenAI's structured-output mode does not permit `allOf`, so Codex
+hands the schema over as `response_format`, the API returns
+`400 invalid_json_schema`, and the process exits 1 with empty stdout before the
+model reads the packet.
+
+Timeline, from the commits and the response artifacts:
+
+| when | what |
+|---|---|
+| 30 Aug 15:46 | `ed053f2` adds the `allOf`. **The break.** |
+| 30 Aug 20:35 | `231e786` switches default backend to Claude, out of Codex quota. Claude has no `--output-schema`, so the bad schema becomes inert prompt text. **The mask.** |
+| 30 Aug 22:37 | Audit runs on Claude, returns a full verdict document. |
+| 1 Sep 02:44 | Audit runs on Codex. Three 400s in one minute, recorded in the hash chain, escalated to `owner_attention`. |
+
+**Owner fix, one edit, inside the LOCK:** replace that conditional with something
+in OpenAI's supported subset, or drop it and let `validate_verdict_document`
+enforce it locally, which is already what happens on the Claude path.
+
+Everything around it worked: enqueued, launched, retried, recorded, escalated.
+Full write-up in LESSONS 61.
+
+## 🟡 SHIP_MANIFEST.json cannot be generated, and that is downstream of the above
+
+`python3 Project/tools/ship_manifest.py --diagnose` (1 Sep 03:19) returns
+**"SHIP MANIFEST REFUSED: No official shape has post-lock bound evidence."**
+
+Two causes, both the design working:
+
+1. Every shape lists `missing_audit_verdict` as a blocking reason. No ship
+   manifest can exist while the auditor cannot start, which is the intended
+   coupling. Fix the schema and this unblocks.
+2. The manifest reads the pre-LOCK journal and `Project/results_side/`. Tonight's
+   board is screening-lane, so it lives in `Project/authority/` and the scratch
+   namespace by design, and the manifest does not look there. It consequently
+   reports only legacy rows measured against kernel files rather than against the
+   submission.
+
+Not a blocker for the report or the board — `Project/BOARD.md` §2 indexes every
+row's packet, which carries the same environment and hashes. Recorded so nobody
+spends the packaging window trying to force the manifest.
 
 ---
 

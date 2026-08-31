@@ -32,24 +32,42 @@
 >    and the output projection runs at full width (§3.5). The change went into
 >    `dispatcher_region.py`, the submission was rebuilt (sha `54057a33…`,
 >    byte-identity outside the sanctioned region re-verified), and **all twelve
->    shapes were measured again on the rebuilt file** under the same protocol.
->    **Geometric mean 10.14×, and that is the number this report quotes.**
+>    shapes were measured again on the rebuilt file**. **Geometric mean 10.14×.**
+> 6. **And then we found the defect that this whole block exists to catch, in our
+>    own replacement.** A later board quoted **10.6858×** as the speedup of the
+>    shipped file. Its twelve rows came from **four different artifacts**:
+>    `2778b747…`, `418952bf…`, `599f5dad…` and `301d7063…`. Every row was a real
+>    measurement and none was dishonestly obtained, but a geometric mean over rows
+>    from four builds **is not the speedup of any one program** and must never be
+>    quoted as one. Withdrawn.
+> 7. **The fix, and the number this report now quotes.** Three correctness defects
+>    were fixed on 31 August (the mask-predicate host synchronisation, the storage
+>    offset replay invariant, and the output buffer aliasing), the submission was
+>    rebuilt as `c2028c48…`, and **all fourteen shapes were measured on that one
+>    artifact**, each under a single-use permit bound to that hash.
+>    **Geometric mean 11.87× over the twelve shapes with a runnable baseline, and
+>    mean MFU 42.7% across all fourteen.** For the first time, shapes 12 and 14
+>    are in the board rather than marked pending.
 >
-> | | originally claimed | 9.45× board (step 4) | **final, shipped file `54057a33…`** |
-> | --- | --- | --- | --- |
-> | geomean, 12 primary shapes | 10.32× (also 10.95× on our own referee) | 9.45× | **10.14×** |
-> | best shape | 28.82× (shape 13) | 28.28× (shape 13) | **30.90×** (shape 13) |
-> | worst shape | 2.04× (shape 8) | 2.02× (shape 8) | **2.02×** (shape 8) |
-> | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* | — |
+> | | originally claimed | 9.45× board (step 4) | 10.14× board (step 5) | **final, `c2028c48…`** |
+> | --- | --- | --- | --- | --- |
+> | artifacts the rows come from | 1, uncalibrated | 1 | 1 | **1** |
+> | shapes measured | 12 | 12 | 12 | **14** |
+> | geomean, shapes with a baseline | 10.32× | 9.45× | 10.14× | **11.87×** |
+> | best shape | 28.82× (13) | 28.28× (13) | 30.90× (13) | **31.51× (13)** |
+> | worst shape | 2.04× (8) | 2.02× (8) | 2.02× (8) | **2.37× (8)** |
+> | mean MFU, all 14 | — | — | — | **42.7%** |
+> | k004 (non-shipping route) | — | 2.94× geomean — *not this submission* | — | — |
 >
-> **Note what step 5 does to step 1.** The final measured board (10.14×) is now
-> *slightly above* the withdrawn 10.32×-class original — but it is not a
-> vindication of it and must not be read as one. The original was measured without
-> a permit against baselines 6–63% off their own calibration; this one is measured
-> on the shipped artifact, under a one-use permit bound to its hash, on a quiet
-> box, with the full distribution in a content-addressed packet. **Two numbers of
-> similar size, one defensible and one not**, is precisely the distinction this
-> project exists to make.
+> **Note what this does to step 1.** The final board is now *above* the withdrawn
+> 10.32× original. That is not a vindication of it and must not be read as one.
+> The original was measured without a permit against baselines 6 to 63% off their
+> own calibration. This one is measured on the shipped artifact, under a
+> single-use permit bound to its hash, on a quiet box, with the full 300-sample
+> distribution in a content-addressed packet. **Two numbers of similar size, one
+> defensible and one not**, is the distinction this project exists to make. The
+> kernels also improved by roughly 15% between the two, which is the ordinary
+> reason a later number is larger.
 >
 > **Where that leaves the original number.** 9.45× against 10.32× means the
 > withdrawn board was **8.4% high** on the geometric mean. Per shape it scattered
@@ -81,38 +99,48 @@
 > negative result we could not source at all (§8). Sections carrying pre-gate
 > figures are labelled where they stand.
 
-**Status: DRAFT v4 (31 Aug ~06:00).** The speedup board is measured on the shipped
-artifact, permitted, and cited to its packets. Values still owed at code freeze are
-marked **[PENDING]** and name the run that produces them — nothing is estimated,
-projected, or rounded up. One bullet in §8 is marked **unsourced** and must be
-verified or deleted before this ships. The organizers score from this report
-(judges do not re-run the code), so its precision is the technical score's
-carrier.
+**Status: DRAFT v5 (1 Sep ~03:00).** The speedup board is measured on the shipped
+artifact, permitted, and cited to its packets, and **all fourteen shapes now come
+from that one artifact** rather than from a mixture. Nothing is estimated,
+projected, or rounded up. The organizers score from this report, since judges do
+not re-run the code, so its precision is the technical score's carrier. The
+canonical per-row table with packet hashes is `Project/BOARD.md`, and the
+measurement protocol and its challengeable decisions are in
+`Project/MEASUREMENT_METHODOLOGY.md`.
 
 ---
 
 ## 0. The one-paragraph version
 
 We built an AI agent that authors CUDA/Triton kernels for a transformer
-layer, and — because AI optimizers are documented benchmark cheats — we
-built the referee first and gave the agent no authority over it. On an
-RTX 3060 Ti (a consumer 8 GB card), the agent's kernels run the 12
-locally-runnable test shapes at a **geometric-mean 10.14× speedup**, ranging
-from **2.02×** on the one shape whose baseline is already doing real
-arithmetic rather than waiting on kernel launches, to **30.90×** on the
-longest sequence, with every figure measured **on the submission file
-itself** under a one-use permit bound to its hash. All 14 shapes pass the
-precision test, on two different grades of evidence we keep distinct
-throughout: the 12 with a runnable official baseline are verified under the
-official predicate on 7 trials each, post-LOCK; shapes 6 and 14 have no such
-baseline and are verified against validated oracles on one seed each (§2.4). The two shapes that cannot run on this
-hardware in their official form — shape 6 (batch 10,000, baseline OOMs)
-and shape 14 (sequence 100,000, whose naive attention table is multi-
-terabyte) — are solved by block decomposition on the same 8 GB card and
-verified against exact references. The interesting part of the project is
-not the kernels: it is that we caught our own agent overriding a rule in a
-sibling track, diagnosed why, and rebuilt the system so that no AI in it —
-including the one writing this sentence — can authorize an exception.
+layer, and because AI optimizers are documented benchmark cheats, we built the
+referee first and gave the agent no authority over it.
+
+On an RTX 3060 Ti, a consumer 8 GB card, the agent's kernels run the 12 shapes
+with a runnable official baseline at a **geometric-mean 11.87× speedup**,
+ranging from **2.37×** on the one shape whose baseline is already doing real
+arithmetic rather than waiting on kernel launches, to **31.51×** on the longest
+sequence. **All fourteen shapes are measured on one artifact**, the submission
+file itself, each under a single-use permit bound to its hash. Mean model FLOPs
+utilisation across all fourteen, weighted equally, is **42.7%**.
+
+All 14 shapes pass the precision test: **94 trials, 17,370,759,168 element
+comparisons, zero violations.** The evidence comes in two grades and we keep
+them distinct throughout. The 12 with a runnable official baseline are verified
+under the official predicate on 7 trials each. Shapes 6 and 14 have no such
+baseline and are verified against validated references on 5 seeds each (§2.4).
+
+The two shapes that cannot run on this hardware in their official form, shape 6
+(batch 10,000, where the baseline runs out of memory) and shape 14 (sequence
+100,000, whose naive attention table is multi-terabyte), are solved by block
+decomposition on the same 8 GB card and verified against exact references.
+Shape 14 is **99.89% of all the arithmetic in the benchmark** and is our
+strongest row at **88.7% of the card's physical maximum**.
+
+The interesting part of the project is not the kernels. It is that we caught our
+own agent overriding a rule in a sibling track, diagnosed why, and rebuilt the
+system so that no AI in it, including the one writing this sentence, can
+authorize an exception.
 
 ---
 
@@ -214,40 +242,57 @@ Provenance: `Project/loop/gate_log.jsonl`; per-shape calibrated noise floors
 and immutable promotion thresholds in `Project/loop/gate_state.json`;
 baseline counter evidence in `Project/loop/profile_evidence/`.
 
-### 2.1.1 The same twelve shapes, measured on the file that ships — **the headline board**
+### 2.1.1 All fourteen shapes on the file that ships — **the headline board**
 
-Identical protocol, one fresh permit per row, candidate =
-`torch_transformer_benchmark_submission.py`.
+Every row measured on
+`c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`, one
+single-use permit per row, quiet box, `correct: true` throughout. Per-row packet
+hashes and entry ids are in `Project/BOARD.md` §2.
 
-| shape | 1 | 2 | 3 | 4 | 5 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | **geomean** |
-|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| **shipped file `54057a33…`** | **8.38×** | **15.53×** | **12.15×** | **10.07×** | **9.31×** | **23.86×** | **2.02×** | **4.55×** | **6.30×** | **17.66×** | **10.54×** | **30.90×** | **10.14×** |
-| shipped file `4da76db6…` (pre-split) | 8.17× | 13.14× | 12.96× | 8.92× | 9.12× | 20.96× | 2.02× | 4.35× | 6.54× | 12.59× | 10.43× | 28.28× | 9.45× |
-| delta | +2.6% | +18.2% | **−6.3%** | +12.9% | +2.1% | +13.8% | +0.3% | +4.5% | −3.6% | **+40.3%** | +1.0% | +9.2% | **+7.3%** |
-| kernel module (§2.1, pre-split) | 8.33× | 14.39× | 12.63× | 8.88× | 9.15× | 21.96× | 2.02× | 4.84× | 6.57× | 12.68× | 10.81× | 28.41× | 9.68× |
+| # | shape | route | baseline | **ours** | **speedup** | **MFU** | floor |
+|---|---|---|--:|--:|--:|--:|--:|
+| 1 | B64 s128 d128 h4 | megakernel | 5.0586 ms | **0.5622 ms** | **8.998×** | 41.1% | 0.2313 ms |
+| 2 | B1 s128 d128 h4 | megakernel | 1.8039 ms | **0.0676 ms** | **26.691×** | 5.3% | 0.0036 ms |
+| 3 | B4 s128 d128 h4 | megakernel | 1.7618 ms | **0.0891 ms** | **19.776×** | 16.2% | 0.0145 ms |
+| 4 | B16 s128 d128 h4 | megakernel | 1.7547 ms | **0.1649 ms** | **10.643×** | 35.1% | 0.0578 ms |
+| 5 | B128 s128 d128 h4 | megakernel | 9.8473 ms | **1.0025 ms** | **9.823×** | 46.1% | 0.4625 ms |
+| 6 | B10000 s128 d128 h4 | megakernel | *OOM* | **60.3873 ms** | *no baseline* | 59.8% | 36.1355 ms |
+| 7 | B64 s128 d32 h4 | megakernel | 3.4028 ms | **0.1167 ms** | **29.149×** | 17.7% | 0.0206 ms |
+| 8 | B64 s128 **d1024** h4 | fp16 stack | 43.1206 ms | **18.2272 ms** | **2.366×** | 71.1% | 12.9511 ms |
+| 9 | B64 s128 d128 **h1** | megakernel | 2.9604 ms | **0.6001 ms** | **4.933×** | 38.5% | 0.2313 ms |
+| 10 | B64 s128 d128 **h2** | megakernel | 3.9045 ms | **0.5704 ms** | **6.846×** | 40.5% | 0.2313 ms |
+| 11 | B64 s128 d128 **h16** | megakernel | 12.0433 ms | **0.6554 ms** | **18.377×** | 35.3% | 0.2313 ms |
+| 12 | B64 **s32** d128 h4 | megakernel | 1.7644 ms | **0.1516 ms** | **11.642×** | 34.1% | 0.0517 ms |
+| 13 | B64 **s1024** d128 h4 | megakernel | 169.9159 ms | **5.3919 ms** | **31.513×** | 68.6% | 3.7003 ms |
+| 14 | B32 **s100000** d1024 h16 | fp16 stack | *infeasible* | **48.271 s** | *no baseline* | **88.7%** | 42.808 s |
+| | | | | **geomean, 12 with a baseline** | **11.87×** | **42.7% mean** | |
 
-**We quote 10.14×.** It is the artifact that ships, so it is the number that
-means anything. Both shipped-file rows are `correct: true` on every trial.
+**We quote 11.87×**, over the twelve shapes that have a baseline to divide by,
+and **42.7% mean MFU** over all fourteen. The second figure is closer to what the
+organiser described as the technical score, which is a weighted sum of per-shape
+MFU with weights not yet published.
 
-**Citation corrected 31 Aug ~20:15.** This paragraph previously pointed at
-`Project/loop/geomean_camp_final.py` for the board arithmetic. **That script
-computes a different board and following the citation would not reproduce this
-table.** Its twelve rows come from four separate artifacts (`2778b747`,
-`599f5dad`, `301d7063`, `418952bf`), its shape-11 value is 17.42 rather than
-17.66, and its geomean is 10.6858×. Both boards are real measurements taken
-under the same protocol; the difference is that the table above is twelve rows
-from **one** file and that script is twelve rows from **four**, which is why the
-mixed figure is not quoted as the speedup of an artifact. `STATE.md` §0b
-recorded that distinction when the later board was built and this citation was
-never updated to match. The values in the table above are traceable
-individually through the screening-lane records in `Project/loop/gate_log.jsonl`
-and the packets under `Project/authority/`, each carrying its own
-`target_sha256`.
+**What is new here is not the number, it is that there is only one hash.** The
+previous board (10.14×, artifact `54057a33…`) was also single-artifact and also
+honest. The board *after* it was not: a 10.6858× geomean whose twelve rows came
+from `2778b747…`, `418952bf…`, `599f5dad…` and `301d7063…`. Every row of that
+board was a real measurement and none was dishonestly obtained, but the mean of
+rows from four builds describes no program that exists. It is withdrawn, and the
+requirement it violated is why this table was produced.
 
-**Ten of twelve shapes improved; shape 3 lost 6.3% and shape 10 lost 3.6%.**
-Those two losses are reported, not smoothed: they are the honest cost of applying
-one design unconditionally across the fused route, and §2.1.2 explains why we do
-not read them — or most of the individual gains — as mechanism.
+**On the change from 10.14× to 11.87×.** The geometric mean moved +17.1% across
+two builds that differ by real kernel work (base-2 softmax throughout, a causal
+loop split gated at `seq_len ≥ 256`) and by three correctness fixes, one of which
+(restoring the output clone) *costs* time. We do not decompose that into
+per-shape attributions, for the reason §2.1.2 gives: the per-shape differences
+between two separately-invoked boards are dominated by cross-invocation scatter,
+and on the smallest shapes that scatter reaches 13%. The geomean over twelve
+shapes averages it down. Individual rows do not.
+
+**Shape 12 and shape 14 are in a board for the first time.** Shape 12's parent
+family had spent all twelve of its attempts on builds predating the correctness
+fixes, so it required a fresh owner-signed budget before it could be measured at
+all. Shape 14 had never been executed.
 
 ### 2.1.2 What the per-shape deltas can carry, and what they cannot
 
@@ -317,21 +362,28 @@ paired *inside* each one. Shape 9 is an outlier, not a trend. We report this
 because a suggestive four-point pattern that dies on its fifth point is
 worth more in a methods section than a tidy model that was never tested.
 
-**Three caveats that must travel with 10.14× wherever it is quoted**, and
-they apply to every board in this section equally:
+**Four caveats that must travel with 11.87× wherever it is quoted**, and they
+apply to every board in this section equally:
 
-1. It **excludes shape 6** (dedicated side lane), so it is **not** the
-   official `geomean-shapes-1-13` scenario figure.
+1. It **excludes shapes 6 and 14**, which have no runnable baseline to divide
+   by, so it is **not** the official `geomean-shapes-1-13` scenario figure. The
+   MFU column covers all fourteen and does not have this problem, which is one
+   reason we report it alongside.
 2. It is **screening-lane**: these are characterisation runs and none was
    promoted to champion through the promotion gate.
 3. **No audit verdict is bound to any row.** The audit-recording path broke
-   mid-campaign (`STATE.md` §1) and only the human owner is permitted to
-   repair it. The measurements are permitted and reproducible; they are not
+   mid-campaign (`STATE.md` §1) and only the human owner is permitted to repair
+   it. The measurements are permitted, hash-bound and reproducible. They are not
    independently adjudicated.
+4. **Shapes 6 and 14 are side evidence.** Their evaluators use CPU RNG, so their
+   inputs are not bit-identical to a default judge run, and shape 14's timing is
+   32 serial batch-1 calls rather than one literal batch-32 call.
 
-**Read the spread, not just the mean.** 2.02× to 30.90× is a 15-fold range,
-and the mean is a summary rather than a description. §2.3 explains what
-separates the ends.
+**Read the spread, not just the mean.** 2.37× to 31.51× is a 13-fold range, and
+the mean is a summary rather than a description. §2.3 explains what separates the
+ends, and the short version is that the range measures how launch-bound each
+baseline was, not how good our kernel is on each shape. The MFU column is the one
+that measures us.
 
 ### 2.2 What the withdrawn boards said, and why we still withdrew them
 
@@ -365,62 +417,65 @@ under test. The per-shape comparison in the table above is drawn against §2.1
 because that is the board measured on the same kernel the pre-gate runs were
 nominally exercising.
 
-**One uncomfortable coincidence, stated plainly.** The final board (10.14×) is
-now marginally *above* the withdrawn pre-gate 10.32×-class figure — 1.7% below
-it, well inside the scatter these comparisons carry. It would be easy, and
-wrong, to present that as the original having been right all along. It was not
-right; it was **undefended**, and it reached a similar number by a route that
-could not be checked. The pre-gate board also has no permit, no bound verdict
-and baselines 6–63% off calibration, and those defects are not retroactively
-cured by a later, differently-obtained number landing nearby. If anything the
-coincidence sharpens the point: **you cannot tell a defensible measurement from
-an undefended one by looking at the number.**
+**One uncomfortable comparison, stated plainly.** The final board (11.87×) is
+now **15% above** the withdrawn pre-gate 10.32× figure, and the 10.14× board
+before it was 1.7% below. It would be easy, and wrong, to present either as the
+original having been right all along. It was not right. It was **undefended**,
+and it reached a similar number by a route that could not be checked. The
+pre-gate board has no permit, no bound verdict and baselines 6 to 63% off
+calibration, and those defects are not retroactively cured by a later,
+differently-obtained number landing nearby.
+
+If anything the near-miss sharpens the point: **you cannot tell a defensible
+measurement from an undefended one by looking at the number.** For several hours
+this project had two figures within 2% of each other, one of which was worthless.
+Sorting them out took a permit system, an artifact hash on every row, and three
+separate withdrawals of our own published headline.
 
 ### 2.3 Utilisation, and where the remaining headroom is
 
-**Recomputed 31 Aug from the measured board.** Every row below is derived from the
-same post-LOCK paired medians as §2.1 — `achieved TF/s = model GFLOP ÷ measured
-candidate median` — replacing an earlier table built on pre-gate candidate times.
-Absolute timings are quoted because they are what the derivation rests on.
+**Regenerated 1 Sep from the single-artifact board.** Every row is derived from
+the same `c2028c48…` paired medians as §2.1.1, as
+`achieved TF/s = model GFLOP ÷ measured candidate median`. This replaces two
+earlier versions of this table, one built on pre-gate candidate times and one on
+the pre-split kernel modules. **It is now a companion to the headline rather than
+a portrait of a different generation**, which was the standing defect §11 listed.
 
-| shape | GFLOP | baseline ms | candidate ms | achieved TF/s | MFU vs 32.4 | MFU vs 64.8 | limiter |
-|---:|--:|--:|--:|--:|--:|--:|---|
-| 1 | 7.52 | 4.7514 | 0.5704 | 13.18 | 0.41 | 0.20 | latency / grid |
-| 2 | 0.12 | 1.7392 | 0.1208 | 0.99 | 0.03 | 0.02 | latency / grid |
-| 3 | 0.47 | 1.7720 | 0.1403 | 3.35 | 0.10 | 0.05 | latency / grid |
-| 4 | 1.88 | 1.7363 | 0.1956 | 9.61 | 0.30 | 0.15 | latency / grid |
-| 5 | 15.03 | 9.3358 | 1.0199 | 14.74 | 0.45 | 0.23 | latency / grid |
-| 7 | 0.67 | 3.1713 | 0.1444 | 4.64 | 0.14 | 0.07 | latency / grid |
-| 8 | 420.91 | 38.4379 | 19.0649 | 22.08 | **0.68** | 0.34 | compute |
-| 9 | 7.52 | 2.7085 | 0.5601 | 13.43 | 0.41 | 0.21 | latency / grid |
-| 10 | 7.52 | 3.6168 | 0.5509 | 13.65 | 0.42 | 0.21 | latency / grid |
-| 11 | 7.52 | 11.6337 | 0.9175 | 8.20 | **0.25** | 0.13 | see §2.3.1 |
-| 12 | 1.68 | 1.7275 | 0.1597 | 10.52 | 0.32 | 0.16 | latency / grid |
-| 13 | 120.26 | 166.579 | 5.8634 | 20.51 | 0.63 | 0.32 | compute |
-| 6, 14 | | | | **[PENDING]** | | | no runnable baseline |
+The peak used is **32.5 TF/s**, which is fp16 inputs with fp32 accumulation, the
+precision our kernels actually use (§3.1 and `MEASUREMENT_METHODOLOGY.md` §4.1).
+It is not 16.2, which is fp32 input, and not 65, which is fp16 accumulation that
+we do not use. An earlier draft of this calculation used the wrong peak and
+produced a shape apparently faster than physics allows, which is how the error
+was caught.
 
-**The earlier table was understated, not inflated.** When we withdrew the speedup
-board we also withdrew this one, assuming it was wrong by the same factor. It was
-wrong in the opposite direction: every one of the twelve rows recomputes **higher**
-than the withdrawn figure, by **2.5% to 28%** (shape 3 +2.5%, shape 13 +2.9%,
-shape 11 +4.9%, shape 8 +5.5%, shape 5 +6.7%, shape 9 +9.3%, shape 10 +9.6%,
-shape 12 +12.0%, shape 1 +13.3%, shape 2 +22.6%, shape 4 +24.2%, shape 7 +28.2%).
-The old `cand ms` came from earlier, slower kernels. This is the third time in one
-night that assuming an error's *direction* rather than measuring it produced a new
-error, which is why it is written down rather than quietly fixed.
+| shape | GFLOP | baseline ms | candidate ms | achieved TF/s | **MFU** | limiter |
+|---:|--:|--:|--:|--:|--:|---|
+| 1 | 7.52 | 5.0586 | 0.5622 | 13.37 | 0.41 | latency / grid |
+| 2 | 0.117 | 1.8039 | 0.0676 | 1.74 | **0.05** | latency / grid |
+| 3 | 0.470 | 1.7618 | 0.0891 | 5.27 | 0.16 | latency / grid |
+| 4 | 1.879 | 1.7547 | 0.1649 | 11.40 | 0.35 | latency / grid |
+| 5 | 15.03 | 9.8473 | 1.0025 | 14.99 | 0.46 | latency / grid |
+| 6 | 1,174.41 | *OOM* | 60.3873 | 19.45 | 0.60 | compute |
+| 7 | 0.671 | 3.4028 | 0.1167 | 5.75 | 0.18 | head width 8, §2.3.1 |
+| 8 | 420.91 | 43.1206 | 18.2272 | 23.09 | **0.71** | compute |
+| 9 | 7.52 | 2.9604 | 0.6001 | 12.53 | 0.39 | latency / grid |
+| 10 | 7.52 | 3.9045 | 0.5704 | 13.18 | 0.41 | latency / grid |
+| 11 | 7.52 | 12.0433 | 0.6554 | 11.47 | 0.35 | head width 8, §2.3.1 |
+| 12 | 1.678 | 1.7644 | 0.1516 | 11.07 | 0.34 | latency / grid |
+| 13 | 120.26 | 169.9159 | 5.3919 | 22.30 | 0.69 | compute |
+| 14 | 1,391,250.64 | *infeasible* | 48,271.04 | **28.82** | **0.89** | compute |
+| | | | | | **0.427 mean** | |
 
-MFU here counts *model* FLOPs only (projections, attention, FFN; causal halved).
-LayerNorm, GELU and softmax consume real GPU time but are not in the numerator, so
-these figures understate utilisation rather than overstate it.
+**Shape 14 is the row to look at.** It is 99.89% of all the arithmetic in the
+benchmark and it runs at 88.7% of the card's physical maximum. Shape 8, the next
+most compute-bound, reaches 71.1%, and roughly three-quarters of its runtime is
+already inside NVIDIA's own library rather than our code.
 
-**These rows use the §2.1 kernel-module candidate times**, as do the per-kernel
-diagnostics in §2.3.1 — so they describe the **pre-split** kernel, one generation
-behind the shipped board in §2.1.1. Treat this table as a utilisation *portrait of
-the mechanism*, not as a companion to the headline: the split-head rebuild moved
-shape 11 by +40.3% and shapes 7 and 11 together by +26.4%, so their MFU rows in
-particular are now low. Regenerating this table against the `54057a33…` medians is
-listed as owed work in §11. The speedups in §2.1.1 are the figures measured on the
-shipped artifact and are the ones to quote.
+MFU here counts *model* FLOPs only: projections, attention and FFN, with causal
+halved. LayerNorm, GELU and softmax consume real GPU time but contribute nothing
+to the numerator, so **these figures understate utilisation rather than overstate
+it**, and 100% is unreachable for a transformer under this definition regardless
+of implementation quality.
 
 The reading that matters: **the small shapes are not compute-limited, they
 are launch- and grid-limited.** At ideal fusion every shape's arithmetic
@@ -431,17 +486,19 @@ is a physics wall, not a missing optimization.
 
 ### 2.3.1 What orders the speedups — and it is none of the obvious things
 
-**Not MFU.** The two biggest speedups are shape 13 (28.41×) at MFU 0.63, one of
-the *highest*, and shape 7 (21.96×) at MFU 0.14, one of the lowest.
+**Not MFU.** The two biggest speedups are shape 13 (**31.51×**) at MFU 0.69, one
+of the *highest* on the board, and shape 7 (**29.15×**) at MFU 0.18, one of the
+lowest. If MFU ordered the speedups those two could not sit next to each other.
 
 **Not baseline idle.** Idle fraction, nsys, post-LOCK: shape 2 **86.0%**, shape 3
 82.6%, shape 12 69.8%, shape 4 49.2%, shape 7 3.2%, shape 1 3.4%, shape 5
 **1.0%**, shape 8 0.2%. Shape 5 has essentially **no launch gaps to recover** and
-the megakernel still returns **9.15×** there. So the mechanism is not "the baseline
-wastes time between launches and we stop wasting it". Keeping the block resident in
-registers **deletes memory traffic** — it does less work, rather than the same work
-with fewer gaps. This is why an idle-fraction ceiling can never bound this
-mechanism from above, and it is the most useful thing the re-measurement produced.
+the megakernel still returns **9.82×** there. So the mechanism is not "the
+baseline wastes time between launches and we stop wasting it". Keeping the block
+resident in registers **deletes memory traffic**, doing less work rather than the
+same work with fewer gaps. This is why an idle-fraction ceiling can never bound
+this mechanism from above, and it is the most useful thing the re-measurement
+produced.
 
 **What does order them, substantially, is the baseline's own efficiency.** Shapes
 1, 9, 10 and 11 are the same problem four times — identical batch, sequence,
@@ -565,69 +622,67 @@ Score-scenario board: `Project/results_side/SENSITIVITY.md` (regenerate with
 
 ### 2.4 The two shapes that do not fit
 
+**Both are now measured on the shipping artifact.** Earlier drafts carried these
+two rows as provisional, on one seed each, against a pre-integration file, with
+shape 14's timing marked `[PENDING]` and blocked. All three of those limitations
+are resolved.
+
 | | shape 6 | shape 14 |
 |---|---|---|
-| Why the baseline can't run | dense baseline OOMs at batch 10,000 on 8 GB | attention table is 5.12e12 elements (multi-TB) at any batch, on any hardware |
-| What we ran | full B=10,000, single call | full seq=100,000 causal attention |
-| Reference | batch-chunked official computation (identical math) | streamed fp32 oracle, itself validated against the untouched official dense implementation at feasible lengths (worst deviation 1.4e-6) |
-| Result | 0 tolerance violations, max abs err 1.51e-3 | 0 tolerance violations, max abs err 9.05e-4 |
-| Peak memory | 3.37 GiB | 4.89 GiB allocated / 5.31 GiB reserved |
-| Timing | 83.8 ms median (candidate-only; no baseline exists to divide by) | **[PENDING]** — see below |
+| Why the baseline can't run | dense baseline OOMs at batch 10,000 on 8 GB | attention table is 5.12e12 elements, multi-TB at any batch on any hardware |
+| What we ran | full B=10,000, single call | full seq=100,000 causal, as 32 serial B=1 calls |
+| **Timing** | **60.3873 ms** median | **48.271 s** median of sums |
+| Achieved rate | 19.45 TF/s | 28.82 TF/s |
+| **MFU** | **59.8%** | **88.7%** |
+| Physical floor | 36.1355 ms | 42.808 s |
+| Reference | batch-chunked official computation, identical math | streamed fp32 oracle, validated against the untouched official dense implementation at 1,024 / 2,048 / 4,096 tokens |
+| Seeds | 5 | 5 |
+| Result | 0 violations, worst abs err 1.43e-3 | 0 violations, worst abs err 9.83e-4 |
+| Elements compared | 819,200,000 | 16,384,000,000 |
+| Peak memory | 3.06 GiB settled, 3.67 GiB peak | 2.80 GiB allocated, 3.19 GiB reserved |
+| Repeat spread | flat across 10 repeats, zero growth | 0.019% across 3 repeats |
+| Packet | `daa1ccec…` | `7d4f73d4…` |
 
-**Shape 14's full-batch timing is deliberately absent rather than
-estimated.** We measured B=1 at 1,674 ms and B=2 at 3,657 ms. That is
-**2.18× for 2× the batch, not 2.00×** — so multiplying the B=1 median by 32
-would understate the real cost, and we refuse to publish a number produced
-that way. The full B=32 figure comes from the batch-decomposed evaluator
-run.
+**Shape 14 is the strongest result on the board.** It carries 99.89% of all the
+arithmetic in the benchmark and runs at 88.7% of the card's physical maximum.
+Every other shape combined is 0.11% of the arithmetic.
 
-**That run is blocked, not queued** — corrected 31 Aug after checking the
-tool rather than the note. `shape14_eval.py`'s `eval` subcommand, which
-produces the timing, requires `--validation-packet` ("a *passed*
-shape14-oracle-validation-v2 packet"). That packet comes from the `validate`
-subcommand, which its own help labels `(gate)` and which aborts on the
-one-line device-comparison bug described below. **So the same owner-only
-one-liner gates both the extreme-shape packet re-capture and this
-[PENDING] number.** Fixing it unblocks both at once.
+**What we no longer claim, because it turned out not to be needed.** Earlier
+drafts refused to publish a full-batch figure because the measured scaling was
+2.18× per doubling rather than 2.00×, so extrapolating from B=1 would have
+understated the cost. That reasoning was right and the extrapolation was never
+published. It is now moot: the batch-decomposed evaluator ran and produced a
+measured figure, so nothing is projected.
 
-Both extreme-shape packets are **PROVISIONAL**: they carry one seed each
-and cite the pre-integration submission file.
+**The bug that blocked this is fixed.** `shape14_eval.py` and
+`shape6_local_eval.py` set `device = torch.device("cuda")` with no index, then
+compared it against a mask that the official `generate_random_case` materialises
+on `cuda:0`. In PyTorch those two compare unequal, because device equality
+compares type *and* index, so the assertion fired on every invocation and both
+side lanes aborted. Both files sit in the tool directory the optimizing agent is
+denied write access to, which is the correct arrangement for code that decides
+whether the agent's own claims are true, so the fix waited for the human owner
+and then was applied by him.
 
-**We attempted the re-capture against the shipped submission and it is
-blocked** (31 Aug 02:20). Both side-evaluation lanes fail immediately, and
-the cause is a bug in our own evidence tooling rather than in the kernels or
-the official script. `Project/tools/shape14_eval.py:289` and
-`Project/tools/shape6_local_eval.py:296` set `device = torch.device("cuda")`
-with no index, then assert `mask.device != device` on the mask returned by
-the official `generate_random_case`. That mask materialises on **`cuda:0`**,
-and in PyTorch `torch.device("cuda:0") != torch.device("cuda")` — device
-equality compares type *and* index. The assertion therefore fires on every
-invocation. The shape-6 file splits its checks across two statements, and
-the one that fired is the device comparison, not the all-true content check
-— so the mask itself is provably fine.
-
-Both files sit in the tool directory the optimizing agent is denied write
-access to, which is the correct arrangement for the code that decides
-whether these claims are true, so the one-line fix waits for the human
-owner. We report this rather than quietly leaving "re-capture queued" in the
-document: **these packets cannot currently be regenerated by the tools in
-this repository**, and an evidence artifact whose own generator can no
-longer produce it is weaker than it looks. The correctness results they
-record stand as measured; their provenance is one seed against a
-pre-integration file, and that is what we claim for them.
+**Two labels still travel with both rows, and they are not fixable.** Their
+evaluators use CPU RNG, so their inputs are not bit-identical to a default judge
+run. And shape 14's timing is 32 serial B=1 calls, not one literal B=32 call, so
+it demonstrates decomposed execution rather than a single monolithic invocation.
+Both facts are stated in the packets' own `limitation` fields, and both must be
+stated wherever these numbers are quoted.
 
 ---
 
 ## 3. What we actually did to the kernels
 
 > **Which numbers this section quotes.** The mechanism comparisons below
-> (megakernel vs `k004`, head-count scaling, per-kernel device time) were all
-> measured on the **kernel modules**, §2.1, because that is the only board
-> where the alternative routes exist to compare against — you cannot run
-> `k004` "inside" the shipped file. Where a shape appears in both boards the
-> figures differ by the scatter documented in §2.1.1 (e.g. shape 5: 9.15× on
-> the module, 9.12× shipped; shape 11: 12.68× vs 12.59×). **The headline
-> board is still §2.1.1.**
+> (megakernel against `k004`, head-count scaling, per-kernel device time) were
+> measured on the **kernel modules**, §2.1, because that is the only board where
+> the alternative routes exist to compare against. You cannot run `k004` inside
+> the shipped file. Those comparisons are also one or more generations behind the
+> shipped build. **The headline board is §2.1.1 and nothing here supersedes it.**
+> Where this section gives a speedup for a shape, check §2.1.1 for the current
+> value before quoting it.
 
 The official baseline runs a transformer block as roughly forty separate
 GPU operations. Nine of the fourteen test shapes are `d_model` 128 with
@@ -635,10 +690,15 @@ sequence length 128 — small enough that the GPU finishes each operation
 faster than the CPU can queue the next. The work is therefore mostly *not*
 about arithmetic.
 
-**The megakernel (shipping on 11 of 12 runnable shapes).** An entire
-transformer block in authored Triton kernels — **two** in the `k009`
-generation described here, **three** in the shipped `54057a33…` build after
-the split described in §3.5:
+**The megakernel (shipping on 12 of the 14 shapes).** An entire transformer block
+in authored Triton kernels: **two** in the `k009` generation described here,
+**three** in the shipped `c2028c48…` build after the split described in §3.5.
+The three are `_sub_norm_qkv`, `_sub_attn_heads` and `_sub_attn_block_tail`, all
+in `Project/submission/dispatcher_region.py`.
+
+The other two shapes, **8 and 14**, are the two with `d_model` 1024, and both
+take the fp16 tensor-core branch. Their packets record the route taken:
+`('fused', …)` on the twelve, `('fp16', …)` on those two.
 
 1. LayerNorm fused with the QKV projection, weights held in fp16 with FP32
    accumulation.
@@ -889,12 +949,15 @@ The submission ships the actual process artifacts, not a reconstruction.
    The earlier "committed to git before measured" rule is superseded: our own
    auditor found it insufficient, because a packet could still cite the
    current source hash rather than the measured one.
-4. **Blind cross-family audits, fired mechanically.** A new champion triggers
-   a detached audit automatically — not when the agent feels ready — and 81
-   verdicts are in the ledger (§4). **Stated in the present tense honestly:
-   the audit recorder is currently broken and no row of §2.1.1 carries a
-   bound verdict.** The mechanism is real and its history is in the repo; it
-   is not running today, and the fix is owner-only by design.
+4. **Blind cross-family audits, fired mechanically.** A new champion triggers a
+   detached audit automatically, not when the agent feels ready, and 81 verdicts
+   are in the ledger (§4). **Stated honestly in the present tense: no row of
+   §2.1.1 carries a bound verdict.** The trigger still fires — it fired three
+   times on 1 September within a minute of the shape-6 measurement — but the
+   auditor is refused by the provider before it reads anything, because our own
+   verdict schema uses `allOf` and structured-output mode forbids it (§9). The
+   mechanism is real, its history is in the repo, and the fix is owner-only by
+   design.
 5. **Research before code.** A source-of-truth research base
    (`Project/research/`) that every proposal must cite. It has killed
    directions *before* they cost GPU time: a single-CTA CUDA play for
@@ -1097,16 +1160,24 @@ write-protected against the agent that they govern.
 > real findings and required 16 owner signatures to lift — not a brake that
 > has been exercised against this campaign's own numbers.
 
-This design was itself adversarially reviewed by the cross-family auditor
-over thirteen rounds; the first version was thrown out entirely, roughly
-fifty real holes were found and fixed, and the final round returned
-APPROVE. ⚠ **Verify the last clause before shipping.** Our own operating
-notes record that a Codex review round died mid-flight on a provider-side
-content filter having produced **no verdict line**, and that *a missing
-verdict must never be read as an APPROVE*. We did not re-confirm from the
-raw logs that round 13 carries a genuine APPROVE rather than an absent one.
-Check it or drop the clause; the round count and the fixes stand on their
-own.
+This design was itself adversarially reviewed by the cross-family auditor over
+thirteen rounds. The first version was thrown out entirely and roughly fifty real
+holes were found and fixed.
+
+**An earlier draft added "and the final round returned APPROVE". That clause is
+now removed, because we checked and could not support it.** Searching
+`Project/audits/` for `APPROVE` returns nine files and **every one of them is a
+prompt**, the text telling the auditor that APPROVE is an available verdict. No
+verdict artifact in the tree contains one. The recorded strategy verdicts we do
+have are `ROUND 1: VERDICT: REVISE` and `ROUND 2: VERDICT: REVISE`
+(`Project/audits/strategy/verdicts.md`).
+
+Our own operating notes also record that a Codex review round died mid-flight on
+a provider-side content filter having produced **no verdict line at all**, and
+the standing rule that follows from it is that *a missing verdict is never an
+APPROVE*. Applying our own rule to our own report costs us a sentence we would
+have liked to keep. The round count and the fixes stand on their own and are
+independently checkable from the prompt files and the diffs they produced.
 
 **What we did re-run, and it is stronger evidence than the review anyway.**
 The controls in the table above are covered by executable tests, not just
@@ -1162,15 +1233,19 @@ repository with their evidence:
   chunk: 3× the traffic on the binding constraint. The profile's "2.3× off
   the memory floor" was latency, not parallelism starvation. The lesson —
   count memory traffic before occupancy — is now a standing rule.
-- **A head-splitting variant came out a statistical tie** and was closed
-  rather than ground on. ⚠ **Unsourced — do not ship this bullet without
-  checking it.** Of the four negative results here it is the only one we
-  could not trace to a file: it is absent from `LESSONS.md`, from
-  `Project/research/`, from the kernel roster in `LEADERBOARD.md` and
-  `SENSITIVITY.md` (k000, k001, k003–k011, k014, k015), and no
-  head-splitting kernel exists on disk. It may be a mis-remembering of the
-  `k011` QKV-chunk result immediately above, which *is* documented. Either
-  find the evidence or delete the bullet.
+- **"A head-splitting variant came out a statistical tie" — this claim was
+  false, and it is replaced rather than deleted.** An earlier draft listed it as
+  a negative result. It could not be traced to any file: absent from
+  `LESSONS.md`, from `Project/research/`, and from the kernel roster, with no
+  head-splitting kernel on disk at the time. It was probably a mis-remembering
+  of the `k011` QKV-chunk result above, which is documented.
+
+  It is now moot, and in the opposite direction. Head splitting was built as
+  `Project/kernels/k017_split_heads.py`, integrated into the shipped dispatcher
+  as `_sub_attn_heads`, and measured at **+7.31% on the twelve-shape geometric
+  mean**. It is one of the two largest wins in the project. A negative result we
+  could not source turned out to be a positive result we had not yet run, which
+  is the strongest argument in this document for sourcing every bullet.
 - **A single-CTA megakernel for shape 2 was killed before it was written**,
   by arithmetic: 117.44 MFLOP at one SM's share of fp16 peak (32.5 TF ÷ 38
   SMs) floors at **~137 µs** against a then-champion of **144.4 µs** — at
@@ -1181,11 +1256,32 @@ repository with their evidence:
 
 ## 9. Limitations and what we would do with more time
 
-- **No audit verdict is bound to any measured row**, in either board. The
-  audit recorder broke mid-campaign and only the human owner can repair it
-  (§6). The boards are permitted and reproducible; they are not
-  independently adjudicated, and we would rather say so than let "81
-  verdicts in the ledger" imply otherwise.
+- **No audit verdict is bound to any measured row**, on any board. The boards are
+  permitted, hash-bound and reproducible. They are not independently adjudicated,
+  and we would rather say so than let "81 verdicts in the ledger" imply otherwise.
+
+  **Root cause, diagnosed 1 Sep and correcting our own earlier account.** Every
+  previous draft said "the audit recorder is broken". That was wrong. The
+  recorder is fine. **The auditor never starts.** Our verdict schema
+  (`Project/audits/verdict_schema.json`, line 70) uses `allOf`, and OpenAI's
+  structured-output mode does not permit it, so the request is rejected before
+  the model sees the packet:
+
+  ```
+  "code": "invalid_json_schema",
+  "message": "Invalid schema for response_format 'codex_output_schema':
+              In context=(), 'allOf' is not permitted."
+  "status": 400  →  codex returncode 1, stdout empty
+  ```
+
+  This reproduced live on 1 Sep: the shape-6 run enqueued an audit, the watcher
+  launched Codex three times inside one minute, all three returned the same 400,
+  each failure was written into the hash-chained audit journal (seq 32 to 37),
+  and the entry escalated to `owner_attention`. **Every part of the machinery
+  worked except the schema.** The fix is to inline that `allOf` branch, and
+  `verdict_schema.json` is inside the LOCK, so it is owner-only, which is the
+  correct arrangement for the code that decides whether the agent's claims are
+  true.
 - **Both boards are screening-lane**, so nothing on them was promoted to
   champion through the promotion gate.
 - **The verdict brake has never fired on a post-LOCK row** (§7). It
@@ -1193,27 +1289,36 @@ repository with their evidence:
   signatures to lift, but because the recorder broke before any campaign row
   could be adjudicated, it has not been exercised against this campaign's own
   numbers.
-- **Shape 14's full-batch timing is not yet measured** (§2.4). Correctness
-  at full sequence length is proven. The timing run is **blocked**, not
-  queued: it needs a passed validation packet from the `validate` gate,
-  which aborts on the same one-line tooling bug that blocks the
-  extreme-shape re-capture. One owner-only fix unblocks both.
-- **The extreme-shape evidence packets are provisional** — one seed,
-  pre-integration submission sha — and the re-capture is **blocked on an
-  owner-only one-line fix in our own evidence tooling** (§2.4). They cannot
-  presently be regenerated by the tools in this repository.
-- **Small-shape measurements are noisy between independent invocations**,
-  and we now have three measurements of how noisy, which are worth
-  distinguishing because an earlier draft conflated them:
-  - *Within* an invocation, baseline-vs-itself calibration noise is
-    **0.03–0.4%** — that is what sets each shape's promotion threshold.
+- **Resolved since the last draft, and recorded because the limitation was
+  published:** shape 14's timing is measured (48.271 s, §2.4), and the
+  extreme-shape packets are no longer provisional. They now carry 5 seeds each
+  and are bound to the shipping artifact. The owner-only one-line device
+  comparison fix that blocked both has been applied.
+- **Shapes 6 and 14 remain side evidence and always will.** Their evaluators use
+  CPU RNG, so their inputs are not bit-identical to a default judge run, and
+  shape 14's timing is 32 serial B=1 calls rather than one literal B=32 call.
+  Neither is a defect we can fix. Both are labelled in the packets themselves.
+- **Small-shape measurements are noisy between independent invocations**, and we
+  now have four measurements of how noisy, which are worth distinguishing
+  because an earlier draft conflated them:
+  - *Within* an invocation, baseline-against-itself calibration noise is
+    **0.03 to 0.4%**, and that is what sets each shape's promotion threshold.
   - *Across* invocations of identical work, GPU clock state alone moves the
     absolute time by about **9%** (§6).
   - Measuring the shipped file against its own kernel module in separate
     invocations gave **−10.0% to +2.6%** per shape (§2.1.1).
+  - The worst case observed, and the one that actually bounds interpretation:
+    **byte-identical code measured 13.2% apart, minutes apart, on shape 12**
+    (11.2516× then 9.7638×).
 
-  The older "±25%" figure came from comparing two *uncontrolled* pre-gate
-  boards and should not be quoted for the current ones.
+  **The calibration figure is the misleading one and we were misled by it.** It
+  is computed by timing the baseline against itself inside one process, so it
+  measures second-to-second steadiness rather than run-to-run reproducibility,
+  and for that job it is roughly two orders of magnitude too small. Several
+  shape-12 conclusions were withdrawn once this was understood, because none of
+  the deltas involved was larger than the replicate spread. The older "±25%"
+  figure came from comparing two uncontrolled pre-gate boards and should not be
+  quoted for the current ones either.
 
   **Correction to an earlier draft:** it said "the final board is a median of
   repeated sweeps". It is not. **Each row is the median of 300 paired
@@ -1222,11 +1327,24 @@ repository with their evidence:
   across invocations, because §6 forbids comparing absolute latencies across
   processes — which is also why the per-shape scatter above is visible
   rather than smoothed away.
-- **The largest untouched lever is the launch-bound family** (shapes 2, 3,
-  7, 12): they sit at 0.03–0.29 MFU because the grid cannot fill the card.
-  A sequence-persistent kernel design is the honest next step; published
-  results for that class suggest ~1.2×, which is why it ranks below the
-  extreme shapes on our own score-sensitivity board.
+- **The largest untouched lever is the launch-bound family** (shapes 2, 3, 7,
+  12). They measure 5.3%, 16.2%, 17.7% and 34.1% MFU, the four lowest on the
+  board, because the grid cannot fill the card and per-call cost does not shrink
+  with problem size. A sequence-persistent kernel design is the honest next step.
+  Published results for that class suggest around 1.2×, which is why it ranks
+  below the extreme shapes on our own score-sensitivity board.
+- **We never measured `torch.compile` on the shipping build.** It was measured
+  once, on 29 August, on a build eleven artifacts old, at 7.0× / 3.1× / 1.2× on
+  the shape-3 / 13 / 8 dials. That is the best estimate we have of the obvious
+  alternative and it cannot be placed alongside the §2.1.1 table, which is the
+  whole point of that table.
+- **The PyTorch comparison is not same-precision.** `k001_sdpa.py` leaves the
+  model in fp32 with TF32 matmul, matching the official baseline, while our route
+  casts every weight and activation to fp16 with fp32 accumulation. Both clear
+  the competition's 2e-3 predicate, so both are legal, but part of any margin we
+  show over PyTorch is precision rather than kernel engineering. A third-party
+  auditor found this and it is labelled in
+  `MEASUREMENT_METHODOLOGY.md` §7.3 rather than left in a headline.
 - **One GPU, one architecture.** Everything is tuned for sm_86 with 99 KB
   of shared memory per block. Kernels autotuned for datacenter cards
   (164 KB) do not run here, and ours would need re-tuning to move.
@@ -1281,6 +1399,30 @@ characterisation run can never be mistaken for a champion; that is why the
 headline board is not in the primary journal and why none of it is
 promotion-eligible (§2.1, caveat 2).
 
-Full environment and hashes are additionally in
-`Project/results_side/SHIP_MANIFEST.json` **[PENDING regeneration at the
-final commit]**.
+**`Project/results_side/SHIP_MANIFEST.json` cannot be regenerated, and the reason
+is our own gate refusing our own board.** Running the diagnostic
+(`python3 Project/tools/ship_manifest.py --diagnose`, 1 Sep 03:19) returns:
+
+```
+SHIP MANIFEST REFUSED: No official shape has post-lock bound evidence.
+```
+
+Two causes, both of them the design working rather than failing:
+
+1. **Every shape reports `missing_audit_verdict` as a blocking reason.** The
+   manifest requires a bound verdict per shape, and no row has one, for the
+   schema reason in §9. While the auditor cannot start, no ship manifest can
+   exist. That is the intended coupling.
+2. **The manifest reads the pre-LOCK journal and `Project/results_side/`.** The
+   §2.1.1 board is screening-lane, so it lives in the authority store
+   (`Project/authority/events.jsonl` plus the content-addressed packets) and in
+   the scratch namespace by design, precisely so a characterisation run cannot be
+   mistaken for a champion. The manifest therefore does not see it, and reports
+   only legacy pre-LOCK rows measured against kernel files rather than against
+   the submission.
+
+So the honest statement is that **the artifact whose absence a judge might notice
+is absent because the system refused to produce it on evidence it considers
+insufficient**, not because it was forgotten. Full environment and hashes are
+available per row in the measurement packets under `Project/authority/blobs/`,
+which `Project/BOARD.md` §2 indexes.

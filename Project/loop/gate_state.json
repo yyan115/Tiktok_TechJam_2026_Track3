@@ -214,7 +214,8 @@
     "F-shape10-graph",
     "F-shape5-graph",
     "F-shape4-graph",
-    "F-shape8-graph"
+    "F-shape8-graph",
+    "F-shape12-fusion"
    ],
    "max_calibrations_per_shape": 3,
    "max_total_attempts": 200,
@@ -223,11 +224,11 @@
    "opened_epoch": 1788135426.7629273,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 70,
+   "scientific_attempts": 83,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
-   "side_evaluation_requests": 1,
+   "side_evaluation_requests": 2,
    "side_evaluations": [],
    "stall_nonce": null,
    "stall_research_cycle": 28,
@@ -510,7 +511,8 @@
   "a6f9f42ee50e15f3c47240fa63b95c81650e1c3f223f676f3259dfca771b3bf2",
   "7b6a81d8289f7f44359844f19f3a1f054a4479ad5a7ef765bad9ae8885b0a18d",
   "bf657e856aed00527cbdc5be341e565d4d06e73bb6810c5b098cb8c6c185553b",
-  "284727245ac02b62727965ee1dc326e8ed129e246285941c5532bd7e4ccb8a8e"
+  "284727245ac02b62727965ee1dc326e8ed129e246285941c5532bd7e4ccb8a8e",
+  "afbfee305422bd8cda67933aa29225a1f49d548a4b8080f93747f21947d58bd9"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -545,6 +547,14 @@
    "authority_event_id": "evt-20260830T143749.348645Z-4999ba6e4d3e",
    "authority_event_sha256": "20daeda03f1b17379bfa8e4fe5d069e4d9e8d2bfca97db90d80110f1c6171c9a",
    "subject_sha256": "88065d60df11cf23035919f639196a2e0444abea687667e8564b504e38cb5b46"
+  },
+  "F-shape12-fusion": {
+   "action": "resolve_family_novelty",
+   "admitted": "2026-09-01T02:15:16+0800",
+   "admitted_epoch": 1788200116.0639884,
+   "authority_event_id": "evt-20260831T180252.678047Z-989202847de4",
+   "authority_event_sha256": "f28f34cef4de61a5f8e516e9adeffd330b02ae303c7b69f64ae60bbbdcdf9149",
+   "subject_sha256": "cfcc8e4647e5335418a997cd4ccc02ffa1409bc7332d19110f3fa9d6cc5ff189"
   },
   "F-shape12-graph": {
    "action": "register_family",
@@ -679,6 +689,21 @@
    "mechanism": "cuda-graph-replay",
    "parent_family_id": null,
    "shape": 11
+  },
+  "F-shape12-fusion": {
+   "admission": "controller-authorized",
+   "allow_new_attempts": true,
+   "bottleneck": "launch-overhead",
+   "budget_attempts": 12,
+   "budget_minutes": 90,
+   "changed_resource": "kernel-launches",
+   "expected_counter_change": {
+    "kernel_launch_api_calls": "decrease"
+   },
+   "family_id": "F-shape12-fusion",
+   "mechanism": "cuda-graph-replay",
+   "parent_family_id": "F-shape12-graph",
+   "shape": 12
   },
   "F-shape12-graph": {
    "admission": "controller-authorized",
@@ -850,7 +875,7 @@
    "primary_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40"
    ],
-   "scientific_attempts": 11,
+   "scientific_attempts": 12,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -861,7 +886,8 @@
     "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
     "80218c223af6d7032d3c289b8bc860e9a41c54fce52c7b4832c7fd9070cd1953",
     "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -877,7 +903,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 7,
+   "scientific_attempts": 8,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -885,7 +911,8 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
     "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -901,7 +928,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 9,
+   "scientific_attempts": 10,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -910,7 +937,26 @@
     "68a626b396ede8d427652ec0158760081d57aec8496f0fb76f313e725e4f05fa",
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
+   ],
+   "strikes": 0
+  },
+  "F-shape12-fusion|12": {
+   "best_speedup": null,
+   "budget_snapshot": {
+    "budget_attempts": 12,
+    "budget_minutes": 90,
+    "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+    "family_id": "F-shape12-fusion"
+   },
+   "closed": false,
+   "closure_nonce": null,
+   "exec_failures": 0,
+   "nonstrike_budget": 2,
+   "scientific_attempts": 1,
+   "scratch_attempted_shas": [
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -953,7 +999,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 11,
+   "scientific_attempts": 12,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -965,7 +1011,8 @@
     "83fbbe3037a23e29b240e1556cff4eb67825c3c6fb9441dc013dba3c99e04da7",
     "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
     "7609fa17d750d791ad3bcea1bfe849c9fdd2fa923f9343028ea4c708522ac54e",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -981,7 +1028,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 9,
+   "scientific_attempts": 10,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -991,7 +1038,8 @@
     "4a54ccfa8c22c04f5f23969a9779de458301f91178345bb7d8deec0cfc39a1df",
     "301d7063392bae4c918746ce4cd03d99e1140b3054fd1497080a6cb3e0c59096",
     "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1007,7 +1055,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -1016,7 +1064,8 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "4a54ccfa8c22c04f5f23969a9779de458301f91178345bb7d8deec0cfc39a1df",
     "301d7063392bae4c918746ce4cd03d99e1140b3054fd1497080a6cb3e0c59096",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1032,7 +1081,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -1040,7 +1089,8 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
     "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1056,7 +1106,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 7,
+   "scientific_attempts": 8,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -1064,7 +1114,8 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
     "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1080,7 +1131,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -1089,7 +1140,8 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "301d7063392bae4c918746ce4cd03d99e1140b3054fd1497080a6cb3e0c59096",
     "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1105,7 +1157,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "bda8f703f1ddb4ee0a8386d50fce545b4ca17c33661eebc2f60062919fa8dbba",
@@ -1114,7 +1166,8 @@
     "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
     "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
     "9d7e67ab079caf0236e3b7278989924878e270d8818b632f05b47ddbf3dad519",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   },
@@ -1130,7 +1183,7 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 8,
+   "scientific_attempts": 9,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
@@ -1139,12 +1192,33 @@
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
     "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
     "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
-    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378"
+    "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+    "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b"
    ],
    "strikes": 0
   }
  },
  "pending_audit_decisions": {
+  "20260831-184424-5d887b": {
+   "campaign_id": "CAMP-FINAL",
+   "candidate_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "clean": true,
+   "controller_performance_eligible": true,
+   "correct": true,
+   "eligibility_scope": "final_evidence_only",
+   "entry_id": "20260831-184424-5d887b",
+   "family_id": null,
+   "group": null,
+   "measurement_event_id": "evt-20260831T184424.793741Z-ad741ee023da",
+   "measurement_event_sha256": "7ffffd4823a5c573ce24f3308269c4eba61a986b979fd2b9b90312ad6256ed18",
+   "packet_binding_event_sha256": "57db6cb1ff9ba127aa2209f96419738a7528fe730f3dd4498003742299f21536",
+   "packet_sha256": "daa1ccec88c59bf03d11031678074cb45adcd19ef5ffc1a5c903a1da8e817d60",
+   "request_id": "8fc02f0d70c8aa94cd4b61cce294e45e",
+   "request_sha256": "5d45e09b48bc9ef808a51571d199da47b0f57e4c5ca6b32471f761b38b7ee341",
+   "shape": 6,
+   "side_evidence_sha256": "90ed44501cbf6fb8e143fb7a7d306824bb8dd7252494287e78c0955443fadca1",
+   "speedup": null
+  },
   "run-be8e56a55edd1926a84bf5d1efc0b154": {
    "campaign_id": "CAMP-POSTLOCK",
    "candidate_sha256": "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
@@ -1420,6 +1494,47 @@
     "launch-overhead"
    ],
    "target_sha256": "644dcb557503c2a2781fabd6a39698e3db36f6db9fb96d3894e60a02516e1b63",
+   "tool": "torch-profiler"
+  },
+  "profile-0d39730155eac0d5a0dbcfd1": {
+   "artifact_path": "Project/loop/profile_evidence/profile-0d39730155eac0d5a0dbcfd1.json",
+   "artifact_sha256": "59edf69dd86d6246f08a676a352f0fb58f7120236d93b8fe765fc441a71ebc3c",
+   "created_epoch": 1788200183.5819685,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 1314.53515625,
+    "gpu_idle_fraction": 0.0891082140935805,
+    "gpu_span_us": 1443.1298828125,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "2d80a5916e749141cfbe6046813c06e869cac74d444ec5f5136e0eae43e0448a",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-0d39730155eac0d5a0dbcfd1",
+   "reconciled_state_seq": 710,
+   "shape": 2,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   },
   "profile-1127da61e6696eed99c7d67f": {
@@ -2595,6 +2710,47 @@
    "target_sha256": "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
    "tool": "torch-profiler"
   },
+  "profile-48212d6225004c6d80d31d50": {
+   "artifact_path": "Project/loop/profile_evidence/profile-48212d6225004c6d80d31d50.json",
+   "artifact_sha256": "a01c8714951ed7ffebf795e82a199977eec6e5ed267678721185a4c46825f570",
+   "created_epoch": 1788201425.3751795,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 13236.193359375,
+    "gpu_idle_fraction": 0.006012534020619742,
+    "gpu_span_us": 13316.2578125,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "1e15b97f83f402ff4451cc1d82d60344741623bf4544f13cd5d2c25e5151e192",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-48212d6225004c6d80d31d50",
+   "reconciled_state_seq": 750,
+   "shape": 11,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-4921975152204ea89242631c": {
    "artifact_path": "Project/loop/profile_evidence/profile-4921975152204ea89242631c.json",
    "artifact_sha256": "c9a8f922b2d10a477b8aefa334436eb8fc15e23f7af89c659e281ec609686ca0",
@@ -2676,6 +2832,47 @@
     "launch-overhead"
    ],
    "target_sha256": "9d7e67ab079caf0236e3b7278989924878e270d8818b632f05b47ddbf3dad519",
+   "tool": "torch-profiler"
+  },
+  "profile-4b9a83290f270a898dd9af60": {
+   "artifact_path": "Project/loop/profile_evidence/profile-4b9a83290f270a898dd9af60.json",
+   "artifact_sha256": "b096765f83870832c18c076a32819761ce8884b11a8d71fca9cd3d7bb728a892",
+   "created_epoch": 1788201260.7765114,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 11428.916015625,
+    "gpu_idle_fraction": 0.00906448831287765,
+    "gpu_span_us": 11533.4609375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "a7356ccfb458a5752e0b10e39ff710de64a675b34d156ef3fd9c2fa48ea57ab4",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-4b9a83290f270a898dd9af60",
+   "reconciled_state_seq": 745,
+   "shape": 10,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   },
   "profile-4b9acc07920172b1d71f5bef": {
@@ -3611,6 +3808,47 @@
    "target_sha256": "f462e320296ceab7f54f5f4f21a8f2bfc0b9df0111f939c18c100b42e2275cc9",
    "tool": "torch-profiler"
   },
+  "profile-6e884f047d127115c5f5a0a3": {
+   "artifact_path": "Project/loop/profile_evidence/profile-6e884f047d127115c5f5a0a3.json",
+   "artifact_sha256": "f4cdf759d6bdd9dea6280bbb2d8c3e571e97ceef84e31af4fcb6561c72573048",
+   "created_epoch": 1788201097.53094,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 12005.6181640625,
+    "gpu_idle_fraction": 0.006650822103053122,
+    "gpu_span_us": 12086.0,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "ad14e5740c5d591e56829c7cd5c7a315eab42cc26c7c982f78f4f10acc2df636",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-6e884f047d127115c5f5a0a3",
+   "reconciled_state_seq": 740,
+   "shape": 9,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-71a67b2cf926f0dba4fe9b56": {
    "artifact_path": "Project/loop/profile_evidence/profile-71a67b2cf926f0dba4fe9b56.json",
    "artifact_sha256": "c987db4e9247f251e4cfa13065287d35ff68dee9779b09e38b9b28831734b411",
@@ -3779,6 +4017,47 @@
    "target_sha256": "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
    "tool": "torch-profiler"
   },
+  "profile-859f450f8efe7a557cc58c7b": {
+   "artifact_path": "Project/loop/profile_evidence/profile-859f450f8efe7a557cc58c7b.json",
+   "artifact_sha256": "99c02999d71f4e5dc2ab10ab36bbfb65737655557866de2b8c657f775e1ccf49",
+   "created_epoch": 1788198155.4732156,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 109168.908203125,
+    "gpu_idle_fraction": 0.0008282146494406062,
+    "gpu_span_us": 109259.3984375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "b438efbb3745c0464406dae7ef04af3d09368de07b08fdf50a96bbfaf011073d",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-859f450f8efe7a557cc58c7b",
+   "reconciled_state_seq": 697,
+   "shape": 13,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-8ba0b1c9b0f618ed0a0969b7": {
    "artifact_path": "Project/loop/profile_evidence/profile-8ba0b1c9b0f618ed0a0969b7.json",
    "artifact_sha256": "f9f40cb00439f39818d151ebf11241135d7cd86db8b3c5906c56c1c1fa55256d",
@@ -3819,6 +4098,47 @@
     "launch-overhead"
    ],
    "target_sha256": "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
+   "tool": "torch-profiler"
+  },
+  "profile-8cef1f60b49f025dd706b0fd": {
+   "artifact_path": "Project/loop/profile_evidence/profile-8cef1f60b49f025dd706b0fd.json",
+   "artifact_sha256": "041dc9fc48d41af850e0f5ffd586037d6fe1ffa502d76ad7e313efd9f6cd559d",
+   "created_epoch": 1788200503.3059351,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 3250.0869140625,
+    "gpu_idle_fraction": 0.02630685844319758,
+    "gpu_span_us": 3337.896484375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "094ba2fca5442a8043e718bf78f03c4cb0019320b3e0ce46bf93d35202162365",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-8cef1f60b49f025dd706b0fd",
+   "reconciled_state_seq": 720,
+   "shape": 4,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   },
   "profile-8db6cf98580edc5d4f0c0788": {
@@ -4294,6 +4614,47 @@
     "launch-overhead"
    ],
    "target_sha256": "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
+   "tool": "torch-profiler"
+  },
+  "profile-a0f1c1a0e2a4310fd6aa4e78": {
+   "artifact_path": "Project/loop/profile_evidence/profile-a0f1c1a0e2a4310fd6aa4e78.json",
+   "artifact_sha256": "b988ff2b981b44f58bd761e615066e188b748e26bcf85d04ca8c1a1c81dc4c7e",
+   "created_epoch": 1788200819.6579893,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 2312.4951171875,
+    "gpu_idle_fraction": 0.0402278328841823,
+    "gpu_span_us": 2409.4208984375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "bedd443caa8ea1e149509bd67f63044a353e4503936b7265e07f6ebf324a12f0",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-a0f1c1a0e2a4310fd6aa4e78",
+   "reconciled_state_seq": 730,
+   "shape": 7,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   },
   "profile-a54e004df00d0722d9acd155": {
@@ -4917,6 +5278,47 @@
    "target_sha256": "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
    "tool": "torch-profiler"
   },
+  "profile-d28e00d3d505dac324ef9067": {
+   "artifact_path": "Project/loop/profile_evidence/profile-d28e00d3d505dac324ef9067.json",
+   "artifact_sha256": "9f157203621a748e385577dfff696469cf601e6ff8e0527577dc1a6bab64966d",
+   "created_epoch": 1788198421.6577764,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 11272.7197265625,
+    "gpu_idle_fraction": 0.009481574231700818,
+    "gpu_span_us": 11380.6259765625,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "91617789e6bb361fcb7300f3f1fe5a2729035bc1579595522374f80b7fc386d2",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-d28e00d3d505dac324ef9067",
+   "reconciled_state_seq": 702,
+   "shape": 1,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-d2cda19731552b55d3e78619": {
    "artifact_path": "Project/loop/profile_evidence/profile-d2cda19731552b55d3e78619.json",
    "artifact_sha256": "6d2fabed8ef3af15cf1d753f0c1a461d9077321d3f0c7e02c0ae99cc58f42793",
@@ -5266,6 +5668,47 @@
    "target_sha256": "599f5dade86f7f7167bcd24408ac159ddae1f91cc3c084a2a8eb8bbd16e02253",
    "tool": "torch-profiler"
   },
+  "profile-dbd3f3deb496974e8f3c5c62": {
+   "artifact_path": "Project/loop/profile_evidence/profile-dbd3f3deb496974e8f3c5c62.json",
+   "artifact_sha256": "14e61e91cbe89f915561898f6da396870ded13ac6ba84e5e226fef5904428f6f",
+   "created_epoch": 1788201594.519722,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 3004.01953125,
+    "gpu_idle_fraction": 0.02736399972301784,
+    "gpu_span_us": 3088.5341796875,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "3a2726306d038fa1aa6535af5ad64885270d7c607ddce1c65c081630545a64a7",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-dbd3f3deb496974e8f3c5c62",
+   "reconciled_state_seq": 755,
+   "shape": 12,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-df49b0914e3ab4894e82dcf9": {
    "artifact_path": "Project/loop/profile_evidence/profile-df49b0914e3ab4894e82dcf9.json",
    "artifact_sha256": "4fac33d5f1bfb7d4d09a283d770f618762257148763d4a740a51f7ce5d809930",
@@ -5560,6 +6003,47 @@
    "target_sha256": "fa30d1f8d43f2d8bb71272cc14d230c24ecfefa6501b372ebd32d752cc175101",
    "tool": "torch-profiler"
   },
+  "profile-f52fd0c7b4202133707746b1": {
+   "artifact_path": "Project/loop/profile_evidence/profile-f52fd0c7b4202133707746b1.json",
+   "artifact_sha256": "99c88778ebe1a9340c171738784a87429f874b7fb9fa010079689d01a82bc6e9",
+   "created_epoch": 1788200662.7276063,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 20173.5859375,
+    "gpu_idle_fraction": 0.005149226036488708,
+    "gpu_span_us": 20278.001953125,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "cf84f636334e17d9f67800a7679ea4cd2edbf77f91a5d4595209c983354aac5b",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-f52fd0c7b4202133707746b1",
+   "reconciled_state_seq": 725,
+   "shape": 5,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+   "tool": "torch-profiler"
+  },
   "profile-f54e739a8d1cceba220681a0": {
    "artifact_path": "Project/loop/profile_evidence/profile-f54e739a8d1cceba220681a0.json",
    "artifact_sha256": "04c1c4173b8292333105541ce2692ee1b46b2ca3ff1bb659c2c5db2e233c198b",
@@ -5599,6 +6083,47 @@
     "launch-overhead"
    ],
    "target_sha256": "b4fa07a99fc960087531a160af13be8678f2adaad9b8746fbf248494c434ad1d",
+   "tool": "torch-profiler"
+  },
+  "profile-f5a1189bf9e6bed42feb8916": {
+   "artifact_path": "Project/loop/profile_evidence/profile-f5a1189bf9e6bed42feb8916.json",
+   "artifact_sha256": "1a55ba3100ebde0a2f2f86e193ea62d56f7ec959c31de6845e19ae7a16b47b8f",
+   "created_epoch": 1788200349.2942808,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 280.0,
+    "gpu_busy_us": 1765.3310546875,
+    "gpu_idle_fraction": 0.062110747468626326,
+    "gpu_span_us": 1882.23828125,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 13.0,
+    "kernel_instances_total": 260.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "af577341a46332631627b9c5020f60632ed3a5ee474662092139efbe2c76b6a4",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-f5a1189bf9e6bed42feb8916",
+   "reconciled_state_seq": 715,
+   "shape": 3,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   },
   "profile-f5a8306f2072be9219387893": {
@@ -5765,6 +6290,47 @@
     "launch-overhead"
    ],
    "target_sha256": "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
+   "tool": "torch-profiler"
+  },
+  "profile-fec704c079f88be4927a4bcc": {
+   "artifact_path": "Project/loop/profile_evidence/profile-fec704c079f88be4927a4bcc.json",
+   "artifact_sha256": "6e2a939bf0f36627eaaa6ff74065e21cb37902ef2a116b0e0f3bfab9b12f01ef",
+   "created_epoch": 1788200947.7276568,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 1.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20
+    },
+    "device_activity_records": 840.0,
+    "gpu_busy_us": 365584.2119140625,
+    "gpu_idle_fraction": 0.0002920119264155918,
+    "gpu_span_us": 365690.998046875,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 41.0,
+    "kernel_instances_total": 820.0,
+    "kernel_launch_api_calls": 0.0,
+    "kernel_launches": 1.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 20.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "430a6dc8a8dd326513b757525eed976c292b9452f0decb49fd23541fcec5e176",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-fec704c079f88be4927a4bcc",
+   "reconciled_state_seq": 735,
+   "shape": 8,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
    "tool": "torch-profiler"
   }
  },
@@ -6045,7 +6611,33 @@
   "8d14957a9ca56b86345c6a924b4bbf79be21941ba278ce8295d4cf92a6445d4d",
   "30b99514dc745d89552d9901da776f756f7119b5b64650046954b0bf006ac97f",
   "112344eeb79a95962ab7a0c2ecc13ea0938351e9c4aa6603a1af9ed930089bed",
-  "3ff12f74d47bddad7a2e283500b0a5441b13d062b0b25dbf432add64cb90bc24"
+  "3ff12f74d47bddad7a2e283500b0a5441b13d062b0b25dbf432add64cb90bc24",
+  "451141d24d52875c076d24eb7ad3916b48fdf7df83c573aa46b403cce08883d1",
+  "f437d9c4ba0602dcbbdd872cc526321c44d99820fddf5e1c96dc49c803b17dcf",
+  "cbe69125f0c7b3c5635309d8ab7d104486d1d9be4db293e267b52ade055c572d",
+  "66825626854cd4b829b8484b88bc04271b0994b3eb47340fc1b94422fde2cd0a",
+  "6d6c1e54cc7246678685051096595380372fa2ca137e543fa8a5fce539336850",
+  "26cd5ec694ec29bd297396e9bdf29a78d5e71307ab61363fc93ef10d2829c095",
+  "fd605cb9a908bc1217a9e7806e7751856873e5b9f4c382c880515f17c892eafc",
+  "73fa37c154136ad0546e11387119e2155c2de2373f6887a8ed5c146f9cbb47f6",
+  "a16a8e0c989a19427d01d12a96d31823d46af086cf9ea08c5a2c7476f85e6a0a",
+  "13164c1ec369c41dbbe4fd24a2be3907051214fe140ecd2ee25d8fc41381891a",
+  "2318ef98cd1a790d168c57e602676232410017399e4fa4446d51c5abbf14d0fc",
+  "9a2c8cff97b35fb0f694a5656c778ad784d9b5c2f26bf54a0482762b6690e5b7",
+  "da43f3d2705b53b030c61d296f3a2e63ea9e13e3a57ecca64583ab1b2db53904",
+  "d5fb0daf3f688a751d4ea36e507aa20248f4659e5b57531373c4ef1b9e35d846",
+  "7d7dca57d8e45de934318ffba693167fa34b2b9cbe4490fb3c585ad5a0ac51b9",
+  "027a7b768fcaf3e47df639b877c968e21ee84738e5be60fdaf3bb1c9b7c01f87",
+  "7af4f4b0831aec8c905e4ab9a736490b137232c03e9e5bbbe32c6c2f07d21a78",
+  "c0a963dd561be22a2c06c49ecbbe67f9928d0ee2f366f909a416500db6a8a92e",
+  "10ab4efffb6ecb2dd775e7067a6c5ef179785ffd4e9897f07a64e2317ced1c4a",
+  "6ae968e3cf2a86d864ac2b1aa5e47ddde1a982ca054d650cd3305fe1380da28c",
+  "9dfa2295ae522b82e5aa1b88cdfe1c49179055080ec8984f5726dd8f37ddb858",
+  "ced74ed5a1d5266464d2806e4b274608f44a7b4f5701f61400c7f1563319ae40",
+  "fd3cd1b4ca514f8f24dbc4b9e60c63596a49bb323b4968c29bfcbdb91fa11de1",
+  "d179ff1874f4b59007d9eff9e599094df0cf620abcf0cf0307760d1214de9c3d",
+  "9bdfcf31c6ab0b80293d54e0f2e5ee2cc39617f219a4f601a0ea6f516acf53d8",
+  "7ffffd4823a5c573ce24f3308269c4eba61a986b979fd2b9b90312ad6256ed18"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -6292,11 +6884,37 @@
   "2c2cd02b7b0347223657ef5d7cdef461ac61649a987f7a3e81b218af2081e7ec",
   "c2008809ab5fa9c1228b788cde30e8ac18a4e57e040c7fba7863c87d0df78c4d",
   "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf",
-  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb"
+  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb",
+  "d7feb6c5a25878038618671dc4b194b02b4f4e8822f08a565967bbebe93aeab4",
+  "ffa12e9a5778ec852bbb722b55e42f780611ae6e1a91923198c117761aa3c832",
+  "87832f090e1ef2258c0c65c1614c6ee571910ecbf16871b67101b19f6dc1d494",
+  "8b4f6ed2342b42e59b06808cb222f821d928b57bf2a4d5386d7324d863be6103",
+  "cdade07c05442e0467280182b311cf15398b17783fd7329fee7da71f2e1ce7b3",
+  "97bbad131b4e1720fef97172078922a3e50d554d9a81df8ccb2830bd943e5597",
+  "d65cb858b4cfec3fb1683d1b99b07a20d7a4eb4d1707f5f53ca9bceb718a0374",
+  "1e252b340055864fed3cc170a28ef3fd34e3fe4f16605b25d4ee1827ebb4684e",
+  "615b03101467c07f5d480956ef01c935b4b91ff63aedc30c3052a1ccad5b50a1",
+  "89a9f101aaf21dc809a714141b4554f31c2250c35bcbf936ccb42a72c3715a92",
+  "8ab519fedd22b22e324a0524d5a75a0d1be8ab3d77f2767044e38fb4f776e3e7",
+  "60ce5ff0f52fc5cab3665e38e519e9b3aea0e9a2303178e06c20e3918627d046",
+  "bdcf794e3877da9be04f998d212675e185cce8b12e3a9c9d6e7f9ffe9a1cdb92",
+  "82fec5db62437e95c988fe5f57ec1cdbb68d05ed8df75e96320d2d4a811f0ff9",
+  "3c9999a9455fc6e3d4c457ab6fba466db0090a8c5da72fc028716ec341b3c50a",
+  "5f7241b910f2e861f5469e0c0d9e785def8ec47add82380ce65509a6cab3550d",
+  "9d19d12f66fed1e5e647fb9c06729a3c7a87badb415229eced85d28db6d97991",
+  "3fb4fdb89505d912d130f0198b104cf761a5e2b5138fa829c1233b7f89fd64c8",
+  "a7898ff7ee8a33a0b500bddb93d6e75885e5d00e4041617866763813afb5df27",
+  "33f66c973a8d1544e674a03b1a124986a9758243afadcd119e62aa94252fa244",
+  "5a82e22325315229e92198876efb64b7f7c61ef1d4c7fbc6c7b8099d60c56702",
+  "06eba1e3b63111b00f5747ca281f8ae960c95595a6bcdd27fc4e6ab1e1d43c85",
+  "a6f66a7a3a0be71f5161b6b29c9a7e404ad321a92d0f058053f6f112908bfe0b",
+  "56a4e256af7d0a17a6d472cee58ea52151c0c59f1c0b6bff4b43e36432e49414",
+  "a082b11652d88aeb7a205ea11bc57cbcdcf32b37d95ea0177d56b4dd7ab8acbf",
+  "5d45e09b48bc9ef808a51571d199da47b0f57e4c5ca6b32471f761b38b7ee341"
  ],
  "research_cycle": 82,
- "research_open": true,
- "seq": 695,
+ "research_open": false,
+ "seq": 760,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -6542,6 +7160,32 @@
   "2c2cd02b7b0347223657ef5d7cdef461ac61649a987f7a3e81b218af2081e7ec",
   "c2008809ab5fa9c1228b788cde30e8ac18a4e57e040c7fba7863c87d0df78c4d",
   "2c15892f0e7650c585c04cc05f415a8e34ad212d82490156d420a6016e69accf",
-  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb"
+  "d9b252db164301ae60eab4cb4ac423e14bacb55e4a4a5c7a1395028b8d6734cb",
+  "d7feb6c5a25878038618671dc4b194b02b4f4e8822f08a565967bbebe93aeab4",
+  "ffa12e9a5778ec852bbb722b55e42f780611ae6e1a91923198c117761aa3c832",
+  "87832f090e1ef2258c0c65c1614c6ee571910ecbf16871b67101b19f6dc1d494",
+  "8b4f6ed2342b42e59b06808cb222f821d928b57bf2a4d5386d7324d863be6103",
+  "cdade07c05442e0467280182b311cf15398b17783fd7329fee7da71f2e1ce7b3",
+  "97bbad131b4e1720fef97172078922a3e50d554d9a81df8ccb2830bd943e5597",
+  "d65cb858b4cfec3fb1683d1b99b07a20d7a4eb4d1707f5f53ca9bceb718a0374",
+  "1e252b340055864fed3cc170a28ef3fd34e3fe4f16605b25d4ee1827ebb4684e",
+  "615b03101467c07f5d480956ef01c935b4b91ff63aedc30c3052a1ccad5b50a1",
+  "89a9f101aaf21dc809a714141b4554f31c2250c35bcbf936ccb42a72c3715a92",
+  "8ab519fedd22b22e324a0524d5a75a0d1be8ab3d77f2767044e38fb4f776e3e7",
+  "60ce5ff0f52fc5cab3665e38e519e9b3aea0e9a2303178e06c20e3918627d046",
+  "bdcf794e3877da9be04f998d212675e185cce8b12e3a9c9d6e7f9ffe9a1cdb92",
+  "82fec5db62437e95c988fe5f57ec1cdbb68d05ed8df75e96320d2d4a811f0ff9",
+  "3c9999a9455fc6e3d4c457ab6fba466db0090a8c5da72fc028716ec341b3c50a",
+  "5f7241b910f2e861f5469e0c0d9e785def8ec47add82380ce65509a6cab3550d",
+  "9d19d12f66fed1e5e647fb9c06729a3c7a87badb415229eced85d28db6d97991",
+  "3fb4fdb89505d912d130f0198b104cf761a5e2b5138fa829c1233b7f89fd64c8",
+  "a7898ff7ee8a33a0b500bddb93d6e75885e5d00e4041617866763813afb5df27",
+  "33f66c973a8d1544e674a03b1a124986a9758243afadcd119e62aa94252fa244",
+  "5a82e22325315229e92198876efb64b7f7c61ef1d4c7fbc6c7b8099d60c56702",
+  "06eba1e3b63111b00f5747ca281f8ae960c95595a6bcdd27fc4e6ab1e1d43c85",
+  "a6f66a7a3a0be71f5161b6b29c9a7e404ad321a92d0f058053f6f112908bfe0b",
+  "56a4e256af7d0a17a6d472cee58ea52151c0c59f1c0b6bff4b43e36432e49414",
+  "a082b11652d88aeb7a205ea11bc57cbcdcf32b37d95ea0177d56b4dd7ab8acbf",
+  "5d45e09b48bc9ef808a51571d199da47b0f57e4c5ca6b32471f761b38b7ee341"
  ]
 }

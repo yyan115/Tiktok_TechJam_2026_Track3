@@ -1,30 +1,26 @@
-# Devpost written description — DRAFT v1 (30 Aug)
+# Devpost written description — v2 (1 Sep, final board)
 
 > Paste target: the Devpost project description field. Every required
 > element from track statement §3.5 is covered under its own heading.
-> `[PENDING]` = fill from the final board before submitting.
+> Numbers below are the single-artifact board in `Project/BOARD.md`, measured
+> on `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`.
 
 ---
 
 ## An AI agent that writes GPU kernels — and a referee it is not allowed to touch
 
-> **⛔ THE 10.3× BELOW IS A WITHDRAWN NUMBER. DO NOT PUBLISH THIS PARAGRAPH.**
-> Found 31 Aug ~20:20. `10.3×` is the rounded pre-gate `10.32×` figure that was
-> withdrawn on 31 Aug and corrected out of the tech report, README and video
-> script — this file was missed, and `STATE.md` compounded it by recording that
-> "devpost_description.md is clean — it carries no numeric claims", which is
-> false. This is the most exposed instance of the three, because Devpost text is
-> public and this sentence is the first thing a reader sees.
->
-> **Replace with the board of whichever artifact actually ships.** The two live
-> candidates are `10.14×` on `54057a33…` (twelve shapes, one build, all
-> `correct: true`) and an unmeasured newer file. See `Project/STATUS.md`.
+**Geometric-mean 11.87× speedup on the organizers' own untouched benchmark
+script, on a consumer RTX 3060 Ti. All fourteen test shapes are measured on one
+build, and every one passes the precision test: 94 trials, 17.4 billion element
+comparisons, zero violations. The two shapes that cannot run on 8 GB in their
+official form run on the same card and are verified against exact references. The
+largest of them, 100,000 tokens at batch 32, reaches 88.7% of the card's physical
+maximum.**
 
-**Geometric-mean [PENDING — see the block above]× speedup on the organizers' own
-untouched benchmark script, across all twelve locally-runnable test shapes, on a
-consumer RTX 3060 Ti. Every shape passes the precision test. The two shapes that
-cannot run on 8 GB in their official form are solved by block decomposition
-on the same card and verified against exact references.**
+The 11.87× is over the twelve shapes that have a baseline to compare against.
+Shapes 6 and 14 have none, because the official baseline runs out of memory on
+one and would need roughly 160 TB of attention matrix on the other. Across all
+fourteen shapes, weighted equally, our mean model FLOPs utilisation is 42.7%.
 
 ### The problem, as we framed it
 
@@ -56,9 +52,11 @@ single dispatcher inspects the incoming shape and routes, which the track
 explicitly permits.
 
 No external kernel library is wrapped. No FlashAttention package, no
-xFormers. The kernels are authored, which is the point of the exercise —
-`torch.compile` with max-autotune reaches 7.0× where ours reaches 12.0×,
-and 3.1× where ours reaches 28.8×.
+xFormers. The kernels are authored, which is the point of the exercise. For
+scale: `torch.compile(mode="max-autotune")` was measured at 7.0× on shape 3
+and 3.1× on shape 13, where our shipping build reaches 19.8× and 31.5×. That
+`torch.compile` measurement was taken on 29 August on an earlier build, so it
+spans two artifacts and is an estimate rather than a paired measurement.
 
 **The referee.** Shapes are pinned in a config the agent cannot benchmark
 around (the official script's *defaults* match none of the 14 test shapes).
@@ -69,13 +67,27 @@ events, perturbed fresh-memory re-runs, shape assertions, and candidate
 bytes committed to git *before* the first measurement so that audited bytes
 and measured bytes are provably identical.
 
-**The adversary.** Every new champion automatically fires a blind audit by
-a different model family, which sees only a neutral machine-generated
-evidence packet — no commentary from the optimizer — and returns a typed
-verdict. Hard verdicts pause the machine; only the human can clear them.
-Sixty-plus verdicts are in the ledger, including the ones that made us
-change code: an auditor caught a latent masking bug on a fallback path the
-benchmark never exercises, by reading rather than testing.
+**The adversary.** A new champion fires a blind audit by a different model
+family, which sees only a neutral machine-generated evidence packet, with no
+commentary from the optimizer, and returns a typed verdict. Hard verdicts pause
+the machine and only the human can clear them. Sixty-plus verdicts are in the
+ledger, including the ones that made us change code: an auditor caught a latent
+masking bug on a fallback path the benchmark never exercises, by reading rather
+than testing. The brake has fired for real, on sixteen findings at once, and cost
+sixteen separate human signatures to lift.
+
+Stated plainly because it is the honest limit: **none of the final board's rows
+has an audit verdict.** Those rows are screening-lane measurements, each bound to
+a permit and an artifact hash, with no verdict attached.
+
+The cause is narrow and we found it by reading the failure rather than assuming
+it. Our own verdict schema uses a JSON Schema construct (`allOf`) that OpenAI's
+structured-output mode rejects, so the auditor is refused with an HTTP 400 before
+it ever sees the evidence. It reproduced three times in one minute on 1
+September, each failure recorded in the hash-chained audit journal. The
+machinery around it worked correctly: enqueued, launched, retried, recorded,
+escalated to the human. The schema is inside the signed lock, so only the human
+can fix it, which is the arrangement working rather than failing.
 
 ### What we think is genuinely novel
 
@@ -95,9 +107,11 @@ be persuaded. The optimizer AI has domain judgment and zero exception
 power. The auditor AI can flag but never steer. Exceptions belong to the
 human, who is the only actor that cannot launder authority to itself.
 
-That design was itself adversarially reviewed across thirteen rounds — the
-first version was discarded entirely and about fifty real holes were found
-and fixed before it returned APPROVE.
+That design was itself adversarially reviewed across thirteen rounds by a
+different model family. The first version was discarded entirely, and about
+fifty real holes were found and fixed. We do not claim the review ended in an
+approval, because we went looking for that verdict in our own archive and it is
+not there.
 
 ### Why it matters beyond this hackathon
 
@@ -130,11 +144,24 @@ the key to the rules about it.
 
 ### Honest limitations
 
-Shape 14's full-batch timing is reported as measured slices rather than
-extrapolated, because the measured scaling (2.18× per doubling, not 2.00×)
-says extrapolation would be wrong. Sub-millisecond shapes are noisy on a
-consumer card (±25% between independent runs) and we publish the noise.
-All measurements predate our final enforcement gate going live and are
-labeled as such. On a single-user machine our anti-tamper measures are
-forge-obvious, not forge-proof — we state the ceiling rather than implying
-we exceeded it.
+Shape 14 is timed as 32 serial batch-1 calls, not one literal batch-32 call,
+and its correctness reference is one we wrote and validated against the official
+baseline at 1,024, 2,048 and 4,096 tokens, where the official version can still
+run. Shapes 6 and 14 use CPU RNG in their evaluators, so their inputs are not
+bit-identical to a default judge run. Both are labelled that way everywhere.
+
+Small shapes are noisy on a consumer card. The same code, byte for byte, has
+been observed 13.2% apart between two runs minutes apart, so no single
+small-shape row should be read closely and the geometric mean over twelve shapes
+is the figure to quote.
+
+Our comparison against PyTorch's own `scaled_dot_product_attention` runs it at
+fp32 while our kernels compute in fp16 with fp32 accumulation. Both clear the
+competition's precision requirement, so both are legal, but part of that margin
+is precision rather than kernel engineering, and we label it rather than quote it
+as a headline.
+
+The final board's rows carry no audit verdict, for the reason given above.
+
+On a single-user machine our anti-tamper measures are forge-obvious, not
+forge-proof. We state that ceiling rather than implying we exceeded it.

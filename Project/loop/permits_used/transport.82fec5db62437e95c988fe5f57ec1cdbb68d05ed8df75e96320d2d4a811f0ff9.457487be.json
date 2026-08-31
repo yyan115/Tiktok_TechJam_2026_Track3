@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788203471.6418734,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-09-01T02:26:11+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-a0f1c1a0e2a4310fd6aa4e78.json",
+ "profile_record_id": "profile-a0f1c1a0e2a4310fd6aa4e78",
+ "promotion_allowed": false,
+ "question": "How many kernel launches per forward does the fused stack issue at head dimension 8 and what fraction of the interval is host launch gap rather than device work",
+ "request_id": "2c2a20bf80bfc860efb757f17e49257e",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/82fec5db62437e95c988fe5f57ec1cdbb68d05ed8df75e96320d2d4a811f0ff9.json",
+ "request_sha256": "82fec5db62437e95c988fe5f57ec1cdbb68d05ed8df75e96320d2d4a811f0ff9",
+ "route": "fused-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 7,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

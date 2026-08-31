@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788201291.0408835,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-09-01T01:49:51+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-8b6beca6e936cd5c93a066e0.json",
+ "profile_record_id": "profile-8b6beca6e936cd5c93a066e0",
+ "promotion_allowed": false,
+ "question": "Counter evidence bound to the final artifact for shape 2, the single sequence launch bound case, on the build carrying the storage offset fix and the restored output clone",
+ "request_id": "a4e3eee6187b1571b700a8cae78c7b07",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/cdade07c05442e0467280182b311cf15398b17783fd7329fee7da71f2e1ce7b3.json",
+ "request_sha256": "cdade07c05442e0467280182b311cf15398b17783fd7329fee7da71f2e1ce7b3",
+ "route": "fused-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 2,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

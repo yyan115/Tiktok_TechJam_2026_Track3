@@ -1,5 +1,78 @@
 # DECISIONS — plain-language diary of what we discussed and agreed
 
+## 1 Sep 2026 ~02:15–03:00 — THE SINGLE-ARTIFACT BOARD. All 14 shapes on one hash.
+
+**What the owner asked for:** measure every remaining shape on one artifact so the
+reported board carries a single hash for every row, and do not touch anything in
+`Project/submission/`.
+
+**Done.** Artifact `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`.
+Ten primary rows measured this session (2, 3, 4, 5, 7, 8, 9, 10, 11, 12) plus
+shape 6 in the side lane, joining shapes 1, 13 and 14 already on that hash. Box
+verified quiet before and mid-campaign: 1665 MHz, 0% utilisation, 47–49 W,
+`active: []`. Every row `correct: true`. No submission byte was touched.
+
+| | result |
+|---|---|
+| geomean, 12 shapes with a baseline | **11.87×** |
+| mean MFU, all 14 weighted equally | **42.7%** |
+| best / worst speedup | 31.513× (shape 13) / 2.366× (shape 8) |
+| best MFU | 88.7% (shape 14) |
+| correctness | 94 trials, 17,370,759,168 elements, **0 violations** |
+| strikes | 0 |
+
+**Shape 12 needed a new family.** The owner's `resolve_family_novelty`
+authorization for `F-shape12-fusion` had been signed on 31 Aug 18:02Z but never
+cashed — `family-register` was the missing step, which is why shape 12 still read
+as 12/12 spent. Registered, then found that `delta` refuses a family with no open
+card, so card **C33** was opened in `Project/loop/cards.jsonl` and `plan` used
+instead. Shape 12 measured 11.6419×.
+
+**Corrections made to my own claims during this session, in order:**
+
+1. I told the owner shape 2's earlier diagnostic died because the novelty
+   authorization was appended mid-run. **Wrong** — I reasoned from journal
+   timestamps. The previous session's own account says it was an interrupt. The
+   advice I derived from it ("don't sign anything while a run is in flight") was
+   invented and has been withdrawn.
+2. I wrote "13 shapes route to the megakernel". **Wrong** — shape 14 is
+   `d_model` 1024 and takes the fp16 branch like shape 8. It is 12 and 2.
+3. `MEASUREMENT_METHODOLOGY.md` §8 said `torch.compile` was never run. **Wrong** —
+   `DECISIONS.md` (29 Aug ~02:35) records it measured at 7.0 / 3.1 / 1.2× on the
+   shape 3 / 13 / 8 dials. Corrected, with the caveat that it is pre-gate and
+   eleven artifacts old.
+4. The README said the shape-14 oracle validation's worst deviation was 1.4e-6.
+   That figure is **real but from a run that did not configure the mandated TF32
+   profile**. Under the profile the competition requires it is 6.2e-4. Both are
+   now reported in §7.1, because together they separate our algorithm's error
+   (1.4e-6) from the number format's (6.2e-4), which is a stronger claim than
+   either alone.
+5. The tech report claimed the thirteen-round design review "returned APPROVE".
+   **Unsupported.** Every file in `Project/audits/` containing the word APPROVE is
+   a *prompt*; no verdict artifact has one. The recorded strategy verdicts are
+   ROUND 1 REVISE and ROUND 2 REVISE. Clause removed from the report and the
+   Devpost text under our own rule that a missing verdict is never an approval.
+
+**The auditor diagnosis in every document was wrong, and the real cause is now
+known.** See LESSONS 61. Short version: the audit *recorder* is fine; the auditor
+never starts. `verdict_schema.json:70` uses `allOf`, OpenAI structured output
+forbids it, Codex 400s before reading the packet. Added by `ed053f2` on 30 Aug
+15:46, masked five hours later by `231e786` switching the default backend to
+Claude for a quota reason, resurfaced tonight when Codex ran again. Reproduced
+live: three attempts, three 400s, all recorded in the hash chain, escalated to
+`owner_attention`. **Owner fix, one edit, inside the LOCK.**
+
+**Also corrected:** `Project/results/LEADERBOARD.md` is a frozen pre-LOCK artifact
+that stars the max-ever row per shape across incomparable invocations, which
+selects for whichever run had the slowest baseline. Its own shape-1 rows show it:
+the starred k009 reads 11.150× on a 7.2044 ms baseline against another k009 at
+9.910× on 5.7539 ms, and our measured baseline is 5.0586 ms. It is now labelled in
+the README's repository map and its limitations list rather than left inviting.
+
+**Documents updated to the single-artifact board:** `Project/BOARD.md` (rewritten,
+now carries per-row packet hashes and entry ids), `MEASUREMENT_METHODOLOGY.md`
+§5/§6/§7.1/§7.3/§7.4/§8/§10, and all four drafts.
+
 ## 30 Aug 2026 ~11:00 — FREEZE MOVED to 31 Aug 20:00; deliverables cleanup pass (second session, harness session running in parallel)
 
 - **Owner moved the code freeze from 31 Aug 12:00 to ~20:00 SGT.** Consequence recorded everywhere: the packaging window shrank from ~14h to 6h, so all report/README/video PROSE must be finished before the freeze; only numbers, assembly and the video recording belong in the window. Updated STATE.md (both timeline lines), NARROWINGS item 5, harness_v2_proposal.md.

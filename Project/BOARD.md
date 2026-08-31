@@ -1,224 +1,335 @@
-# The board — all 14 shapes, against TikTok's baseline and against physics
+# The board — all 14 shapes, one artifact
 
-Measured 31 Aug 2026 on one artifact,
-`630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378`.
-RTX 3060 Ti, clocks locked at 1665 MHz, quiet box verified before and during
-every run, one screening-lane permit per row, `correct: true` on every row.
+Every row below was measured on
 
-Every number below is either measured by the official script or computed by
-`Project/loop/ceiling.py`, whose arithmetic is set out in full at the bottom of
-this file.
+```
+c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b
+```
 
----
+which is `Project/submission/torch_transformer_benchmark_submission.py`, the file
+that ships. RTX 3060 Ti, clocks locked at 1665 MHz, box verified idle before and
+during every run, one single-use permit per row, every row `correct: true`.
 
-## The table
+This is the first board in this project where all fourteen rows come from the
+same build. Earlier boards mixed rows from up to four different artifacts, and
+the geometric mean of such a board is not a statement about any one program. See
+section 8.
 
-| # | shape | GFLOP | **TikTok baseline** | its MFU | **PyTorch built-in** | **OURS** | **our MFU** | **hard floor** | **% of floor** | correct |
-|---|---|--:|--:|--:|--:|--:|--:|--:|--:|:--:|
-| 1 | B64 s128 d128 h4 | 7.52 | 5.078 ms | 4.6% | 1.67× | **0.5407 ms** | **42.8%** | 0.2313 ms | **43%** | ✅ |
-| 2 | B1 s128 d128 h4 | 0.12 | 1.745 ms | 0.2% | 1.28× | **0.0676 ms** | **5.3%** | 0.0036 ms | 5% *(25% reachable)* | ✅ |
-| 3 | B4 s128 d128 h4 | 0.47 | 1.744 ms | 0.8% | 1.34× | **0.0840 ms** | **17.2%** | 0.0145 ms | 17% *(20% reachable)* | ✅ |
-| 4 | B16 s128 d128 h4 | 1.88 | 1.761 ms | 3.3% | 1.39× | **0.1628 ms** | **35.5%** | 0.0578 ms | **36%** | ✅ |
-| 5 | B128 s128 d128 h4 | 15.03 | 9.882 ms | 4.7% | 1.66× | **0.9585 ms** | **48.3%** | 0.4625 ms | **48%** | ✅ |
-| 6 | B10000 s128 d128 h4 | 1,174.41 | *out of memory* | — | — | **70.6618 ms** | **51.1%** | 36.1355 ms | **51%** | ✅ 5 seeds |
-| 7 | B64 s128 d32 h4 | 0.67 | 3.390 ms | 0.6% | 2.18× | **0.1126 ms** | **18.3%** | 0.0206 ms | 18% | ✅ |
-| 8 | B64 s128 d1024 h4 | 420.91 | 43.143 ms | 30.0% | 1.02× | **18.0813 ms** | **71.6%** | 12.9510 ms | **72%** | ✅ |
-| 9 | B64 s128 d128 h1 | 7.52 | 2.973 ms | 7.8% | 1.11× | **0.5806 ms** | **39.8%** | 0.2313 ms | **40%** | ✅ |
-| 10 | B64 s128 d128 h2 | 7.52 | 3.915 ms | 5.9% | 1.31× | **0.5509 ms** | **42.0%** | 0.2313 ms | **42%** | ✅ |
-| 11 | B64 s128 d128 h16 | 7.52 | 12.051 ms | 1.9% | 2.59× | **0.6339 ms** | **36.5%** | 0.2313 ms | **36%** | ✅ |
-| 12 | B64 s32 d128 h4 | 1.68 | not run | — | 1.27× | **not run** | — | 0.0516 ms | — | ✅ older build |
-| 13 | B64 s1024 d128 h4 | 120.26 | 169.935 ms | 2.2% | 3.97× | **5.2439 ms** | **70.6%** | 3.7003 ms | **71%** | ✅ |
-| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | not run | — | — | **never run** | — | 42,807.71 ms | — | ❓ |
-
-**Speedup over TikTok's baseline**, same process, same input, same run:
-
-| # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
-|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| **×** | 9.39 | 25.81 | 20.76 | 10.82 | 10.31 | n/a | 30.11 | 2.39 | 5.12 | 7.11 | 19.01 | — | 32.41 | — |
-
-**Geometric mean over the 11 measured: 12.22×.**
+Measured 1 Sep 2026, 02:15 to 02:44 SGT, except shape 14 which was measured at
+00:53 SGT on the same artifact and took 80 minutes.
 
 ---
 
-## What the columns mean
+## 1. The table
 
-**GFLOP** — how much arithmetic the shape requires. Fixed by the problem, not
-by us. Derived below and reconciled against `Project/research/roofline-table.md`
-on all fourteen shapes.
+| # | shape | GFLOP | TikTok baseline | its MFU | OURS | speedup | our MFU | hard floor | correct |
+|---|---|--:|--:|--:|--:|--:|--:|--:|:--:|
+| 1 | B64 s128 d128 h4 | 7.52 | 5.0586 ms | 4.6% | **0.5622 ms** | **8.998×** | **41.1%** | 0.2313 ms | 7 trials |
+| 2 | B1 s128 d128 h4 | 0.117 | 1.8039 ms | 0.2% | **0.0676 ms** | **26.691×** | **5.3%** | 0.0036 ms | 7 trials |
+| 3 | B4 s128 d128 h4 | 0.470 | 1.7618 ms | 0.8% | **0.0891 ms** | **19.776×** | **16.2%** | 0.0145 ms | 7 trials |
+| 4 | B16 s128 d128 h4 | 1.879 | 1.7547 ms | 3.3% | **0.1649 ms** | **10.643×** | **35.1%** | 0.0578 ms | 7 trials |
+| 5 | B128 s128 d128 h4 | 15.03 | 9.8473 ms | 4.7% | **1.0025 ms** | **9.823×** | **46.1%** | 0.4625 ms | 7 trials |
+| 6 | B10000 s128 d128 h4 | 1,174.41 | out of memory | — | **60.3873 ms** | none possible | **59.8%** | 36.1355 ms | 5 seeds |
+| 7 | B64 s128 d32 h4 | 0.671 | 3.4028 ms | 0.6% | **0.1167 ms** | **29.149×** | **17.7%** | 0.0206 ms | 7 trials |
+| 8 | B64 s128 d1024 h4 | 420.91 | 43.1206 ms | 30.0% | **18.2272 ms** | **2.366×** | **71.1%** | 12.9511 ms | 7 trials |
+| 9 | B64 s128 d128 h1 | 7.52 | 2.9604 ms | 7.8% | **0.6001 ms** | **4.933×** | **38.5%** | 0.2313 ms | 7 trials |
+| 10 | B64 s128 d128 h2 | 7.52 | 3.9045 ms | 5.9% | **0.5704 ms** | **6.846×** | **40.5%** | 0.2313 ms | 7 trials |
+| 11 | B64 s128 d128 h16 | 7.52 | 12.0433 ms | 1.9% | **0.6554 ms** | **18.377×** | **35.3%** | 0.2313 ms | 7 trials |
+| 12 | B64 s32 d128 h4 | 1.678 | 1.7644 ms | 2.9% | **0.1516 ms** | **11.642×** | **34.1%** | 0.0517 ms | 7 trials |
+| 13 | B64 s1024 d128 h4 | 120.26 | 169.9159 ms | 2.2% | **5.3919 ms** | **31.513×** | **68.6%** | 3.7003 ms | 7 trials |
+| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | infeasible | — | **48,271.04 ms** | none possible | **88.7%** | 42,807.71 ms | 5 seeds |
 
-**TikTok baseline** — `BaselineTransformer`, `torch_transformer_benchmark.py:148`.
-Their own reference implementation. It builds the full score matrix, applies
-`masked_fill`, softmaxes in fp32, then matmuls again. Timed by the official
-script in the **same process** as ours, on the **same input tensor**, so machine
-conditions cancel out of the comparison.
+**Geometric mean speedup over the twelve shapes that have a baseline: 11.87×.**
 
-**PyTorch built-in** — `scaled_dot_product_attention`, PyTorch's own fused flash
-attention, wired into the same benchmark as `Project/kernels/k001_sdpa.py`.
-Speedup over the same baseline. **Caveat: these figures are pre-gate**, taken
-28 Aug on an older measurement harness, and are not same-session with our
-column. They are the best available estimate of what a competent competitor
-reaching for the obvious tool achieves.
+**Mean MFU across all fourteen shapes, weighted equally: 42.7%.**
 
-**MFU** — achieved rate divided by the card's peak rate. This is the quantity
-the competition scores.
+Shapes 6 and 14 have no speedup and never can. TikTok's baseline runs out of
+memory at batch 10,000 on an 8 GB card, and at 100,000 tokens its dense attention
+matrix would need roughly 160 TB. There is no baseline time to divide by. Both
+rows are reported as achieved MFU against the physical floor, which is the
+quantity the competition scores anyway.
 
-**Hard floor** — the fastest this shape can physically run on this card. Nothing
-can beat it. Derivation below.
+Full speedup values to the precision the harness reported them, so any row can be
+traced back to its packet:
 
-**Reachable** — for shapes too small to fill the GPU, the hard floor is
-unattainable by construction. See the occupancy section.
+| # | speedup |
+|---|---|
+| 1 | 8.998178492470325 |
+| 2 | 26.690577668035758 |
+| 3 | 19.77586136674765 |
+| 4 | 10.643245254177664 |
+| 5 | 9.822778066735113 |
+| 7 | 29.14912157812199 |
+| 8 | 2.365730383991632 |
+| 9 | 4.933447086602175 |
+| 10 | 6.845601407935701 |
+| 11 | 18.376563557856052 |
+| 12 | 11.641891147155942 |
+| 13 | 31.513341454732778 |
 
 ---
 
-## How the hard floor is calculated
+## 2. How to check any row
+
+Each row is bound to its measurement by a content-addressed packet under
+`Project/authority/blobs/`. The packet carries the artifact hash, both median
+times, all 300 raw samples per side, and every correctness trial.
+
+| # | packet sha256 | entry id |
+|---|---|---|
+| 1 | `0047a1a336de55e32722d55aa636937f8a13e9248e5504e289ee5f135c251957` | run-3bf9dc6a6f7d2e4149df94040238d8a2 |
+| 2 | `6f060685699abd99063ede11ecdda80267b19b0bc58786105f1a70af74605e00` | run-41ffb099990c8b3fd0171e32c6fcfb39 |
+| 3 | `816dabfe745d572e3798c543d55ee2968d37b0dd5238b30ec5a2eee35da1950f` | run-61a20c23329aee3f1f24bc98661604f5 |
+| 4 | `2a1f1d0cb74c919c224282d00dc98fc0fb57fdcebbad0f319f3d347c29f783ea` | run-5246140960c2578a1890e39a80be7a93 |
+| 5 | `5fc4e21dc2765438fc86cb63f11e3d5ef6a4dc879074827189dca36609ea5f06` | run-25f917101b416f9894fc70cf108c7086 |
+| 6 | `daa1ccec88c59bf03d11031678074cb45adcd19ef5ffc1a5c903a1da8e817d60` | 20260831-184424-5d887b |
+| 7 | `7c89d0bbf409ab1b5a0e71696002887f8e5f85083603f070ecb47d7bba20e46a` | run-1d99153f9c565bb45b7509791b7553e8 |
+| 8 | `4ac907b9a29015256c17bc976d8f40dab494ce9e52050be9ad93eb1c1d05436c` | run-d8642d4c447b0d13f646042bed8931dc |
+| 9 | `7890607c8184f297aaf2e21d7d58888985fd65d93f8db21298ae95e37ead0abe` | run-ed857b747dbce3d88ec418453b52005a |
+| 10 | `147901587fee6b800c908c3b88dab1e55fd9af01730b046bcf19488fcffaea81` | run-af9d38af4aab9fd127737be496aa81e9 |
+| 11 | `d97e6b87a07b9e63b10cffa0624d99a082322bcb54493a71a7b9210db6701786` | run-2a58a74234db096723f47919c61ed0fc |
+| 12 | `e720d6cba761f14b81c02cff2c7ce3a1f33c72870e6eaa9e7ca7bda699f16347` | run-14cc33373c13717da705adfd972f4f19 |
+| 13 | `315ff617031c89ce1e96fcddcc8e0ab12933ef59dd669b32422f6559bcbae156` | run-146621d7a74d7eadac09f298b3f682bf |
+| 14 | `7d4f73d44809257c88be45d057b47d802282d0daf62d4dca4f1d4d28dd2a11c3` | 20260831-165326-77499e |
+
+Each packet's `submission_sha256` reads `c2028c48…`. The permits that authorized
+these runs are in the hash-chained journal at `Project/authority/events.jsonl`.
+
+---
+
+## 3. What the columns mean
+
+**GFLOP** is how much arithmetic the shape requires. It is fixed by the problem
+and not by us. The accounting is in section 6.
+
+**TikTok baseline** is `BaselineTransformer` in `torch_transformer_benchmark.py`,
+their own reference implementation. It builds the full attention score matrix,
+applies the causal mask with `masked_fill`, softmaxes in fp32, then multiplies
+again. It is timed by the official script inside the same process as ours, on the
+same input tensor, so clock state and thermal drift affect both sides equally and
+cancel out of the ratio.
+
+**MFU** is the achieved arithmetic rate divided by the card's peak rate. The
+organiser has stated the technical score is a weighted sum of per-shape MFU, so
+this is the column that is actually scored.
+
+**Hard floor** is the fastest the shape can physically run on this card. Nothing
+can beat it. Derivation in section 5.
+
+**Correct** is the number of independent trials the official predicate was
+checked on. Each trial uses a different seed and produces a different output
+hash, so a cached or replayed answer cannot pass.
+
+---
+
+## 4. Correctness
+
+The predicate is the organiser's own, applied element by element: finite, and
+either absolute error at or below 2e-3 or relative error at or below 2%.
+
+The twelve primary shapes were each checked on 7 trials with 7 distinct output
+hashes. Shapes 6 and 14 were each checked on 5 seeds.
+
+| group | trials | elements compared | violations |
+|---|--:|--:|--:|
+| twelve primary shapes | 84 | 167,559,168 | 0 |
+| shape 6 | 5 | 819,200,000 | 0 |
+| shape 14 | 5 | 16,384,000,000 | 0 |
+| **total** | **94** | **17,370,759,168** | **0** |
+
+Worst observed error, against a 2e-3 budget:
+
+- shape 6: 0.0014288 across 163,840,000 elements per trial
+- shape 14: 0.0009825 across 3,276,800,000 elements per trial
+- shape 13: 0.0011601 across 8,388,608 elements per trial
+
+No trial on any shape produced a non-finite element.
+
+---
+
+## 5. How the hard floor is calculated
 
 Three independent limits. The floor is whichever binds first.
 
-### 1. What precision the kernels actually use
+### 5.1 What precision the kernels use
 
-This had to be read from our own source rather than assumed, and an earlier
-draft of this table got it wrong.
+This was read from the source rather than assumed, because an earlier version of
+this calculation got it wrong and produced a shape apparently faster than the
+speed of light.
 
-`_sub_pack_fused_layer` (`Project/submission/dispatcher_region.py:765-774`)
-casts **every** weight with `.half()` — `w_qkv`, `b_qkv`, `w_o`, `b_o`, `w_f1`,
-`b_f1`, `w_f2`, `b_f2`. Only the LayerNorm scale and bias stay fp32, and those
-carry negligible arithmetic. Activations are cast at line 388:
-`y16 = (...).to(tl.float16)`.
+`_sub_pack_fused_layer` in `Project/submission/dispatcher_region.py:760-780`
+casts every weight with `.half()`: `w_qkv`, `b_qkv`, `w_o`, `b_o`, `w_f1`, `b_f1`,
+`w_f2`, `b_f2`. Only the LayerNorm scale and bias stay fp32, and those carry
+negligible arithmetic. Activations are cast at line 388. Every `tl.dot` therefore
+takes fp16 inputs, and its accumulator is fp32, visible at lines 394 to 396 where
+the result is added to a `.to(tl.float32)` bias.
 
-So every `tl.dot` takes **fp16 inputs**. Its accumulator is fp32 — visible at
-lines 394-396, where `acc` is added to a `.to(tl.float32)` bias.
+fp16 inputs with fp32 accumulation runs at **32.5 TFLOP/s** on an RTX 3060 Ti.
+Not 16.2, which is fp32 input. Not 65, which is fp16 accumulation, which we do
+not use.
 
-**fp16 in, fp32 accumulate, is 32.5 TFLOP/s on an RTX 3060 Ti.** Not 16.2
-(that is fp32 in), and not 65 (that is fp16 accumulate, which we do not use).
-
-This agrees with the `vs 32.5 TF` column that `roofline-table.md` has carried
-since 29 Aug, which is an independent check on the reading.
-
-### 2. Compute limit
+### 5.2 Compute limit
 
 ```
 compute_ms = GFLOP / 32.5
 ```
 
-### 3. Bandwidth limit
+### 5.3 Bandwidth limit
 
 ```
-memory_ms = ideal_MB / 448
+memory_ms = minimum_bytes_moved / 448 GB/s
 ```
 
-448 GB/s is the RTX 3060 Ti's memory bandwidth. `ideal_MB` is the minimum
-traffic a perfectly fused implementation must move, taken from
-`roofline-table.md`.
+All fourteen shapes are compute-bound. The arithmetic takes longer than the data
+movement in every case, with shape 8 closest to balanced at 12.95 ms of compute
+against 0.26 ms of traffic.
 
-### 4. The floor
+### 5.4 The floor
 
 ```
 hard_floor = max(compute_ms, memory_ms)
 ```
 
-Every shape here is compute-bound: the arithmetic takes longer than the data
-movement in all fourteen cases. Shape 8 is the closest to balanced at 12.95 ms
-of compute against 0.26 ms of traffic.
+### 5.5 Occupancy, and why shapes 2 and 3 cannot reach their floor
 
-### 5. Occupancy, and why shapes 2 and 3 are special
+A kernel launching N thread blocks can occupy at most N of this card's 38
+streaming multiprocessors. Below 38, part of the machine is idle by construction
+and no implementation can reach the hard floor.
 
-A kernel launching N thread blocks can occupy at most N of the card's **38**
-streaming multiprocessors. Where N is below 38, part of the machine is idle by
-construction and **no implementation can reach the hard floor.**
+With a 64-row attention tile, blocks are `ceil(seq/64) × batch × heads`:
 
-With a 64-row attention tile, blocks = `ceil(seq/64) × batch × heads`:
-
-| shape | blocks | machine reachable |
+| shape | blocks | fraction of machine reachable |
 |---|--:|--:|
-| **2** | 8 | **21%** |
-| **3** | 32 | **84%** |
+| 2 | 8 | 21% |
+| 3 | 32 | 84% |
 | all others | 128 to 800,256 | 100% |
 
-```
-reachable_floor = hard_floor / occupancy_fraction
-```
-
 Shape 2 is one sequence of 128 tokens. There is not enough work in it to fill
-this GPU. Its 5% of the hard floor is **25% of what is actually attainable**,
-and the remaining gap is fixed per-call cost that does not shrink with problem
-size.
+this GPU. Its 5.3% MFU is 25% of what its occupancy ceiling permits, and the
+remaining gap is fixed per-call cost that does not shrink with problem size. See
+`Project/MEASUREMENT_METHODOLOGY.md` section 9 for the launch-cost arithmetic.
 
-### 6. The FLOP accounting, so it can be checked
+### 5.6 The FLOP accounting, so it can be checked
 
 ```
 linear per layer     = tokens × (d·3d + d·d + d·ffn + ffn·d) × 2
 attention per layer  = 2 matmuls × B·H·S·S·head_dim × 2, halved for causal
 ```
 
-Summing these reproduces the published `GFLOP` column of `roofline-table.md` on
-all fourteen shapes. That reconciliation is printed by `ceiling.py` every run
-and is the check that the accounting is right.
+Worked once, on shape 1, so the rest can be trusted. Shape 1 is batch 64,
+sequence 128, `d_model` 128, `ffn` 128, 4 heads, 4 layers, so tokens is 8,192:
 
-One flag to explain: shape 2 computes 0.1175 against a published 0.12. The
-published table carries two decimal places and 0.1175 rounds to 0.12, so the
-script's 0.5% tolerance trips on a rounding artifact rather than a real
-disagreement. Shape 3 is the identical computation at four times the batch and
-lands at 0.4698 against 0.47, inside tolerance.
+```
+linear    = 8192 × (128·384 + 128·128 + 128·128 + 128·128) × 2
+          = 8192 × 98,304 × 2 = 1.6106 GFLOP per layer, 6.4425 over 4 layers
+attention = 2 × (64·4·128·128·32) × 2 / 2
+          = 0.2684 GFLOP per layer, 1.0737 over 4 layers
+total     = 7.516 GFLOP
+```
 
-**Reproduce it:** `python3 Project/loop/ceiling.py`
+which is the 7.52 in the table. The same arithmetic reproduces the published
+per-shape GFLOP on all fourteen shapes, including 1,391,250.6 for shape 14.
+
+**Reproduce:** `python3 Project/loop/ceiling.py`
 
 ---
 
-## Why our measurement is stricter than the competition requires
+## 6. The PyTorch comparison, and why it is not in the table above
 
-Every one of these is checkable in the repository.
+Earlier versions of this board carried a column comparing us against
+`torch.nn.functional.scaled_dot_product_attention`, PyTorch's own fused flash
+attention, wired into the same benchmark as `Project/kernels/k001_sdpa.py`. Those
+figures were measured on 28 August, on an older harness, on a different build.
+They are kept in `Project/MEASUREMENT_METHODOLOGY.md` section 7.3 with two
+caveats attached, and they are deliberately not in the table above, because
+mixing a 28 August measurement into a table whose whole point is that every row
+comes from one build would undo the thing this board exists to fix.
 
-**Correctness is verified on 7 trials with 7 distinct output hashes.** The
-competition asks for `abs ≤ 2e-3 OR rel ≤ 2%`. We check that same predicate,
-but a cached or replayed answer cannot pass, because all seven outputs must
-differ.
+The two caveats, both of which matter:
 
-**Our shape-14 validator demands 1e-4 — twenty times stricter than the
-competition's 2e-3.** It is currently **blocking us**: our streamed reference
-agrees with the dense reference to 6.2e-4, which clears the competition's bar
-by a factor of three and fails our own by six. A gate that stops your own work
-is not a gate built for show.
+1. It is not a paired measurement. Our speedup and the PyTorch speedup were each
+   taken against a baseline in a different invocation, so dividing them assumes
+   the two baselines agree.
+2. **`k001_sdpa.py` computes in fp32 with TF32 matmul enabled, which is what the
+   baseline does. Our route casts every weight and activation to fp16.** Part of
+   any margin over PyTorch is therefore a precision difference and not kernel
+   engineering. Both satisfy the competition's 2e-3 predicate, so the choice is
+   legal, but it must be labelled rather than presented as a pure implementation
+   win.
 
-**Baseline and candidate are timed inside one process,** on one input tensor
-built once, with CUDA events on the same stream. Machine drift, thermal state
-and clock behaviour affect both sides equally and cancel out of the ratio.
+Carrying our new times against those 28 August figures gives a geometric mean
+near 7.4×, against 7.49× on the previous mixed-build board. That figure is an
+estimate with the two caveats above attached, not a measured result.
 
-**A signed lock makes it mechanically impossible for the agent to have edited
-the benchmark.** 29 files are hash-pinned, including
-`torch_transformer_benchmark.py`, `Project/shapes.json`, and the measurement
-harness itself. The controller re-verifies all 29 before every run and refuses
-everything on a single mismatch. The signing key is the owner's; the agent
-cannot add to that list, remove from it, or re-sign it. Anyone can check it:
+---
+
+## 7. Reproducibility is uneven, and the small shapes are the problem
+
+Shape 14 repeats to 0.019% across its three timing repeats: 48,271.04 ms,
+48,276.47 ms, 48,267.13 ms.
+
+Small shapes are far worse. Shape 12 was observed at 11.2516× and 9.7638× on
+byte-identical code minutes apart, a 13.2% spread. The campaign's calibrated
+noise floor for shapes of that class reads about 0.15%, which is wrong by roughly
+two orders of magnitude, because it is computed by timing the baseline against
+itself inside one process. That measures second-to-second steadiness, not
+run-to-run reproducibility.
+
+The consequence is stated rather than hidden: **no single small-shape row should
+be read to more than two significant figures, and no per-shape difference smaller
+than about 13% is resolvable.** The geometric mean over twelve shapes averages
+that scatter down and is the figure to quote.
+
+Three rows moved noticeably against the previous build, and in both directions:
+shape 2 read higher, shape 3 and shape 9 read lower. Those differences are inside
+the scatter above and are not evidence of anything.
+
+---
+
+## 8. What this board fixes, and what it does not
+
+**Fixes:** every row is one artifact. The previous headline board drew shapes 4,
+5, 9, 10, 12 and 13 from `2778b747…`, shapes 1 and 11 from `418952bf…`, shapes 2
+and 7 from `599f5dad…` and shape 3 from `301d7063…`. A geometric mean over rows
+from four builds is not the speedup of the file that ships, and it must not be
+quoted as one.
+
+**Does not fix:** these are screening-lane measurements. Nothing here is a
+promoted champion, and no independent audit verdict is bound to any row, because
+the audit recording path is broken and is owner-only to repair. The measurements
+are real and each is bound to a permit and an artifact hash. What is missing is
+the adjudication layer on top of them, and that limitation travels with the
+board.
+
+**Also does not fix:** shapes 6 and 14 remain side evidence. Their evaluators use
+CPU RNG, so their inputs are not bit-identical to a default judge run, and shape
+14's timing is 32 serial batch-1 calls rather than one literal batch-32 call.
+Both are labelled that way in their own packets and must be labelled that way
+anywhere they are quoted.
+
+---
+
+## 9. Why the measurement can be trusted
+
+**A signed lock makes it mechanically impossible for the agent to have edited the
+benchmark.** 29 files are hash-pinned, including `torch_transformer_benchmark.py`,
+`Project/shapes.json` and the measurement harness. The controller re-verifies all
+29 before every run and refuses everything on a single mismatch. The signing key
+is the owner's. Check it with:
 
 ```
 python3 Project/harness/trusted_controller.py verify-lock
 ```
 
-**It has caught a real failure.** When `torch_transformer_benchmark.py` went
-missing from the repository root, the lock refused every command rather than
-quietly measuring against a broken tree.
+**Every run needed a single-use permit** issued against an owner-signed
+capability, bound to the artifact hash, recorded in an append-only hash-chained
+journal. 272 permits have been issued and 271 consumed over the life of this
+campaign.
 
-**Every number traces to a hash.** Each measurement is bound to its artifact by
-`candidate_sha256` inside a one-use permit, recorded in a hash-chained authority
-journal at `Project/authority/events.jsonl`.
+**Baseline and candidate are timed in one process** on one input tensor built
+once, with CUDA events on the same stream, 20 warmup iterations, 100 repeats,
+3 rounds, and the reported figure is the median of all 300 samples. Every repeat
+is kept. There is no best-of and no dropped round.
 
----
-
-## What is not measured, stated plainly
-
-**Shape 14 has never been executed.** It is 1,391,250 GFLOP — **99.89% of all
-the arithmetic in the benchmark**. Every other shape combined is 0.11%. Its
-correctness is unknown.
-
-**Shape 12 has no run on this artifact.** Its family attempt budget is exhausted
-at 12 of 12 under our own campaign rules.
-
-**Shape 6 has no speedup figure and never can.** TikTok's baseline runs out of
-memory at batch 10,000 on 8 GB, so there is no baseline time to divide by. Its
-correctness passes on 5 seeds; its timing is candidate-only.
-
-**The PyTorch built-in column is pre-gate** and not same-session with ours.
-
-**Per-shape deltas carry cross-invocation scatter.** The geometric mean over
-eleven shapes and the direction of the result are what the evidence supports;
-no single row should be read to two significant figures.
+**The box was verified quiet** before the campaign and again partway through:
+1665 MHz SM clock, 7001 MHz memory, 0% utilisation, 47 to 49 W, no audit running.

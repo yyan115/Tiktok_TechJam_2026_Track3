@@ -1,20 +1,14 @@
-# Track 3 demo video — shot list v2 (30 Aug)
+# Track 3 demo video — shot list v3 (1 Sep, final board)
 
-> **⚠️ EVERY SPEED NUMBER IN THIS SCRIPT IS ONE BUILD OUT OF DATE — flagged
-> 31 Aug ~20:15. Do not record against it until this is settled.**
+> **Numbers in this script are the single-artifact board**, measured on
+> `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`, which is
+> the file that ships. `Project/BOARD.md` is the source. The tech report, the
+> README and this script now carry the same numbers, which was not true of any
+> earlier version.
 >
-> This script says **9.45×** in three places (lines ~146, ~210, and the §206
-> quote). That is the board for artifact `4da76db6…`.
-> `Project/drafts/tech_report_draft.md` §2.1.1 carries a newer twelve-shape
-> board, **10.14× on `54057a33…`**, also all `correct: true`, and the README
-> draft carries the same stale 9.45× this script does. Both boards are real;
-> this file was never updated when the newer one was taken.
->
-> Neither describes the file now in `Project/submission/` (`630a456c…`), which
-> has never been measured. See `Project/STATUS.md`. **Read the final number off
-> whichever artifact actually ships, and make all three deliverables agree
-> before filming — a lower-third that disagrees with the tech report is the
-> single most damaging thing that could go on screen.**
+> **If you change one number, change it in all four.** A lower-third that
+> disagrees with the tech report is the single most damaging thing that could go
+> on screen.
 
 Target ~3:00. Required: uploaded to YouTube, **public**, linked in the
 Devpost description, no third-party trademarks or copyrighted music.
@@ -94,16 +88,16 @@ and the permit is consumed the moment it's used."
 Then the real thing — a permitted run, three commands:
 
 ```bash
-python3 Project/tools/run_gate.py delta   --campaign CAMP-POSTLOCK ...   # emits a request
+python3 Project/tools/run_gate.py delta   --campaign CAMP-FINAL ...      # emits a request
 python3 Project/harness/trusted_controller.py issue-permit --request … --capability …
 python3 Project/harness/trusted_controller.py run --permit permit-… --shape 13 \
         --impl Project/submission/torch_transformer_benchmark_submission.py
 ```
 
-> **Check before recording:** the owner capabilities minted for the overnight
-> grind expire roughly **21:00 on 31 Aug**. If you record after that, minting
-> a fresh permit needs the signing key and the ceremony again. Mint a
-> short-lived capability *before* you start filming.
+> **Check before recording:** owner capabilities are short-lived by design. The
+> one used for the final measurement pass was a 6-hour, 200-use capability.
+> Issuing a permit on camera needs a live one, so mint a fresh short-lived
+> capability immediately before you start filming, and check its expiry.
 
 **Beats while it runs:** the candidate is snapshotted into a
 content-addressed blob at permit issue and that hash is bound into the
@@ -146,23 +140,30 @@ baseline's ~40-launch profile.
 
 **Say:** "The baseline runs a transformer block as about forty separate GPU
 operations. On the smallest shapes the GPU sits idle 86% of the time waiting
-for the CPU to queue the next one. So we wrote the whole block as two Triton
+for the CPU to queue the next one. So we wrote the whole block as three Triton
 kernels: LayerNorm fused into the QKV projection, then FlashAttention-style
-causal attention over all heads with the output projection folded into the
-head loop and the FFN finished in-register. Then we capture the entire
-four-layer forward pass as a single CUDA graph."
+causal attention with each head writing into its own slice of a shared buffer,
+then one full-width output projection with the FFN finished in-register. Then we
+capture the entire forward pass as a single CUDA graph."
 
-**Then the beat that actually matters:** "But the graph isn't where the win
-comes from. One of these shapes has a baseline that's idle only *one* percent
-of the time — there are no launch gaps left to remove — and we're still nine
-times faster there. Keeping the whole block in registers doesn't recover
-waiting; it deletes memory traffic. We only know that because we measured it,
-and it contradicted what we'd written in our own report."
+**Then the beat that matters:** "But the graph isn't where the win comes from.
+One of these shapes has a baseline that's idle only *one* percent of the time.
+There are no launch gaps left to remove, and we're still nearly ten times faster
+there. Keeping the whole block in registers doesn't recover waiting, it deletes
+memory traffic. We only know that because we measured it, and it contradicted
+what we'd written in our own report."
 
-**Board on screen:** geomean **9.45×** across all twelve locally-runnable
-shapes — every one measured on the submission file itself, under a one-use
-permit, all passing precision. Best shapes **28.3×** (sequence 1024) and
-**21.0×** (`d_model` 32).
+**Second honest beat, if there is room:** "The third kernel is named after
+splitting the head loop across the GPU, and that part did almost nothing. The
+gain came from the side effect: once the heads share one buffer, the output
+projection runs at full width instead of being padded up to the tensor core's
+16-wide minimum. We measured the mechanism we were proud of at roughly zero and
+the side effect at plus twenty-six percent."
+
+**Board on screen:** geomean **11.87×** across the twelve shapes with a runnable
+baseline, every one measured on the submission file itself, under a single-use
+permit, all passing precision. Best shapes **31.5×** (sequence 1024) and
+**29.1×** (`d_model` 32). Mean utilisation across all fourteen: **42.7%**.
 
 **Honest beat:** "The int8 attempt failed the tolerance test and it's in
 the repo as a documented negative result. The referee doesn't grade on
@@ -177,20 +178,28 @@ python3 Project/tools/smokes/shape14_core_smoke.py
 python3 Project/tools/smokes/shape6_core_smoke.py
 ```
 
-> ⚠ **Dry-run these two before you record.** The *full* evidence evaluators
-> (`shape14_eval.py`, `shape6_local_eval.py`) are currently broken by a
-> one-line device-comparison bug and abort instantly — see the tech report
-> §2.4. These smokes are different files and were **not** testable from the
-> agent's command allowlist, so their status tonight is unknown. Find out
-> off-camera, not on it. If they fail the same way, the fix is the same
-> one-liner and the scene still works with the packets on screen instead.
+> ⚠ **Dry-run these two before you record.** The full evidence evaluators
+> (`shape14_eval.py`, `shape6_local_eval.py`) now work: the one-line
+> device-comparison bug that used to abort them has been fixed, and both
+> produced the shape 6 and shape 14 rows on the shipping artifact. These smokes
+> are different files and were never testable from the agent's command
+> allowlist, so their status is still unknown. Find out off-camera, not on it.
+> If they fail, the scene still works with the packets on screen instead.
 
-**Say:** "Sequence length one hundred thousand, verified against a chunked
-fp32 oracle with zero tolerance violations — in 305 MiB, on the same eight
-gigabyte card that can't even hold the baseline. Batch ten thousand, where
-the official baseline runs out of memory, verified against the batch-chunked
-official computation. Both on our own machine, by splitting the computation
-into blocks — which is exactly what the organizers said they expected."
+**Say:** "Sequence length one hundred thousand, causal, verified against a
+chunked fp32 reference with zero tolerance violations across sixteen billion
+elements, on the same eight gigabyte card that cannot even hold the baseline. It
+runs at eighty-eight point seven percent of what the card can physically do, and
+it is ninety-nine point nine percent of all the arithmetic in the benchmark.
+Batch ten thousand, where the official baseline runs out of memory, verified
+against the batch-chunked official computation. Both on our own machine, by
+splitting the computation into blocks, which is what the organizers said they
+expected."
+
+**Say the limit out loud, in the same breath:** "Shape fourteen is timed as
+thirty-two sequential batch-one calls, not one batch-thirty-two call. The full
+hundred-thousand-token sequence is real. The batch dimension is decomposed, and
+we label it that way everywhere."
 
 **Close:** "Every number is content-addressed and bound to the permit that
 produced it. The agent optimized, the system kept it honest, and the human
@@ -216,32 +225,42 @@ differentiated thirty seconds in the video.
 
 ## Numbers to have on the lower third
 
-> ✅ **RESOLVED 31 Aug ~02:10 — the lower third is cleared to show numbers again.**
-> All twelve locally-runnable shapes have now been re-measured under one-use permits,
-> on a quiet box, on the kernel the dispatcher actually selects. The withdrawn figures
-> were **procedurally invalid but numerically close**: mean delta −5.6%, geomean 9.68×
-> against the withdrawn 10.32×. Use the numbers below and no others. The 2.94× figure
-> that briefly replaced them was itself wrong — it measured a kernel we do not ship.
+> ✅ **All fourteen shapes are measured on one artifact**,
+> `c2028c48…`, which is the file that ships. This is the first board where that
+> is true. Earlier boards drew rows from up to four different builds and were
+> withdrawn for that reason. Use these numbers and no others.
 
-- geomean **9.45×** across the twelve locally-runnable shapes, measured on the
-  submission file itself
-- best shapes **28.3×** (sequence 1024) · **21.0×** (`d_model` 32)
-- weakest shapes **2.02×** (`d_model` 1024) · **4.35×** (single attention head) — say
-  these out loud if the per-shape board is on screen; the spread is the honest story
-- correctness: **167,559,168 element comparisons, 0 failures** across the
-  twelve runnable shapes (23.9M output elements × 7 trials each)
-- shape 14: seq 100,000 causal, **0 violations**, 305 MiB
-- shape 6: batch 10,000, **0 violations**, 3.4 GiB
-- **all 14 shapes pass precision** — but say it precisely if pressed, because
-  the evidence is two different grades: **12 shapes** are verified post-LOCK
-  under the official predicate, 7 trials each (5 fixed seeds + 2 random),
-  `correct: true`, on the shipped file; **shapes 6 and 14** have no runnable
-  official baseline, so they are verified against validated oracles on
-  **one seed each, against a pre-integration file**, and those packets
-  cannot currently be regenerated (owner-only tooling fix). Both grades are
-  real; they are not the same grade.
+- geomean **11.87×** across the twelve shapes with a runnable baseline, measured
+  on the submission file itself
+- mean MFU **42.7%** across all fourteen shapes, weighted equally
+- best shapes **31.5×** (sequence 1024) · **29.1×** (`d_model` 32) · **26.7×**
+  (batch 1)
+- weakest shapes **2.37×** (`d_model` 1024) · **4.93×** (single attention head).
+  Say these out loud if the per-shape board is on screen. The spread is the
+  honest story, and the weakest row is weak because its baseline was already at
+  30% utilisation.
+- correctness: **17,370,759,168 element comparisons, 0 failures**, across 94
+  trials
+- shape 14: seq 100,000 causal, **48.271 s**, **88.7% of the physical maximum**,
+  0 violations, 2.80 GiB peak
+- shape 6: batch 10,000, **60.39 ms**, **59.8% of the physical maximum**,
+  0 violations, 3.67 GiB peak
+- **all 14 shapes pass precision.** Say it precisely if pressed, because the
+  evidence is two grades. **Twelve shapes** are verified under the official
+  predicate, 7 trials each, five fixed seeds plus two random, `correct: true`,
+  on the shipped file. **Shapes 6 and 14** have no runnable official baseline,
+  so they are verified against validated references on **5 seeds each**, on that
+  same shipped file. Both grades are real. They are not the same grade.
 
-**Say the caveats or cut the number.** These are screening-lane characterisation runs:
-correct on all twelve, but none is a promoted champion, no audit verdict is bound to any
-of them (the audit recorder is broken and only the owner can fix it), and the geomean
-excludes shapes 6 and 14, which do not run locally at all.
+**Say the caveats or cut the number.** These are screening-lane characterisation
+runs. Every row is correct and bound to a permit and an artifact hash, but none
+is a promoted champion and **no audit verdict is bound to any of them**, because
+the audit recorder is broken and only the owner can fix it. The geomean covers
+the twelve shapes with a baseline and excludes 6 and 14, which have none.
+
+**One more, if a judge asks about the PyTorch comparison.** Our margin over
+PyTorch's own flash attention is real but it is not a clean measurement: it was
+taken on a different day on a different build, and PyTorch runs at fp32 there
+while our kernels compute at fp16. Both are legal under the precision rules.
+Part of that margin is precision rather than kernel engineering, and we say so
+in the methodology rather than putting it in the headline.
