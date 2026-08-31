@@ -1,6 +1,44 @@
 {
- "active_campaign": "CAMP-POSTLOCK",
+ "active_campaign": "CAMP-FINAL",
  "campaigns": {
+  "CAMP-FINAL": {
+   "authority_event_id": "evt-20260831T001706.490874Z-fd5e75c4ad23",
+   "authority_event_sha256": "bb700b95f3fefc188f9b6c6c9fae61b2f683a0ba989126b0b0cc98ae19ad7680",
+   "calibration_requests": 0,
+   "calibration_requests_by_shape": {},
+   "calibrations": {},
+   "campaign_id": "CAMP-FINAL",
+   "families_tried": [],
+   "max_calibrations_per_shape": 3,
+   "max_total_attempts": 60,
+   "max_total_calibrations": 30,
+   "opened": "2026-08-31T08:17:06+0800",
+   "opened_epoch": 1788135426.7629273,
+   "production_outcomes": [],
+   "schema_version": 1,
+   "scientific_attempts": 0,
+   "score_scenarios": [
+    "geomean-shapes-1-13"
+   ],
+   "side_evaluation_requests": 0,
+   "side_evaluations": [],
+   "stall_nonce": null,
+   "stall_research_cycle": 28,
+   "stall_window": 6,
+   "stalled": false,
+   "stalled_epoch": null,
+   "status": "active",
+   "timing_config": {
+    "repeats": 100,
+    "rounds": 3,
+    "warmup": 20
+   },
+   "timing_protocol_binding": {
+    "controller_sha256": "f599efa917eebaaf40d6d0aa39800f22d8d01ec508f11844d3efe9e9c62b3613",
+    "source": "trusted_controller.py::TIMING",
+    "verified_against_controller": true
+   }
+  },
   "CAMP-POSTLOCK": {
    "authority_event_id": "evt-20260830T125459.321704Z-8ae9746b2ae0",
    "authority_event_sha256": "822b33c848ae3e2fcce58abc3fd5d9291c2fc25348e3c213bfc605a8c628c308",
@@ -235,7 +273,7 @@
    "stall_window": 6,
    "stalled": false,
    "stalled_epoch": null,
-   "status": "active",
+   "status": "closed",
    "timing_config": {
     "repeats": 100,
     "rounds": 3,
@@ -263,7 +301,8 @@
   "958eded31c39961681e03da936daeb99581d0737dacf8061d7148979c7d6c3d0",
   "b0200d26e942d86f3deb748f20d676a16991e66e0ec065a5a9b82a01c2971183",
   "a6f9f42ee50e15f3c47240fa63b95c81650e1c3f223f676f3259dfca771b3bf2",
-  "7b6a81d8289f7f44359844f19f3a1f054a4479ad5a7ef765bad9ae8885b0a18d"
+  "7b6a81d8289f7f44359844f19f3a1f054a4479ad5a7ef765bad9ae8885b0a18d",
+  "bf657e856aed00527cbdc5be341e565d4d06e73bb6810c5b098cb8c6c185553b"
  ],
  "created": "2026-08-29T15:11:47+0800",
  "family_admissions": {
@@ -1883,12 +1922,11 @@
   "5e853b1f500245518928328fce4657553167cdaf83253378795d8a05815fb5e8",
   "99822f2d1baf7006adb4d96420945053cbc876fc5e0e30dc3d21135a11e13bbd",
   "65c4a677fd1dc1bd5b1f9c6392e23f2862d557b7a206f2780481eb3e26e118c6",
-  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc",
-  "07d20af31dc8cda7c31631a344b227fd596bf8c1cc01f00a44b709a2fb179583"
+  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc"
  ],
  "research_cycle": 28,
  "research_open": false,
- "seq": 223,
+ "seq": 224,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -1960,7 +1998,6 @@
   "5e853b1f500245518928328fce4657553167cdaf83253378795d8a05815fb5e8",
   "99822f2d1baf7006adb4d96420945053cbc876fc5e0e30dc3d21135a11e13bbd",
   "65c4a677fd1dc1bd5b1f9c6392e23f2862d557b7a206f2780481eb3e26e118c6",
-  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc",
-  "07d20af31dc8cda7c31631a344b227fd596bf8c1cc01f00a44b709a2fb179583"
+  "85874e41658be1b09418509315becca18bf7938d6a03482f59ceaee0074700fc"
  ]
 }
