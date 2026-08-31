@@ -1,0 +1,66 @@
+In file included from /usr/include/python3.14/pyconfig.h:6,
+                 from /usr/include/python3.14/Python.h:14,
+                 from /tmp/tmp5m4ztisw/cuda_utils.c:9:
+/usr/include/python3.14/pyconfig-64.h:2031:9: warning: ‘_POSIX_C_SOURCE’ redefined
+ 2031 | #define _POSIX_C_SOURCE 200809L
+      |         ^~~~~~~~~~~~~~~
+In file included from /usr/include/bits/libc-header-start.h:33,
+                 from /usr/include/stdlib.h:26,
+                 from /opt/python-site-2/triton/backends/nvidia/include/cuda.h:56,
+                 from /tmp/tmp5m4ztisw/cuda_utils.c:1:
+/usr/include/features.h:319:10: note: this is the location of the previous definition
+  319 | # define _POSIX_C_SOURCE        202405L
+      |          ^~~~~~~~~~~~~~~
+Traceback (most recent call last):
+  File "/work/profile_worker.py", line 3124, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/work/profile_worker.py", line 3090, in main
+    manifest = run_profile(document, output_dir, request_path)
+  File "/work/profile_worker.py", line 2398, in run_profile
+    metrics, tool_version = collector(parsed, evidence, notes)
+                            ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/profile_worker.py", line 1619, in collect_torch_profiler
+    run_route(ctx, parsed["warmup"])
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/profile_worker.py", line 1347, in run_route
+    ctx.model(ctx.inputs, ctx.mask)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/python-site-2/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/python-site-2/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/work/target.py", line 369, in forward
+    return _fused_forward(self, x)
+  File "/work/target.py", line 330, in _fused_forward
+    _block_tail[tail_grid](
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        ctx, src, c["w_o"], c["b_o"], c["ln2_w"], c["ln2_b"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        c["w_f1"], c["b_f1"], c["w_f2"], c["b_f2"], dst,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        S, B,
+        ^^^^^
+        D=D, D_PAD=d_pad, FFN=FFN, FFN_PAD=ffn_pad)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/python-site-2/triton/runtime/jit.py", line 370, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/python-site-2/triton/runtime/autotuner.py", line 252, in run
+    ret = self.fn.run(
+        *args,
+        **kwargs,
+        **config.all_kwargs(),
+    )
+  File "/opt/python-site-2/triton/runtime/jit.py", line 760, in run
+    launch_metadata = kernel.launch_metadata(grid, stream, *bound_args.values())
+  File "/opt/python-site-2/triton/compiler/compiler.py", line 485, in launch_metadata
+    self._init_handles()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/opt/python-site-2/triton/compiler/compiler.py", line 459, in _init_handles
+    raise_(OutOfResources(self.metadata.shared, max_shared, "shared memory"))
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/python-site-2/triton/compiler/compiler.py", line 451, in raise_
+    raise err
+triton.runtime.errors.OutOfResources: out of resource: shared memory, Required: 114688, Hardware limit: 101376. Reducing block sizes or `num_stages` may help.
