@@ -37,18 +37,34 @@ Three changes, all standard FlashAttention-2, none previously present:
 
 **Measured, all `correct: true`, seven seeds, zero failed elements:**
 
-| shape | seq | before | **on `7609fa17…`** | note |
+| shape | seq | before | **on the current build** | note |
 | --- | --- | --- | --- | --- |
 | 13 | 1024 | 31.9119x | **33.6523x** | **+5.5%**; kernel 632.7 → 582.6 us |
-| 12 | 32 | 11.3504x | **11.2516x** | flat; split gated OFF here |
-| 1 | 128 | 8.5217x | 8.7858x (ungated build) | needs a re-run on `7609fa17` |
+| 1 | 128 | 8.5217x | 8.7858x | measured on the ungated build |
+| 12 | 32 | 11.3504x | **11.2516x AND 9.7638x** | see below — both, same bytes |
 
-**THE GATE WAS PAID FOR, NOT GUESSED.** Ungated, shape 12 measured **9.8389x
-against a same-session k027 control at 10.4146x, −5.5%** — on a shape where
-`full_end` is always 0 and stage 1 *provably never executes*. A dead loop body
-still costs register allocation and therefore occupancy. Gating it recovered the
-row to 11.2516x. This is the same-session paired control that the two earlier
-shipped regressions (shape 7 −5.1%, shape 13 −6.9%) never got.
+## 🔴 0a-bis. SHAPE 12 REPLICATES 13% APART ON BYTE-IDENTICAL CODE. READ THIS FIRST.
+
+Two runs of the **same artifact**, minutes apart, nothing changed between them:
+**11.2516x then 9.7638x, a 13.2% spread.** The campaign's calibrated noise floor
+for shapes of this class reads about **0.15%**, so it is wrong by roughly two
+orders of magnitude — it is computed by timing the baseline against itself
+*inside one process*, which measures second-to-second steadiness, not
+run-to-run reproducibility. LESSONS 59.
+
+**Withdrawn as a result — every shape-12 claim made on 31 Aug from single
+samples:** that the ungated loop split cost 5.5%, that gating it recovered the
+row, and that the row is flat against its history. None of those deltas is
+larger than the replicate spread, so none of them was ever resolvable. The gate
+on `SPLIT` stays, but on the dead-code argument alone: on seq_len 32 the loop
+provably never executes, so not emitting it cannot hurt.
+
+**Why the shape 13 result survives this and shape 12's did not:** the shape 13
+comparison is a paired diagnostic whose two UNTOUCHED kernels agreed to within
+0.2% between the two runs, which is the evidence that conditions were equal and
+the changed kernel really moved. The shape 12 comparison had all four kernels
+moving 14–17% together — the signature of a condition change, not a code change.
+**Check that the unchanged parts agree before believing any pair.**
 
 **Nine rows outstanding on `7609fa17…`:** 2, 3, 4, 5, 7, 8, 9, 10, 11, plus a
 re-run of 1. Each needs a diagnostic (for counter-evidence bound to these bytes)

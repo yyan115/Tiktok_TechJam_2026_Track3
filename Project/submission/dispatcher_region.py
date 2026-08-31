@@ -367,23 +367,36 @@ if _TRITON_OK:
         already 1.16e-3 against a 2e-3 criterion. No room, and this change
         spends none — shape 13 came back at 0.9e-3 to 1.7e-3, unmoved.
 
-        THE SPLIT IS GATED, AND THE GATE WAS PAID FOR. It pays on shape 13 and
-        essentially nowhere else: eleven of the twelve measurable shapes are
-        seq_len 128 or 32, giving one to four q-tiles, so there is almost
-        nothing below the diagonal to skip. Ungated it was not free on those
-        shapes — a same-session paired control on shape 12 (seq_len 32, ONE
-        q-tile, where `full_end` is always 0 and stage 1 provably never
-        executes) measured **10.4146x with the old kernel against 9.8389x with
-        the split, -5.5%**. The loop that never runs still costs, which is what
-        a dead loop body does to register allocation and therefore occupancy.
-        `SPLIT` is a constexpr computed on the host from the sequence length,
-        so when it is False Triton emits only the second loop and the code is
-        the original single-loop kernel again. `exp2` stays on unconditionally
-        because it is free everywhere.
+        THE SPLIT IS GATED, ON REASONING, NOT ON A MEASUREMENT. It can only pay
+        where there are blocks below the diagonal to skip, and eleven of the
+        twelve measurable shapes are seq_len 128 or 32 — one to four q-tiles.
+        On shape 12 (seq_len 32) `full_end` is always 0 and stage 1 provably
+        never executes, so gating it off there removes a loop body that cannot
+        run. That is a dead-code argument and it stands on its own: emitting an
+        unreachable loop can cost register allocation and therefore occupancy,
+        and it can never help. `SPLIT` is a host-computed constexpr, so when it
+        is False Triton emits only the second loop and the kernel is the
+        original again. `exp2` stays on unconditionally because it is free
+        everywhere.
 
-        Shape 1 (seq_len 128) measured 24.845 us against 24.722 shipped and
-        8.7858x end to end, its best figure to date, so the harm is confined to
-        the very shortest sequences.
+        WHAT DOES NOT SUPPORT IT, AND WHY THAT IS RECORDED HERE. An earlier
+        version of this docstring cited "10.4146x with the old kernel against
+        9.8389x with the split, -5.5%" as the measurement that paid for the
+        gate. **That number is noise and the claim has been withdrawn.** A
+        byte-identical replicate on shape 12 minutes later returned 9.7638x
+        against 11.2516x — **-13.2% with no code change at all**. Single-sample
+        comparison on this shape cannot resolve anything smaller than that, so
+        it could not have resolved 5.5%. Every shape-12 claim made from single
+        samples on 31 Aug is withdrawn with it: that the ungated split cost
+        anything, that the gate recovered anything, and that the row is flat
+        against its history. See LESSONS 59.
+
+        WHAT IS SUPPORTED. Shape 13 (seq_len 1024, the only measurable shape
+        with a real inner loop) measured **33.6523x against 31.9119x**, with the
+        attention kernel at **582.6 us against 632.7 us** on paired diagnostics
+        whose two UNTOUCHED kernels agreed to within 0.2% — which is what makes
+        that pair trustworthy where the shape-12 pair was not. Shape 1
+        (seq_len 128) measured 24.845 us against 24.722 and 8.7858x end to end.
         """
         pid_m = tl.program_id(0)
         pid_b = tl.program_id(1)
