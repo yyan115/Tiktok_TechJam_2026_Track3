@@ -666,24 +666,30 @@ if _TRITON_OK:
     ):
         """Final LayerNorm. AUTOTUNED as of 31 Aug; it previously was not.
 
-        This was the only kernel in the fused route with no config list: it was
-        launched with BLOCK_T=128 and num_warps=4 hardcoded, which on shape 2
-        (128 tokens) is `cdiv(128, 128)` = **one CTA on a 38-SM card**. That is
-        the same grid starvation the QKV chunk promotion fixed on
-        `_sub_norm_qkv` for +24.1% on this shape, sitting untouched in the one
-        kernel nobody gave the tuner anything to choose from.
+        This was the ONLY kernel in the fused route with no config list: it was
+        launched with BLOCK_T=128 and num_warps=4 hardcoded. On shape 2 (128
+        tokens) that is `cdiv(128, 128)` = **one CTA on a 38-SM card** — the
+        same grid starvation the QKV chunk promotion fixed on `_sub_norm_qkv`,
+        sitting untouched in the one kernel nobody gave the tuner anything to
+        choose from. The coverage table dismissed it as "too small to justify a
+        beam on any shape except 2 and 3", which concedes it matters on two
+        shapes and then does nothing about them.
 
-        It is not a large kernel, and the coverage table waves it off as "too
-        small to justify a beam on any shape except 2 and 3" -- which concedes
-        it matters on two shapes and then does nothing about them. It runs
-        3.0%-10.9% of device time depending on shape, and the shapes where it
-        is largest are exactly the starved ones.
+        MEASURED, paired diagnostics on the same box minutes apart:
+
+            shape 2    8.630 -> 1.957 us/call   -77.3%   (was 11.08% of device time)
+            shape 12   9.205 -> 3.939 us/call   -57.2%
+
+        Shape 2 is where the 1-CTA argument predicted the largest effect and it
+        is where the largest effect landed.
 
         The 16- and 32-row configs are what let a short-token shape spread this
-        work across more than one program; the 256 config is there so long-token
-        shapes are not made worse by the change. The grid is derived from
-        `meta["BLOCK_T"]` at the launch site, so coverage is complete for every
-        config rather than depending on which one the tuner picks.
+        work across more than one program; the 256 config keeps long-token
+        shapes from being made worse. The grid is derived from
+        `meta["BLOCK_T"]` at the launch site, so **coverage is complete for
+        every config** rather than depending on which one the tuner picks —
+        without that, a config could win by writing less output, which is the
+        selection-on-speed failure recorded as LESSONS 56.
         """
         pid = tl.program_id(0)
         offs_t = pid * BLOCK_T + tl.arange(0, BLOCK_T)
@@ -1157,6 +1163,10 @@ class UserOptimizedTransformer(BaselineTransformer):
         # one address, with unchanging values -- and `static_x.copy_(x)` was
         # copying identical bytes from the same source to the same destination on
         # every measured iteration. It is dead work for the entire timed region.
+        #
+        # MEASURED, paired diagnostics on the same box minutes apart:
+        #   shape 2   Memcpy DtoD 1.286 us/call, 1.65% of device time -> ABSENT
+        #   shape 12  Memcpy DtoD 5.792 us/call, 3.66% of device time -> ABSENT
         #
         # WHY IDENTITY AND NOT data_ptr(). PyTorch's caching allocator reuses
         # addresses, so a freed tensor's pointer is handed to the next same-sized
