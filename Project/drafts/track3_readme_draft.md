@@ -1,13 +1,3 @@
-# Judge-facing README — v3 (1 Sep, final single-artifact board)
-
-> **Not applied yet.** The owner reviews this and applies it as the public
-> repo's README at packaging. It is written to cover every element the
-> deliverables list requires: project overview, setup, reproduction steps,
-> a reflection on limitations, and contributions. All numbers are the
-> single-artifact board in `Project/BOARD.md`.
-
----
-
 # Transformer Kernel Optimization on a Consumer GPU — TikTok TechJam 2026, Track 3
 
 **An AI agent that writes GPU kernels, and a referee it is not allowed to
@@ -96,7 +86,7 @@ agent no authority over it:
   repair its own auditor does not have one.
 
 The kernels are the deliverable; the governance is the idea. Details of
-both are in **[`Project/drafts/tech_report_draft.md`](tech_report_draft.md)**
+both are in **[`Project/drafts/tech_report_draft.md`](Project/drafts/tech_report_draft.md)**
 (the tech report), including the incident in a sibling track that caused us
 to rebuild the authority model from scratch.
 
@@ -209,8 +199,8 @@ has a ceiling that does not depend on how slow the reference is.
 
 **Numbers this project has withdrawn, and why.** An earlier board measured
 10.32× on the organizers' untouched script. Those runs were **procedurally
-invalid**: no permit, no bound audit verdict, and baselines that `HANDOVER.md`
-§3.1 records as 6 to 63% slower than their own calibration. We withdrew them and
+invalid**: no permit, no bound audit verdict, and baselines that
+`Project/HANDOVER.md` §3.1 records as 6 to 63% slower than their own calibration. We withdrew them and
 re-measured everything under the gate.
 
 Worth stating because it cuts against us: the withdrawn board was **not**
@@ -256,7 +246,7 @@ Both are measured on the same artifact as every other row.
 | Repeat spread | flat across 10 repeats, zero growth | 0.019% across 3 repeats |
 
 **Shape 14 is now measured**, replacing the extrapolation that earlier drafts
-reported as pending. It is 99.89% of all the arithmetic in the benchmark and it
+reported as pending. It is 99.87% of all the arithmetic in the benchmark and it
 is our strongest row, at 88.7% of what the card can physically do.
 
 Two labels travel with both rows. Their timing is **candidate-only**, since there
@@ -349,7 +339,7 @@ python3 Project/submission/torch_transformer_benchmark_submission.py \
 
 # 2. Prove that everything outside the replaced region is byte-identical
 #    to the official script.
-python3 Project/tools/build_submission.py --verify
+python3 Project/tools/build_submission.py --check-only
 
 # 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
 #    a shim onto the trusted controller and will NOT time anything without a
@@ -367,9 +357,12 @@ python3 Project/tools/sensitivity_board.py        # -> Project/results_side/SENS
 #    with a shim onto the trusted controller, which has no such subcommand. The
 #    post-LOCK speedup board is NOT in Project/results/JOURNAL.jsonl; see below.
 
-# 5. The two shapes that don't fit in 8 GB.
-python3 Project/tools/smokes/shape14_core_smoke.py
-python3 Project/tools/smokes/shape6_core_smoke.py
+# 5. The two shapes that don't fit in 8 GB. Their evaluators
+#    (Project/tools/shape6_local_eval.py, Project/tools/shape14_eval.py) are
+#    reachable only through the side-evaluator lane -- run_gate.py side-evaluate
+#    -> trusted_controller.py -- which, like the runner above, requires a
+#    one-use permit. Their evidence packets are in Project/results_side/, and
+#    their board rows cite the authority blobs listed in BOARD.md section 2.
 ```
 
 **Where the published numbers actually live** (corrected 31 Aug after
