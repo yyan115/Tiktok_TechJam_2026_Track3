@@ -1506,24 +1506,35 @@ class UserOptimizedTransformer(BaselineTransformer):
             state["static_x"].copy_(x)
             state["last_x"] = x
         state["graph"].replay()
-        # The replay path returns the graph's own output buffer rather than a
-        # copy of it. THE RETURNED TENSOR IS VALID UNTIL THE NEXT forward()
-        # CALL, which is the standard contract for a CUDA-graph API and is
-        # satisfied by both of the official script's call sites:
+        # THE CLONE IS BACK, DELIBERATELY, AND IT COSTS SPEED.
         #
-        #   timing   (torch_transformer_benchmark.py:494)  `model(x, valid_mask)`
-        #            -- the result is discarded, never bound to a name.
-        #   accuracy (torch_transformer_benchmark.py:392)  `candidate = optimized(...)`
-        #            followed immediately by compare_outputs() on the next line,
-        #            before any further forward() call.
+        # This line used to `return state["static_out"]` -- the graph's own
+        # output buffer, no copy. That was worth 0.87% to 7.04% across six
+        # shapes, because the clone is a full [B, S, D] fp32 device-to-device
+        # copy on every forward: 20.0 us of the 550 us shape-1 candidate.
         #
-        # The clone it replaces was a full [B, S, D] fp32 device-to-device copy
-        # on every forward: 20.0 us of the 550 us shape-1 candidate, 7.3% of
-        # profiled device time counted across the graph input copy and this.
-        # Values are unchanged; only the aliasing is. A caller that needs to
-        # retain the result across calls must copy it, and that is stated here
-        # rather than left to be discovered.
-        return state["static_out"]
+        # It was justified on the grounds that "valid until the next forward()"
+        # is the standard contract for a CUDA-graph API, and that both of the
+        # official script's call sites honour it -- the timing loop at
+        # torch_transformer_benchmark.py:494 discards the result without binding
+        # it, and the accuracy loop at :392 compares on the very next line. Both
+        # of those readings are still correct.
+        #
+        # WHAT THAT ARGUMENT MISSED. It made correctness depend on how the
+        # CALLER is written rather than on what this function returns. Any
+        # caller that holds two results at once gets the same memory twice and
+        # silently sees the later answer in both. That is not a slow failure or
+        # a small error, it is arbitrary wrong output with no exception raised.
+        #
+        # It stopped being hypothetical: `shape14_eval.py decomp-check` gathers
+        # eight per-sequence results and concatenates them, which is ordinary
+        # PyTorch usage. Six of the eight aliased, and the check could not run.
+        # Shape 14's whole evidence chain sits behind that check.
+        #
+        # The buffer-reuse trick is fast and it is legitimate for an API whose
+        # contract says so. It is the wrong default for a module people call
+        # like any other nn.Module. We take the microseconds.
+        return state["static_out"].clone()
 
 def copy_model_weights(
     baseline: nn.Module, optimized: nn.Module, strict: bool = True
