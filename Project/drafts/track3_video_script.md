@@ -233,6 +233,10 @@ differentiated thirty seconds in the video.
 - geomean **11.87×** across the twelve shapes with a runnable baseline, measured
   on the submission file itself
 - mean MFU **42.7%** across all fourteen shapes, weighted equally
+- **7.42× against PyTorch's own fused flash attention** — say the caveat in the
+  same breath or do not say the number: it was measured on a different build, and
+  PyTorch runs at fp32 there while we run fp16, so part of that margin is
+  precision rather than kernel engineering
 - best shapes **31.5×** (sequence 1024) · **29.1×** (`d_model` 32) · **26.7×**
   (batch 1)
 - weakest shapes **2.37×** (`d_model` 1024) · **4.93×** (single attention head).

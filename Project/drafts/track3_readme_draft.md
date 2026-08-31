@@ -124,25 +124,44 @@ All fourteen rows below were measured on one artifact,
 submission file a judge would run. Per-row packet hashes and entry ids are in
 `Project/BOARD.md` section 2.
 
-| # | shape | TikTok baseline | **OURS** | **speedup** | **our MFU** | hard floor |
-|---|---|--:|--:|--:|--:|--:|
-| 1 | B64 s128 d128 h4 | 5.0586 ms | **0.5622 ms** | **8.998×** | 41.1% | 0.2313 ms |
-| 2 | B1 s128 d128 h4 | 1.8039 ms | **0.0676 ms** | **26.691×** | 5.3% | 0.0036 ms |
-| 3 | B4 s128 d128 h4 | 1.7618 ms | **0.0891 ms** | **19.776×** | 16.2% | 0.0145 ms |
-| 4 | B16 s128 d128 h4 | 1.7547 ms | **0.1649 ms** | **10.643×** | 35.1% | 0.0578 ms |
-| 5 | B128 s128 d128 h4 | 9.8473 ms | **1.0025 ms** | **9.823×** | 46.1% | 0.4625 ms |
-| 6 | B10000 s128 d128 h4 | *out of memory* | **60.3873 ms** | *no baseline* | 59.8% | 36.1355 ms |
-| 7 | B64 s128 d32 h4 | 3.4028 ms | **0.1167 ms** | **29.149×** | 17.7% | 0.0206 ms |
-| 8 | B64 s128 d1024 h4 | 43.1206 ms | **18.2272 ms** | **2.366×** | 71.1% | 12.9511 ms |
-| 9 | B64 s128 d128 h1 | 2.9604 ms | **0.6001 ms** | **4.933×** | 38.5% | 0.2313 ms |
-| 10 | B64 s128 d128 h2 | 3.9045 ms | **0.5704 ms** | **6.846×** | 40.5% | 0.2313 ms |
-| 11 | B64 s128 d128 h16 | 12.0433 ms | **0.6554 ms** | **18.377×** | 35.3% | 0.2313 ms |
-| 12 | B64 s32 d128 h4 | 1.7644 ms | **0.1516 ms** | **11.642×** | 34.1% | 0.0517 ms |
-| 13 | B64 s1024 d128 h4 | 169.9159 ms | **5.3919 ms** | **31.513×** | 68.6% | 3.7003 ms |
-| 14 | B32 s100000 d1024 h16 | *infeasible* | **48.271 s** | *no baseline* | **88.7%** | 42.808 s |
+| # | shape | TikTok baseline | PyTorch sdpa † | **OURS** | **speedup** | vs sdpa † | **our MFU** | hard floor |
+|---|---|--:|--:|--:|--:|--:|--:|--:|
+| 1 | B64 s128 d128 h4 | 5.0586 ms | 1.67× | **0.5622 ms** | **8.998×** | 5.4× | 41.1% | 0.2313 ms |
+| 2 | B1 s128 d128 h4 | 1.8039 ms | 1.28× | **0.0676 ms** | **26.691×** | 20.9× | 5.3% | 0.0036 ms |
+| 3 | B4 s128 d128 h4 | 1.7618 ms | 1.34× | **0.0891 ms** | **19.776×** | 14.8× | 16.2% | 0.0145 ms |
+| 4 | B16 s128 d128 h4 | 1.7547 ms | 1.39× | **0.1649 ms** | **10.643×** | 7.7× | 35.1% | 0.0578 ms |
+| 5 | B128 s128 d128 h4 | 9.8473 ms | 1.66× | **1.0025 ms** | **9.823×** | 5.9× | 46.1% | 0.4625 ms |
+| 6 | B10000 s128 d128 h4 | *out of memory* | *cannot run* | **60.3873 ms** | *no baseline* | **runs** | 59.8% | 36.1355 ms |
+| 7 | B64 s128 d32 h4 | 3.4028 ms | 2.18× | **0.1167 ms** | **29.149×** | 13.4× | 17.7% | 0.0206 ms |
+| 8 | B64 s128 d1024 h4 | 43.1206 ms | 1.02× | **18.2272 ms** | **2.366×** | **2.3×** | 71.1% | 12.9511 ms |
+| 9 | B64 s128 d128 h1 | 2.9604 ms | 1.11× | **0.6001 ms** | **4.933×** | 4.4× | 38.5% | 0.2313 ms |
+| 10 | B64 s128 d128 h2 | 3.9045 ms | 1.31× | **0.5704 ms** | **6.846×** | 5.2× | 40.5% | 0.2313 ms |
+| 11 | B64 s128 d128 h16 | 12.0433 ms | 2.59× | **0.6554 ms** | **18.377×** | 7.1× | 35.3% | 0.2313 ms |
+| 12 | B64 s32 d128 h4 | 1.7644 ms | 1.27× | **0.1516 ms** | **11.642×** | 9.2× | 34.1% | 0.0517 ms |
+| 13 | B64 s1024 d128 h4 | 169.9159 ms | 3.97× | **5.3919 ms** | **31.513×** | 7.9× | 68.6% | 3.7003 ms |
+| 14 | B32 s100000 d1024 h16 | *infeasible* | *cannot run* | **48.271 s** | *no baseline* | **runs** | **88.7%** | 42.808 s |
 
 **Geometric mean over the twelve shapes with a baseline: 11.87×.**
 **Mean MFU over all fourteen, weighted equally: 42.7%.**
+**Geometric mean against PyTorch's sdpa: 7.42×**, with the † caveats below.
+
+**† The two sdpa columns are weaker evidence than the rest of the table, and we
+would rather say so than let a reader assume otherwise.** They were measured on
+28 August on a different build, so `vs sdpa` is our speedup divided by theirs
+rather than a paired measurement. And `Project/kernels/k001_sdpa.py` runs the
+model at fp32 with TF32 matmul, matching the official baseline, while our route
+computes at fp16 with fp32 accumulation, so **part of that margin is precision
+rather than kernel engineering**. Both clear the competition's 2e-3 predicate, so
+both are legal. The `speedup` column against TikTok's own baseline has neither
+problem: same process, same input, same build, same precision on both sides.
+That is the column to defend.
+
+The sdpa columns are here to answer one question: is 11.87× a statement about our
+kernels, or about how slow the reference is? A competent off-the-shelf
+alternative reaches 1.02× to 3.97× on these shapes, so most of the margin is not
+explained by a weak reference. On shapes 6 and 14 it cannot run at all and ours
+does, which is a capability difference rather than a speed one and needs no
+caveat.
 
 Twelve shapes route to the fused-block megakernel. Shapes 8 and 14, the two with
 `d_model` 1024, route to the fp16 tensor-core stack, a different kernel inside

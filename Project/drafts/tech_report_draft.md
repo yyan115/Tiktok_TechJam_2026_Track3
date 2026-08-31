@@ -249,23 +249,31 @@ Every row measured on
 single-use permit per row, quiet box, `correct: true` throughout. Per-row packet
 hashes and entry ids are in `Project/BOARD.md` §2.
 
-| # | shape | route | baseline | **ours** | **speedup** | **MFU** | floor |
-|---|---|---|--:|--:|--:|--:|--:|
-| 1 | B64 s128 d128 h4 | megakernel | 5.0586 ms | **0.5622 ms** | **8.998×** | 41.1% | 0.2313 ms |
-| 2 | B1 s128 d128 h4 | megakernel | 1.8039 ms | **0.0676 ms** | **26.691×** | 5.3% | 0.0036 ms |
-| 3 | B4 s128 d128 h4 | megakernel | 1.7618 ms | **0.0891 ms** | **19.776×** | 16.2% | 0.0145 ms |
-| 4 | B16 s128 d128 h4 | megakernel | 1.7547 ms | **0.1649 ms** | **10.643×** | 35.1% | 0.0578 ms |
-| 5 | B128 s128 d128 h4 | megakernel | 9.8473 ms | **1.0025 ms** | **9.823×** | 46.1% | 0.4625 ms |
-| 6 | B10000 s128 d128 h4 | megakernel | *OOM* | **60.3873 ms** | *no baseline* | 59.8% | 36.1355 ms |
-| 7 | B64 s128 d32 h4 | megakernel | 3.4028 ms | **0.1167 ms** | **29.149×** | 17.7% | 0.0206 ms |
-| 8 | B64 s128 **d1024** h4 | fp16 stack | 43.1206 ms | **18.2272 ms** | **2.366×** | 71.1% | 12.9511 ms |
-| 9 | B64 s128 d128 **h1** | megakernel | 2.9604 ms | **0.6001 ms** | **4.933×** | 38.5% | 0.2313 ms |
-| 10 | B64 s128 d128 **h2** | megakernel | 3.9045 ms | **0.5704 ms** | **6.846×** | 40.5% | 0.2313 ms |
-| 11 | B64 s128 d128 **h16** | megakernel | 12.0433 ms | **0.6554 ms** | **18.377×** | 35.3% | 0.2313 ms |
-| 12 | B64 **s32** d128 h4 | megakernel | 1.7644 ms | **0.1516 ms** | **11.642×** | 34.1% | 0.0517 ms |
-| 13 | B64 **s1024** d128 h4 | megakernel | 169.9159 ms | **5.3919 ms** | **31.513×** | 68.6% | 3.7003 ms |
-| 14 | B32 **s100000** d1024 h16 | fp16 stack | *infeasible* | **48.271 s** | *no baseline* | **88.7%** | 42.808 s |
-| | | | | **geomean, 12 with a baseline** | **11.87×** | **42.7% mean** | |
+| # | shape | route | baseline | sdpa † | **ours** | **speedup** | vs sdpa † | **MFU** | floor |
+|---|---|---|--:|--:|--:|--:|--:|--:|--:|
+| 1 | B64 s128 d128 h4 | megakernel | 5.0586 ms | 1.67× | **0.5622 ms** | **8.998×** | 5.4× | 41.1% | 0.2313 ms |
+| 2 | B1 s128 d128 h4 | megakernel | 1.8039 ms | 1.28× | **0.0676 ms** | **26.691×** | 20.9× | 5.3% | 0.0036 ms |
+| 3 | B4 s128 d128 h4 | megakernel | 1.7618 ms | 1.34× | **0.0891 ms** | **19.776×** | 14.8× | 16.2% | 0.0145 ms |
+| 4 | B16 s128 d128 h4 | megakernel | 1.7547 ms | 1.39× | **0.1649 ms** | **10.643×** | 7.7× | 35.1% | 0.0578 ms |
+| 5 | B128 s128 d128 h4 | megakernel | 9.8473 ms | 1.66× | **1.0025 ms** | **9.823×** | 5.9× | 46.1% | 0.4625 ms |
+| 6 | B10000 s128 d128 h4 | megakernel | *OOM* | *cannot run* | **60.3873 ms** | *no baseline* | **runs** | 59.8% | 36.1355 ms |
+| 7 | B64 s128 d32 h4 | megakernel | 3.4028 ms | 2.18× | **0.1167 ms** | **29.149×** | 13.4× | 17.7% | 0.0206 ms |
+| 8 | B64 s128 **d1024** h4 | fp16 stack | 43.1206 ms | 1.02× | **18.2272 ms** | **2.366×** | **2.3×** | 71.1% | 12.9511 ms |
+| 9 | B64 s128 d128 **h1** | megakernel | 2.9604 ms | 1.11× | **0.6001 ms** | **4.933×** | 4.4× | 38.5% | 0.2313 ms |
+| 10 | B64 s128 d128 **h2** | megakernel | 3.9045 ms | 1.31× | **0.5704 ms** | **6.846×** | 5.2× | 40.5% | 0.2313 ms |
+| 11 | B64 s128 d128 **h16** | megakernel | 12.0433 ms | 2.59× | **0.6554 ms** | **18.377×** | 7.1× | 35.3% | 0.2313 ms |
+| 12 | B64 **s32** d128 h4 | megakernel | 1.7644 ms | 1.27× | **0.1516 ms** | **11.642×** | 9.2× | 34.1% | 0.0517 ms |
+| 13 | B64 **s1024** d128 h4 | megakernel | 169.9159 ms | 3.97× | **5.3919 ms** | **31.513×** | 7.9× | 68.6% | 3.7003 ms |
+| 14 | B32 **s100000** d1024 h16 | fp16 stack | *infeasible* | *cannot run* | **48.271 s** | *no baseline* | **runs** | **88.7%** | 42.808 s |
+| | | | | | **geomean** | **11.87×** | **7.42×** | **42.7%** | |
+
+**† The two sdpa columns are a weaker grade of evidence than the rest of this
+table.** They were measured 28 August on a different build, so `vs sdpa` is our
+speedup divided by theirs and not a paired measurement; and `k001_sdpa.py` runs
+the model at fp32 with TF32 matmul while our kernels compute at fp16, so part of
+that margin is precision rather than kernel engineering. Both are legal under the
+2e-3 predicate. §9 gives the full treatment. **The `speedup` column has neither
+problem and is the one to defend.**
 
 **We quote 11.87×**, over the twelve shapes that have a baseline to divide by,
 and **42.7% mean MFU** over all fourteen. The second figure is closer to what the

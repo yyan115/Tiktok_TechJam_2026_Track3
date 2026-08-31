@@ -186,24 +186,35 @@ competent-alternative comparison is what actually answers "is this good".
 the submission file that ships. This is the first version of this table where
 that is true. See section 10.
 
-| # | shape | GFLOP | TikTok baseline | its MFU | **OURS** | **speedup** | **our MFU** | physical floor |
-|---|---|--:|--:|--:|--:|--:|--:|--:|
-| 1 | B64 s128 d128 h4 | 7.52 | 5.0586 ms | 4.6% | **0.5622 ms** | **8.998×** | **41.1%** | 0.2313 ms |
-| 2 | B1 s128 d128 h4 | 0.117 | 1.8039 ms | 0.2% | **0.0676 ms** | **26.691×** | **5.3%** | 0.0036 ms |
-| 3 | B4 s128 d128 h4 | 0.470 | 1.7618 ms | 0.8% | **0.0891 ms** | **19.776×** | **16.2%** | 0.0145 ms |
-| 4 | B16 s128 d128 h4 | 1.879 | 1.7547 ms | 3.3% | **0.1649 ms** | **10.643×** | **35.1%** | 0.0578 ms |
-| 5 | B128 s128 d128 h4 | 15.03 | 9.8473 ms | 4.7% | **1.0025 ms** | **9.823×** | **46.1%** | 0.4625 ms |
-| 6 | B10000 s128 d128 h4 | 1,174.41 | *out of memory* | — | **60.3873 ms** | *no baseline* | **59.8%** | 36.1355 ms |
-| 7 | B64 s128 d32 h4 | 0.671 | 3.4028 ms | 0.6% | **0.1167 ms** | **29.149×** | **17.7%** | 0.0206 ms |
-| 8 | B64 s128 d1024 h4 | 420.91 | 43.1206 ms | 30.0% | **18.2272 ms** | **2.366×** | **71.1%** | 12.9511 ms |
-| 9 | B64 s128 d128 h1 | 7.52 | 2.9604 ms | 7.8% | **0.6001 ms** | **4.933×** | **38.5%** | 0.2313 ms |
-| 10 | B64 s128 d128 h2 | 7.52 | 3.9045 ms | 5.9% | **0.5704 ms** | **6.846×** | **40.5%** | 0.2313 ms |
-| 11 | B64 s128 d128 h16 | 7.52 | 12.0433 ms | 1.9% | **0.6554 ms** | **18.377×** | **35.3%** | 0.2313 ms |
-| 12 | B64 s32 d128 h4 | 1.678 | 1.7644 ms | 2.9% | **0.1516 ms** | **11.642×** | **34.1%** | 0.0517 ms |
-| 13 | B64 s1024 d128 h4 | 120.26 | 169.9159 ms | 2.2% | **5.3919 ms** | **31.513×** | **68.6%** | 3.7003 ms |
-| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | *infeasible* | — | **48.271 s** | *no baseline* | **88.7%** | 42.808 s |
+| # | shape | GFLOP | TikTok baseline | its MFU | PyTorch sdpa † | **OURS** | **speedup** | vs sdpa † | **our MFU** | physical floor |
+|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 | B64 s128 d128 h4 | 7.52 | 5.0586 ms | 4.6% | 1.67× | **0.5622 ms** | **8.998×** | 5.4× | **41.1%** | 0.2313 ms |
+| 2 | B1 s128 d128 h4 | 0.117 | 1.8039 ms | 0.2% | 1.28× | **0.0676 ms** | **26.691×** | 20.9× | **5.3%** | 0.0036 ms |
+| 3 | B4 s128 d128 h4 | 0.470 | 1.7618 ms | 0.8% | 1.34× | **0.0891 ms** | **19.776×** | 14.8× | **16.2%** | 0.0145 ms |
+| 4 | B16 s128 d128 h4 | 1.879 | 1.7547 ms | 3.3% | 1.39× | **0.1649 ms** | **10.643×** | 7.7× | **35.1%** | 0.0578 ms |
+| 5 | B128 s128 d128 h4 | 15.03 | 9.8473 ms | 4.7% | 1.66× | **1.0025 ms** | **9.823×** | 5.9× | **46.1%** | 0.4625 ms |
+| 6 | B10000 s128 d128 h4 | 1,174.41 | *out of memory* | — | *cannot run* | **60.3873 ms** | *no baseline* | **runs** | **59.8%** | 36.1355 ms |
+| 7 | B64 s128 d32 h4 | 0.671 | 3.4028 ms | 0.6% | 2.18× | **0.1167 ms** | **29.149×** | 13.4× | **17.7%** | 0.0206 ms |
+| 8 | B64 s128 d1024 h4 | 420.91 | 43.1206 ms | 30.0% | 1.02× | **18.2272 ms** | **2.366×** | **2.3×** | **71.1%** | 12.9511 ms |
+| 9 | B64 s128 d128 h1 | 7.52 | 2.9604 ms | 7.8% | 1.11× | **0.6001 ms** | **4.933×** | 4.4× | **38.5%** | 0.2313 ms |
+| 10 | B64 s128 d128 h2 | 7.52 | 3.9045 ms | 5.9% | 1.31× | **0.5704 ms** | **6.846×** | 5.2× | **40.5%** | 0.2313 ms |
+| 11 | B64 s128 d128 h16 | 7.52 | 12.0433 ms | 1.9% | 2.59× | **0.6554 ms** | **18.377×** | 7.1× | **35.3%** | 0.2313 ms |
+| 12 | B64 s32 d128 h4 | 1.678 | 1.7644 ms | 2.9% | 1.27× | **0.1516 ms** | **11.642×** | 9.2× | **34.1%** | 0.0517 ms |
+| 13 | B64 s1024 d128 h4 | 120.26 | 169.9159 ms | 2.2% | 3.97× | **5.3919 ms** | **31.513×** | 7.9× | **68.6%** | 3.7003 ms |
+| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | *infeasible* | — | *cannot run* | **48.271 s** | *no baseline* | **runs** | **88.7%** | 42.808 s |
+
+**† The two sdpa columns are a weaker grade of evidence than the rest of the
+table and section 7.3 sets out why in full. In short: they were measured on
+28 August on a different build, so `vs sdpa` is our speedup divided by theirs
+rather than a paired measurement; and sdpa runs the model at fp32 with TF32
+matmul while our kernels compute at fp16, so part of that margin is precision
+rather than kernel engineering. Both are legal under the 2e-3 predicate. The
+`speedup` column against TikTok's own baseline has neither problem.**
 
 **Geometric mean speedup over the twelve shapes that have a baseline: 11.87×.**
+
+**Geometric mean against sdpa over the twelve it can run: 7.42×**, with the †
+caveats attached.
 
 **Mean MFU across all fourteen shapes, weighted equally: 42.7%.** This is the
 figure closest to what the organiser described as the technical score, since the
@@ -370,11 +381,19 @@ margin we show over PyTorch is a precision difference rather than kernel
 engineering**, and the comparison must be labelled that way.
 
 Carrying our new single-artifact times against the 28 August sdpa figures gives a
-geometric mean near **7.4×**. The previous version of this document quoted 7.49×
-as a headline. It should not be a headline. It is an estimate with both caveats
-above attached, and the defensible comparison is the one against TikTok's own
-baseline in section 5, which is paired inside one process and same-precision on
-both sides.
+geometric mean of **7.42×**, against 7.49× on the previous mixed-build board. It
+is in the section 5 table under a † so the comparison is visible rather than
+buried, but **it should not be the headline**. It is an estimate with both
+caveats above attached. The defensible comparison is the one against TikTok's own
+baseline, which is paired inside one process, on one build, at the same precision
+on both sides.
+
+**What the sdpa column is genuinely good for**, and it is worth having: it
+answers whether 11.87× is a statement about our kernels or about a slow
+reference. A competent off-the-shelf alternative reaches 1.02× to 3.97× on these
+shapes. Most of our margin is therefore not explained by the reference being
+naive. And on shapes 6 and 14 sdpa cannot run at all while ours does, which is a
+capability difference rather than a speed one and carries neither caveat.
 
 **What would fix it:** re-run `k001_sdpa.py` on the current artifact in the same
 session as our column, and separately run an fp16 variant of it, so the precision

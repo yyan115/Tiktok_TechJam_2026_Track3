@@ -22,6 +22,14 @@ Shapes 6 and 14 have none, because the official baseline runs out of memory on
 one and would need roughly 160 TB of attention matrix on the other. Across all
 fourteen shapes, weighted equally, our mean model FLOPs utilisation is 42.7%.
 
+Against **PyTorch's own fused flash attention** (`scaled_dot_product_attention`),
+rather than TikTok's naive reference, the margin is about **7.42×**. That figure
+carries two caveats we state rather than bury: it was measured on a different
+build on 28 August, and PyTorch runs the model at fp32 there while our kernels
+compute at fp16, so part of it is precision rather than kernel engineering. Both
+satisfy the competition's precision requirement. The 11.87× against TikTok's own
+baseline has neither caveat, and is the number we stand behind.
+
 ### The problem, as we framed it
 
 The track asks for fast transformer kernels that stay numerically correct.

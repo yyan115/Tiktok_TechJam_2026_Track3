@@ -22,26 +22,63 @@ Measured 1 Sep 2026, 02:15 to 02:44 SGT, except shape 14 which was measured at
 
 ## 1. The table
 
-| # | shape | GFLOP | TikTok baseline | its MFU | OURS | speedup | our MFU | hard floor | correct |
-|---|---|--:|--:|--:|--:|--:|--:|--:|:--:|
-| 1 | B64 s128 d128 h4 | 7.52 | 5.0586 ms | 4.6% | **0.5622 ms** | **8.998×** | **41.1%** | 0.2313 ms | 7 trials |
-| 2 | B1 s128 d128 h4 | 0.117 | 1.8039 ms | 0.2% | **0.0676 ms** | **26.691×** | **5.3%** | 0.0036 ms | 7 trials |
-| 3 | B4 s128 d128 h4 | 0.470 | 1.7618 ms | 0.8% | **0.0891 ms** | **19.776×** | **16.2%** | 0.0145 ms | 7 trials |
-| 4 | B16 s128 d128 h4 | 1.879 | 1.7547 ms | 3.3% | **0.1649 ms** | **10.643×** | **35.1%** | 0.0578 ms | 7 trials |
-| 5 | B128 s128 d128 h4 | 15.03 | 9.8473 ms | 4.7% | **1.0025 ms** | **9.823×** | **46.1%** | 0.4625 ms | 7 trials |
-| 6 | B10000 s128 d128 h4 | 1,174.41 | out of memory | — | **60.3873 ms** | none possible | **59.8%** | 36.1355 ms | 5 seeds |
-| 7 | B64 s128 d32 h4 | 0.671 | 3.4028 ms | 0.6% | **0.1167 ms** | **29.149×** | **17.7%** | 0.0206 ms | 7 trials |
-| 8 | B64 s128 d1024 h4 | 420.91 | 43.1206 ms | 30.0% | **18.2272 ms** | **2.366×** | **71.1%** | 12.9511 ms | 7 trials |
-| 9 | B64 s128 d128 h1 | 7.52 | 2.9604 ms | 7.8% | **0.6001 ms** | **4.933×** | **38.5%** | 0.2313 ms | 7 trials |
-| 10 | B64 s128 d128 h2 | 7.52 | 3.9045 ms | 5.9% | **0.5704 ms** | **6.846×** | **40.5%** | 0.2313 ms | 7 trials |
-| 11 | B64 s128 d128 h16 | 7.52 | 12.0433 ms | 1.9% | **0.6554 ms** | **18.377×** | **35.3%** | 0.2313 ms | 7 trials |
-| 12 | B64 s32 d128 h4 | 1.678 | 1.7644 ms | 2.9% | **0.1516 ms** | **11.642×** | **34.1%** | 0.0517 ms | 7 trials |
-| 13 | B64 s1024 d128 h4 | 120.26 | 169.9159 ms | 2.2% | **5.3919 ms** | **31.513×** | **68.6%** | 3.7003 ms | 7 trials |
-| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | infeasible | — | **48,271.04 ms** | none possible | **88.7%** | 42,807.71 ms | 5 seeds |
+| # | shape | GFLOP | TikTok baseline | its MFU | PyTorch sdpa † | OURS | speedup | vs sdpa † | our MFU | hard floor | correct |
+|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|:--:|
+| 1 | B64 s128 d128 h4 | 7.52 | 5.0586 ms | 4.6% | 1.67× | **0.5622 ms** | **8.998×** | 5.4× | **41.1%** | 0.2313 ms | 7 trials |
+| 2 | B1 s128 d128 h4 | 0.117 | 1.8039 ms | 0.2% | 1.28× | **0.0676 ms** | **26.691×** | 20.9× | **5.3%** | 0.0036 ms | 7 trials |
+| 3 | B4 s128 d128 h4 | 0.470 | 1.7618 ms | 0.8% | 1.34× | **0.0891 ms** | **19.776×** | 14.8× | **16.2%** | 0.0145 ms | 7 trials |
+| 4 | B16 s128 d128 h4 | 1.879 | 1.7547 ms | 3.3% | 1.39× | **0.1649 ms** | **10.643×** | 7.7× | **35.1%** | 0.0578 ms | 7 trials |
+| 5 | B128 s128 d128 h4 | 15.03 | 9.8473 ms | 4.7% | 1.66× | **1.0025 ms** | **9.823×** | 5.9× | **46.1%** | 0.4625 ms | 7 trials |
+| 6 | B10000 s128 d128 h4 | 1,174.41 | out of memory | — | *cannot run* | **60.3873 ms** | none possible | **runs** | **59.8%** | 36.1355 ms | 5 seeds |
+| 7 | B64 s128 d32 h4 | 0.671 | 3.4028 ms | 0.6% | 2.18× | **0.1167 ms** | **29.149×** | 13.4× | **17.7%** | 0.0206 ms | 7 trials |
+| 8 | B64 s128 d1024 h4 | 420.91 | 43.1206 ms | 30.0% | 1.02× | **18.2272 ms** | **2.366×** | **2.3×** | **71.1%** | 12.9511 ms | 7 trials |
+| 9 | B64 s128 d128 h1 | 7.52 | 2.9604 ms | 7.8% | 1.11× | **0.6001 ms** | **4.933×** | 4.4× | **38.5%** | 0.2313 ms | 7 trials |
+| 10 | B64 s128 d128 h2 | 7.52 | 3.9045 ms | 5.9% | 1.31× | **0.5704 ms** | **6.846×** | 5.2× | **40.5%** | 0.2313 ms | 7 trials |
+| 11 | B64 s128 d128 h16 | 7.52 | 12.0433 ms | 1.9% | 2.59× | **0.6554 ms** | **18.377×** | 7.1× | **35.3%** | 0.2313 ms | 7 trials |
+| 12 | B64 s32 d128 h4 | 1.678 | 1.7644 ms | 2.9% | 1.27× | **0.1516 ms** | **11.642×** | 9.2× | **34.1%** | 0.0517 ms | 7 trials |
+| 13 | B64 s1024 d128 h4 | 120.26 | 169.9159 ms | 2.2% | 3.97× | **5.3919 ms** | **31.513×** | 7.9× | **68.6%** | 3.7003 ms | 7 trials |
+| 14 | B32 s100000 d1024 h16 | **1,391,250.64** | infeasible | — | *cannot run* | **48,271.04 ms** | none possible | **runs** | **88.7%** | 42,807.71 ms | 5 seeds |
 
 **Geometric mean speedup over the twelve shapes that have a baseline: 11.87×.**
 
 **Mean MFU across all fourteen shapes, weighted equally: 42.7%.**
+
+**Geometric mean against PyTorch's sdpa, over the twelve it can run: 7.42×** —
+subject to the two caveats below, which are not small.
+
+---
+
+### † Read this before quoting either sdpa column
+
+The two columns marked † are **not the same grade of evidence as the rest of the
+table**, and they are in it only so the comparison is visible rather than hidden
+in an appendix. Two problems, both real.
+
+**1. Different build, different day, not paired.** Those sdpa figures were
+measured on **28 August** on an earlier harness and an earlier build.
+Every other number in this table is from `c2028c48…`. The `vs sdpa` column is
+computed as our speedup divided by theirs, which is only valid if the two runs
+saw the same baseline — and that has not been tested. Treat those cells as an
+estimate, not a measurement.
+
+**2. Different precision, and it favours us.** `Project/kernels/k001_sdpa.py`
+replaces only the attention inner math and leaves the model in **fp32 with TF32
+matmul**, which is what the official baseline does. Our route casts every weight
+and activation to **fp16** with fp32 accumulation. Both clear the competition's
+2e-3 predicate, so both are legal, but **part of the `vs sdpa` margin is
+precision rather than kernel engineering.** A third-party auditor raised this and
+it is the honest reading.
+
+The `speedup` column against TikTok's own baseline has neither problem: same
+process, same input tensor, same build, same precision on both sides. **That is
+the number to defend.** The sdpa columns answer a different and softer question,
+which is whether 11.87× reflects our work or merely a slow reference.
+
+**What would fix it:** re-run `k001_sdpa.py` on `c2028c48…` in the same session,
+and separately run an fp16 variant of it. The first kills problem 1. The gap
+between fp32-sdpa and fp16-sdpa is then the precision effect, and the gap between
+fp16-sdpa and us is the kernel engineering. Neither has been done. It is about
+40 minutes of gate work and the family budgets allow it.
 
 Shapes 6 and 14 have no speedup and never can. TikTok's baseline runs out of
 memory at batch 10,000 on an 8 GB card, and at 100,000 tokens its dense attention
@@ -234,32 +271,26 @@ per-shape GFLOP on all fourteen shapes, including 1,391,250.6 for shape 14.
 
 ---
 
-## 6. The PyTorch comparison, and why it is not in the table above
+## 6. The PyTorch comparison — what it is
 
-Earlier versions of this board carried a column comparing us against
-`torch.nn.functional.scaled_dot_product_attention`, PyTorch's own fused flash
-attention, wired into the same benchmark as `Project/kernels/k001_sdpa.py`. Those
-figures were measured on 28 August, on an older harness, on a different build.
-They are kept in `Project/MEASUREMENT_METHODOLOGY.md` section 7.3 with two
-caveats attached, and they are deliberately not in the table above, because
-mixing a 28 August measurement into a table whose whole point is that every row
-comes from one build would undo the thing this board exists to fix.
+`torch.nn.functional.scaled_dot_product_attention` is PyTorch's own fused flash
+attention. It is NVIDIA-tuned, written by full-time specialists, and it is what
+any strong entrant reaches for first. We wired it into the same benchmark as
+`Project/kernels/k001_sdpa.py` and measured it against the same baseline.
 
-The two caveats, both of which matter:
+It exists in this board to answer one question: **is 11.87× a statement about our
+kernels, or merely about how slow TikTok's reference is?** The answer is that a
+competent off-the-shelf alternative gets 1.02× to 3.97× on these shapes, so most
+of our margin is not explained by a weak reference.
 
-1. It is not a paired measurement. Our speedup and the PyTorch speedup were each
-   taken against a baseline in a different invocation, so dividing them assumes
-   the two baselines agree.
-2. **`k001_sdpa.py` computes in fp32 with TF32 matmul enabled, which is what the
-   baseline does. Our route casts every weight and activation to fp16.** Part of
-   any margin over PyTorch is therefore a precision difference and not kernel
-   engineering. Both satisfy the competition's 2e-3 predicate, so the choice is
-   legal, but it must be labelled rather than presented as a pure implementation
-   win.
+The two caveats on those columns are stated in full under the table in section 1.
+They are not footnotes to skip: the figures are cross-build, and sdpa runs at
+fp32 while we run fp16. Both matter, and the second one favours us.
 
-Carrying our new times against those 28 August figures gives a geometric mean
-near 7.4×, against 7.49× on the previous mixed-build board. That figure is an
-estimate with the two caveats above attached, not a measured result.
+**On two shapes it cannot run at all and ours does.** Shape 6 exhausts memory at
+batch 10,000, and shape 14's dense attention table would need roughly 160 TB.
+That is not a speed comparison, it is a capability difference, and it is the one
+part of this section that needs no caveat.
 
 ---
 
