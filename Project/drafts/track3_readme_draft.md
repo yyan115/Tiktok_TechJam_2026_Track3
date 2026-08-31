@@ -319,9 +319,22 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
 
 ```bash
 git clone <repo-url> && cd Tiktok_TechJam_2026_Track3
-python3 -m pip install torch triton     # torch 2.12.0+cu130, triton 3.7.0
-nvidia-smi                              # CUDA 13.0, driver 610.57.04 used here
+
+# Kernels and benchmark.
+python3 -m pip install torch triton
+
+# Required by the harness. The trusted controller verifies an Ed25519-signed
+# LOCK over 29 files before it will run anything, so the LOCK check and
+# reproduction step 3 below both need this.
+python3 -m pip install cryptography
+
+nvidia-smi
 ```
+
+Every number in this README was measured on **torch 2.12.0+cu130, triton 3.7.0,
+CUDA 13.0, driver 610.57.04**. Note that `pip install torch` gives you whichever
+CUDA build matches your driver, which is not necessarily cu130; pin from
+PyTorch's own wheel index if you need to match our environment exactly.
 
 Requires an NVIDIA GPU with compute capability ≥ 8.0. Everything here was
 developed and measured on an RTX 3060 Ti (sm_86, 8 GB); kernels tuned for
@@ -340,6 +353,11 @@ python3 Project/submission/torch_transformer_benchmark_submission.py \
 # 2. Prove that everything outside the replaced region is byte-identical
 #    to the official script.
 python3 Project/tools/build_submission.py --check-only
+
+#    And prove the measurement system itself was never edited: 29 files are
+#    hash-pinned under an Ed25519 signature whose private key only the owner
+#    holds. Prints "valid": true, "active": true.
+python3 Project/harness/trusted_controller.py verify-lock
 
 # 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
 #    a shim onto the trusted controller and will NOT time anything without a
