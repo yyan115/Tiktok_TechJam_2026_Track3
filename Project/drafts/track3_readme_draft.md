@@ -33,12 +33,8 @@ under a single-use permit signed with a key only the human owner holds.
 are submitting, `c2028c4823ff756b062940e4eff35d5a6a341e9538b755256509cf3432e7794b`.
 Not fourteen scripts, and not a different version of our code for each shape.
 
-This is worth saying because our own earlier table failed it. Its rows came from
-four different builds: one shape measured on one version, another shape on a
-later one. Averaging those into a single headline number describes a program
-that never existed. We withdrew that number for exactly this reason.
-
-So the 11.87× above is a property of the file you would actually run.
+So the 11.87× above is a property of the file you would actually run, not an
+average across several versions of it.
 
 On correctness we went past what was asked. The official script checks five
 fixed seeds; we check **seven — five fixed plus two drawn at random per run**,
