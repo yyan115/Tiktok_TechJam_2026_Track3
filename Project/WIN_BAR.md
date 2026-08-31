@@ -47,7 +47,17 @@ every speedup is proportionally an MFU gain, and the two are the same objective.
 |---|---|---|
 | **1** | All 14 shapes pass the official predicate on the **final** artifact | 12 via controller `correct: true`; 6 and 14 via their evaluators |
 | **2** | Shapes 6 and 14 carry **≥5 seeds each** on the final artifact | evaluator packets, not the current one-seed pre-integration packets |
-| **3** | Shape 6's max abs error leaves **≥25% headroom** under 2e-3 | currently 0.00184 = **92% of budget used**, on one seed |
+| **3** | Shape 6 passes on **every one of ≥5 seeds**, and **we know what sets its error** — not merely that a number came out under the line | currently 0.00184 = **92% of budget used**, on one seed, cause unexamined |
+
+> **Condition 3 first read "≥25% headroom under 2e-3", and that was a number I made up.**
+> Part of shape 6's larger error is not degraded precision at all: it has
+> **163,840,000 output elements against shape 1's 1,048,576 — 156× more samples of the same
+> error distribution**, and the *maximum* of more samples is larger by construction
+> (roughly √(ln N) scaling, ≈17% here). Demanding a fixed headroom could therefore be
+> demanding something the sampling makes impossible, and would have sent me optimising
+> precision that was never the problem. But 17% does not explain 1.0e-3 → 1.84e-3 either,
+> so something else is also there. **The condition is now "pass on 5 seeds and know the
+> cause", because a margin whose mechanism is unknown is not a margin you control.**
 
 ### B. The instrument can resolve what we claim
 

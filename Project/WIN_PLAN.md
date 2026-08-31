@@ -61,13 +61,28 @@ worse kernels. GPU clocks are now locked at 1665/7001 MHz.
 **Do:** three byte-identical screening runs of the current artifact on shape 12 (the
 noisiest shape on the board), locked clocks, quiet box.
 
-**Gate:**
-- spread **< 2%** → condition 4 green; the resolution number is recorded and becomes the
-  floor under every later claim (condition 5).
-- spread **2–5%** → usable, but no delta below the spread may ever be claimed. Proceed.
-- spread **> 5%** → **ABORT the optimisation phases entirely.** At that resolution no
-  kernel change can be told from noise, and the only honest use of the remaining time is
-  Phases 2, 4, 5 and 6 — correctness, coverage and a clean board.
+**Gate — per lever, not global.** The first draft said *"spread > 5% aborts the optimisation
+phases entirely."* **That is wrong and would have thrown away work that stays perfectly
+measurable.** A 5% instrument cannot resolve the 3.3–4.6% input copy, but it resolves shape
+8's 24% elementwise tax without difficulty. The rule is a comparison, not a cliff:
+
+> **Run a lever only if its arithmetic ceiling exceeds the measured spread.
+> Kill the rest on paper.**
+
+Against the eight levers, at each candidate spread:
+
+| measured spread | dies | survives |
+|---|---|---|
+| < 2% | nothing | all eight |
+| 2–5% | 3a (3.3–4.6%) is marginal — needs replicates to claim | 3b, 3c, 3d, 3f, 3g, 3h, 3e |
+| 5–10% | 3a, 3c (≤5%), 3g on most shapes | 3b (24%), 3f, 3d, 3h |
+| > 10% | everything except 3b and 3f | 3b (24%), 3f (untuned shape) |
+
+Note that **3f survives at every resolution** — an untuned kernel on the heaviest shape is
+not a few-percent question — which is a second reason it is not scheduled last.
+
+The measured spread is recorded once and becomes the floor under every later claim
+(condition 5). Nothing smaller than it is ever published.
 
 **Cost:** ~20 minutes, 3 permits. Needs nothing from the owner.
 
@@ -142,13 +157,31 @@ that neither the timing loop (line 494, result discarded) nor the accuracy loop 
 compared on the next line) retains the returned tensor. **That same reading has never been
 done for the input side.**
 
-**The question to answer by reading, not guessing:** is the benchmark's input tensor stable
-enough across calls to be written into the graph's static input buffer directly — or better,
-can the graph capture read the caller's buffer? Read the script's input generation and its
-call sites first; the answer is in the file, exactly as it was last time.
+**READ, AND CONFIRMED — this is no longer a question.** `torch_transformer_benchmark.py`:
 
-**Ceiling:** ~3.3–4.6% on twelve shapes. **Cost:** one careful read plus one change.
-**Cannot-help shape:** shape 6 (runs eagerly, no graph) — the built-in null control.
+- **line 529** — `x, valid_mask = generate_random_case(...)` creates the input **once**;
+- **lines 539–540** — both warmups take that same `x`;
+- **lines 546–560** — every timed round passes that same `x` to `benchmark_once`;
+- **line 483** — `benchmark_once` holds `x` as a parameter and never regenerates it;
+- **line 525** — the script prints it out loud: *"timing excludes random-data generation and
+  uses a fixed input."*
+
+So across warmup and the whole timed region the input is **one tensor object, at one
+address, with unchanging values**. `state["static_x"].copy_(x)` therefore copies identical
+bytes from the same source to the same destination **on every timed iteration**. It is
+provably redundant for the entire measured region.
+
+**The change.** Capture the graph against the caller's tensor directly instead of a private
+`static_x`, so no copy exists at all. Guard it exactly as the existing metadata guard works
+(`dispatcher_region.py:1096`): record `x.data_ptr()` at capture and compare on replay. The
+accuracy loop passes a fresh tensor per trial, so its pointer differs, the guard fires, and
+it takes the safe path — which is the correct outcome, not a hazard. In-place mutation of
+the same buffer is likewise correct: a graph reading live memory computes the new values.
+
+**Ceiling:** 3.3–4.6% on eleven fused shapes, 0.89% on shape 8. **Cannot-help shape:**
+shape 6 (runs eagerly, no graph) — the built-in null control. **This is the same species of
+find as the output clone, which was the best gain-per-effort of the campaign, and it comes
+from the same act: reading the caller instead of the kernel (LESSONS 55).**
 
 ### 3b. Shape 8's untouched elementwise tax — heavy under any weighting
 
