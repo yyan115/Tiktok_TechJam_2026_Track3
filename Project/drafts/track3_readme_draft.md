@@ -6,17 +6,16 @@ and the agent has no way to change it.**
 This project combines modern kernel-agent techniques with cryptographic signing
 and loop engineering, so the agent doing the optimising stays on task and cannot
 fake its own results. Every number below came out of a locked program the agent
-has no write access to, using a single-use permit from a run budget only the
-human owner can sign.
+cannot edit, using a single-use permit from a run budget only a human can sign.
 
-**Run on my own desktop — one NVIDIA RTX 3060 Ti, a consumer card with 8 GB.**
+**Run on one NVIDIA RTX 3060 Ti — a consumer desktop card with 8 GB.**
 
 - **11.87× geometric-mean speedup** over the twelve of fourteen shapes that have
   a runnable official baseline — from 2.37× on the shape already near its
   arithmetic limit to **31.51×** on the longest sequence.
 - **Shape 14 reaches 88.7% of what the card can physically do**: 100,000 tokens
   at batch 32, a shape the official code cannot run at all on this hardware.
-- **We beat PyTorch's own `sdpa` on every shape**, by 5.4× to 20.9× — and on the
+- **We beat PyTorch's own `sdpa` on every shape**, by 2.3× to 20.9× — and on the
   two extreme shapes it cannot run at all while ours does.
 - **The one shape where we had to write our own reference, we held to twice the
   competition's strictness.** Shape 14 is too large for TikTok's baseline to run
@@ -67,8 +66,8 @@ hash-pinned under a signature whose private key only the human owner holds.
   └ AI edits ┘   └──────── AI has no key and no write access, ever ────────┘
 ```
 
-**272 permits issued, 271 consumed.** The audit leg is dotted because of a
-schema bug described in the limitations.
+**272 permits issued, 271 consumed.** The audit leg is dotted because a schema
+bug stopped it running — see the limitations.
 
 The pieces:
 
@@ -87,7 +86,7 @@ The pieces:
   pause the machine; only the owner can clear them. **81 verdicts, 28 of them
   rule violations against us**, in `Project/audits/verdicts.jsonl`.
 
-Both the auditor's limits are in the limitations section below.
+The auditor has two problems, both in the limitations below.
 
 ### The loop: research, plan, three strikes
 
@@ -110,20 +109,16 @@ had to do four things:
 mistake does not get repeated later.
 
 The kernels are what we are submitting. The system around them is the part we
-think is worth showing. It came out of a failure in a sibling track, where an
-agent that controlled its own measurement produced numbers we had to throw away.
+think is worth showing. We built it after a sibling track went wrong: the agent
+there controlled its own measurement, and we had to throw the numbers away.
 
 ## Results
 
-### The shipped route, measured under permit
+### The shipped route
 
-Every figure below was measured under a single-use permit bound to the
-candidate's file hash, on an otherwise-idle machine, using the official
-predicate. The twelve shapes with a runnable baseline are checked on **seven
-trials** each: five fixed seeds plus two drawn at random per run, so a candidate
-cannot be tuned to the seed list. Shapes 6 and 14 are checked on five seeds each.
-
-Every trial on every shape passes with **zero failing elements**:
+Every figure below was measured on an idle machine under a permit tied to that
+exact file, using the official correctness test. Every trial on all fourteen
+shapes passes, with **zero failing elements**:
 
 | group | trials | elements compared | violations |
 |---|--:|--:|--:|
@@ -183,22 +178,17 @@ the small shapes where the headroom actually is, and it sits far below the
 work-proportional weightings that would flatter us most. We publish all five
 because the rule is not ours to pick.
 
-**† The two sdpa columns are weaker evidence than the rest of the table.** They
-were measured on 28 August on a different build, so `vs sdpa` is our speedup
-divided by theirs, not a paired measurement. And `Project/kernels/k001_sdpa.py` runs the
-model at fp32 with TF32 matmul, matching the official baseline, while our route
-computes at fp16 with fp32 accumulation, so **part of that margin is precision
-rather than kernel engineering**. Both clear the competition's 2e-3 predicate, so
-both are legal. The `speedup` column against TikTok's own baseline has neither
-problem: same process, same input, same build, same precision on both sides.
-That is the column we would defend first.
+**† The two sdpa columns are rougher than the rest of the table.** We measured
+sdpa on 28 August on an older build, so those columns are our speedup divided by
+theirs rather than a head-to-head run. sdpa also runs in fp32 while ours runs in
+fp16, so some of the gap is precision and not kernel work. Both pass the
+competition's precision test. The main `speedup` column has neither problem —
+same process, same input, same build.
 
-The sdpa columns are here to answer one question: is 11.87× a statement about our
-kernels, or about how slow the reference is? A competent off-the-shelf
-alternative reaches 1.02× to 3.97× on these shapes, so most of the margin is not
-explained by a weak reference. On shapes 6 and 14 it cannot run at all and ours
-does, which is a capability difference rather than a speed one and needs no
-caveat.
+The sdpa columns are there to answer one question: is 11.87× about our kernels,
+or about a slow reference? PyTorch's own optimised attention only reaches 1.02×
+to 3.97× on these shapes, so the reference is not the explanation. And on shapes
+6 and 14 it cannot run at all.
 
 Twelve shapes route to the fused-block megakernel. Shapes 8 and 14, the two with
 `d_model` 1024, route to the fp16 tensor-core stack, a different kernel inside
@@ -212,14 +202,13 @@ work. It is smallest where the baseline is already doing real arithmetic: shape
 0.71, and 2.37× is what doubling utilisation looks like. It is also small where
 attention is a single well-shaped matmul, as on shape 9 with one head.
 
-A single average over that range hides a lot, so the per-shape table above is
-the real result and the mean is just shorthand for it.
+One average over that range hides a lot, so the table is the real result and the
+mean is shorthand.
 
-**MFU is the column that is scored.** The organiser has said the technical score
-is a weighted sum of per-shape model FLOPs utilisation, and that the weights are
-not yet decided. The speedup column answers "did you beat the reference"; the MFU
-column answers "how much of the machine are you using", and only the second one
-has a ceiling that does not depend on how slow the reference is.
+**MFU is the column that gets scored.** The organiser has said the technical
+score is a weighted sum of per-shape MFU. Speedup tells you whether we beat the
+reference; MFU tells you how much of the card we are actually using, and that
+number does not move just because the reference is slow.
 
 ### Shapes 6 and 14 (no runnable official baseline)
 
@@ -240,15 +229,13 @@ Both are measured on the same artifact as every other row.
 | Peak memory | 3.67 GiB allocated | 2.80 GiB allocated, 3.19 GiB reserved |
 | Repeat spread | flat across 10 repeats, zero growth | 0.019% across 3 repeats |
 
-**Shape 14 is now measured**, replacing the extrapolation that earlier drafts
-reported as pending. It is 99.87% of all the arithmetic in the benchmark and it
-is our strongest row, at 88.7% of what the card can physically do.
+Shape 14 is 99.87% of all the arithmetic in the benchmark, and it is our best
+row at 88.7% of what the card can physically do.
 
-Two labels travel with both rows. Their timing is **candidate-only**, since there
-is no baseline to divide by, so neither has a speedup and neither ever can. And
-shape 14's timing is **32 serial batch-1 calls, not one literal batch-32 call**,
-which is a decomposition the shape requires on this hardware and which the packet
-states in its own `limitation` field.
+Two things to be clear about. Neither row has a speedup, because there is no
+baseline to divide by. And shape 14 runs as **32 serial batch-1 calls, not one
+batch-32 call** — the whole thing does not fit on 8 GB at once. The packet says
+so in its own `limitation` field.
 
 ## Setup and installation
 
@@ -406,48 +393,36 @@ CPU can queue the next, so launch overhead, not arithmetic, is the wall.
   assembled context and finishes residual, norm and GELU-FFN in-register. The
   whole multi-layer forward pass is captured as **one CUDA graph** and replayed.
 
-  The third kernel is the most recent structural change and it is worth being
-  precise about why it paid. Splitting the head loop into its own grid dimension
-  was the stated motivation, and that part did close to nothing, because every
-  shape except shape 2 already had a grid wider than the card's 38 SMs. The gain
-  came from the other half of the same change: with the heads written into one
-  buffer, the output projection runs at **full width** instead of once per head
-  padded up to Triton's 16-wide `tl.dot` minimum. On the two shapes with head
-  width 8 that was worth +26.4% between them, against +4.3% on the other nine.
+  The third kernel is our latest change, and it worked for a different reason
+  than we expected. We split the head loop into its own grid dimension for more
+  parallelism, and that did almost nothing — every shape except shape 2 already
+  filled the card's 38 SMs. The actual win came from the side effect: once the
+  heads all write into one buffer, the output projection runs at **full width**
+  instead of once per head padded up to Triton's 16-wide `tl.dot` minimum. On the
+  two shapes with head width 8 that was +26.4%, against +4.3% on the other nine.
 
-- **The fp16 tensor-core stack — shapes 8 and 14**, the two with `d_model` 1024:
-  here the block is compute-bound rather than launch-bound, so the win is
-  epilogue fusion around the GEMM boundaries and not launch elimination.
-  Measured on shape 8: the baseline reaches **30.0% MFU**, against 0.2% on shape
-  2, and our kernel takes it to **71.1%**. The 2.37× is what more than doubling
-  an already-decent utilisation looks like, and it is the smallest speedup on the
-  board for that reason. The same route carries shape 14 to **88.7%**, the
-  highest utilisation we reach anywhere.
-- **The oversized shapes are handled inside the shipped file, not by separate
-  kernels.** `dispatcher_region.py` carries an exact batch-chunked path for
-  shapes where dense attention is feasible but the whole batch is not, and a
-  sequence-chunked tail with row-wise exact math for shape 14. `k014` and `k015`
-  were the development kernels where those ideas were worked out; what ships is
-  the integrated version. Shape 6 runs as **one call at batch 10,000**. Shape 14
-  is called 32 times at batch 1 by its evaluator, with the 100,000-token
-  sequence handled inside each call.
-- **Dispatch**: one `UserOptimizedTransformer` inspects the incoming shape and
-  routes, which is the mechanism the track explicitly permits. The route taken is
-  recorded in every evidence packet, so anyone can check which route ran.
+- **The fp16 tensor-core stack — shapes 8 and 14**, the two with `d_model` 1024.
+  These are big enough that the GPU is busy doing real arithmetic, so there is no
+  launch overhead to delete. The win comes from fusing work into the GEMM
+  boundaries instead. On shape 8 the baseline already hits **30.0% MFU** (shape 2
+  manages 0.2%), and we take it to **71.1%**. That is why shape 8 has the
+  smallest speedup on the board — there was less waste to remove. The same route
+  takes shape 14 to **88.7%**, our highest anywhere.
+- **The two oversized shapes live in the same file**, not in separate kernels.
+  `dispatcher_region.py` has a batch-chunked path for shapes where the maths fits
+  but the whole batch does not, and a sequence-chunked tail for shape 14. `k014`
+  and `k015` were where we worked those ideas out; the shipped version is the
+  integrated one. Shape 6 runs as **one call at batch 10,000**; shape 14 is
+  called 32 times at batch 1, with all 100,000 tokens handled inside each call.
+- **Dispatch.** `UserOptimizedTransformer` looks at the incoming shape and picks
+  a route, which the track explicitly allows. Every evidence packet records which
+  route ran, so anyone can check.
 
 No external kernel library is wrapped, with no FlashAttention package and no
-xFormers. The kernels are authored. `torch.compile` and SDPA appear only as
-correctness fallbacks and as a measured comparison: `max-autotune` reached
-7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8 dials, against our current
-19.78× / 31.51× / 2.37×.
-
-Two caveats on that comparison, because it is not like-for-like. The
-`torch.compile` figures were measured on 29 August on an earlier build, so the
-two halves come from different artifacts. And our route computes in fp16 with
-fp32 accumulation while `torch.compile` and SDPA run the model in fp32 with
-TF32 matmul, so part of the margin is precision rather than kernel engineering.
-Both clear the competition's precision requirement, so both are legal, but the
-difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
+xFormers. The kernels are authored. `torch.compile` and SDPA are only there as
+fallbacks and as something to measure against: `max-autotune` reached 7.00× / 3.10× / 1.23× on the shape-3 / 13 / 8
+dials, against our 19.78× / 31.51× / 2.37×. Same caveat as the sdpa columns —
+different build, and fp32 against our fp16.
 
 ## Repository map
 
