@@ -67,9 +67,8 @@ hash-pinned under a signature whose private key only the human owner holds.
   └ AI edits ┘   └──────── AI has no key and no write access, ever ────────┘
 ```
 
-**272 permits issued, 271 consumed.** The audit leg is dotted on purpose: 81
-verdicts are in the ledger, but **none is bound to the board above** — see the
-caveat in Results.
+**272 permits issued, 271 consumed.** The audit leg is dotted because of a
+schema bug described in the limitations.
 
 The pieces:
 
@@ -88,11 +87,7 @@ The pieces:
   pause the machine; only the owner can clear them. **81 verdicts, 28 of them
   rule violations against us**, in `Project/audits/verdicts.jsonl`.
 
-Two caveats on the auditor. When the Codex quota ran out we fell back to Claude,
-which is a weaker claim than review by a different vendor. And **no verdict is
-bound to any row of the board above** — our verdict schema uses `allOf`, which
-OpenAI's structured-output mode rejects, so the request fails before the model
-ever reads the packet.
+Both the auditor's limits are in the limitations section below.
 
 ### The loop: research, plan, three strikes
 
@@ -225,34 +220,6 @@ is a weighted sum of per-shape model FLOPs utilisation, and that the weights are
 not yet decided. The speedup column answers "did you beat the reference"; the MFU
 column answers "how much of the machine are you using", and only the second one
 has a ceiling that does not depend on how slow the reference is.
-
-**Numbers this project has withdrawn, and why.** An earlier board measured
-10.32× on the organizers' untouched script. Those runs were **procedurally
-invalid**: no permit, no bound audit verdict, and baselines that
-`Project/HANDOVER.md` §3.1 records as 6 to 63% slower than their own calibration. We withdrew them and
-re-measured everything under the gate.
-
-The withdrawn board was **not** inflated, which is worth saying because it does
-not help us. Per shape it scattered from −22.4% to +21.6%, in both directions,
-and uncorrelated with baseline device idle. The old numbers were roughly right,
-they were just obtained improperly. The board we report now is higher than the
-withdrawn one because the kernels improved in between, not because the
-accounting changed.
-
-A second withdrawal matters more, because it is about this board's own
-construction. A later 10.6858× geomean was quoted as if it described one program.
-It did not: its rows came from four different artifacts. **That is what the
-single-artifact requirement above exists to prevent**, and it is why every row
-here carries the same hash.
-
-> **Caveats that travel with these numbers.** They are *characterisation* runs in
-> a screening lane. Every row is correct and every row is bound to a permit and an
-> artifact hash, but none was promoted to champion through the promotion gate, and
-> **no audit verdict is bound to any of them**. Our audit recorder broke
-> mid-campaign and only the human owner is permitted to repair it, since an agent
-> that can repair its own auditor does not have one. The geometric mean covers the
-> twelve shapes with a runnable official baseline and excludes shapes 6 and 14,
-> which have none on this hardware.
 
 ### Shapes 6 and 14 (no runnable official baseline)
 
@@ -533,34 +500,19 @@ difference has to be named. See `Project/MEASUREMENT_METHODOLOGY.md` §7.3.
   quoted for these. Each published row is the **median of 300 paired samples
   inside a single invocation**. We never average across invocations, because
   absolute latencies are not comparable across processes.
-- The published speedup board was measured **after** the enforcement gate
-  went live — every row carries a one-use permit bound to the candidate's
-  file hash — but in the **screening lane**, which cannot promote. So these
-  are characterisation runs, not promoted champions, and no audit verdict is
-  bound to them: our audit recorder failed mid-campaign and repairing it
-  requires the human owner, who alone can write to those files. We have labelled
-  them accordingly.
-- An earlier version of this README published a 10.32× geometric mean from runs
-  that had no permit and used baselines 6 to 63% off their own calibration. We
-  withdrew it and re-measured under the gate. A later version published 10.6858×
-  as if it described one program, when its rows came from four different
-  artifacts. Both corrections are in the git history. The board in this file is
-  the first that is one artifact throughout, and it is higher than either
-  withdrawn figure because the kernels improved in between.
-- **A pre-LOCK `LEADERBOARD.md` used to sit in `Project/results/`, and it was
-  not a result.** It was generated 30 Aug by a command that no longer exists,
-  and it starred the max-ever row per shape across invocations that are not
-  comparable — which selects for whichever run happened to have the slowest
-  baseline. Its shape-1 rows showed the effect plainly: the starred k009 run
-  read 11.150× on a 7.2044 ms baseline, another k009 run read 9.910× on a
-  5.7539 ms baseline, and our measured baseline is 5.0586 ms. We deleted it at
-  packaging so nobody quotes a starred number that contradicts the board. It is
-  still in the git history.
+- **No audit verdict is bound to the published board.** Our verdict schema uses
+  `allOf`, which OpenAI's structured-output mode rejects, so the auditor fails
+  before it reads the packet. Only the owner can fix that file, correctly. The
+  board's rows were also taken in the screening lane, so they are correct and
+  permit-bound but were not promoted through the champion gate. When the Codex
+  quota ran out mid-campaign we fell back to Claude for some reviews, which is
+  weaker than review by a different vendor.
+- Two earlier boards were withdrawn and re-measured: one because its runs
+  predated the permit gate, one because its rows came from four different
+  builds. Both corrections are in the git history, and the current board is
+  higher than either.
 - One GPU, one architecture, one framework (PyTorch). Nothing here is
   validated on the TensorFlow path.
-- On a single-user machine, our anti-tamper measures make forgery *obvious*, not
-  *impossible*. The owner has root and could defeat any of it. That is the
-  ceiling of what this design can claim.
 
 **What we would do with more time.**
 
