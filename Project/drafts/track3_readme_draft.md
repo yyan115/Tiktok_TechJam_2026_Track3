@@ -300,8 +300,12 @@ All of it is in one file: **[`Project/submission/dispatcher_region.py`](Project/
 1,363 lines. That file is the only thing we wrote — it is spliced verbatim into
 TikTok's script to produce the submission, and nothing outside it is changed.
 
-It is not one function. It is **eight Triton GPU kernels** plus **one class**
-that picks which of them to run:
+The track lets you replace exactly one thing: the `UserOptimizedTransformer`
+class. That is the only region we touch, and it is what this file fills.
+
+Inside it, the work is **eight Triton GPU kernels** plus **one class** that picks
+which of them to run. The kernels sit behind an `if _TRITON_OK:` guard, so on a
+machine without Triton the whole file degrades to the unchanged baseline path:
 
 | line | what it is |
 |--:|---|
