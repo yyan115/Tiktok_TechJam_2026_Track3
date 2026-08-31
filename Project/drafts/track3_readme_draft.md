@@ -44,11 +44,18 @@ baseline are checked that way under the official predicate
 validated references on five seeds each, since no official baseline for them
 exists on this hardware.
 
-## How it works
+## Project overview
 
-The agent that writes the kernels is **structurally forbidden from measuring
-them**. It can edit the first box and nothing else; every stage after the permit
-is hash-pinned under a signature whose private key only the human owner holds.
+Modern AI-written kernels have a documented failure mode: the optimizer
+learns to beat the *timer* rather than the *task*. CUDA-L1's postmortem
+found 33% of its reinforcement-learned "solutions" timed work on a side
+stream the clock never saw; Sakana's optimizer edited its own evaluator.
+
+We therefore built the measurement system first and gave the kernel-writing
+agent no authority over it. The agent is **structurally forbidden from
+measuring its own work**: it can edit the first box below and nothing else, and
+every stage after the permit is hash-pinned under a signature whose private key
+only the human owner holds.
 
 ```
   AI writes  ─▶  PERMIT      ─▶  LOCKED     ─▶  SANDBOX    ─▶  EVIDENCE     ┄▶  AUDIT
@@ -65,14 +72,7 @@ is hash-pinned under a signature whose private key only the human owner holds.
 verdicts are in the ledger, but **none is bound to the board above** — see the
 caveat in Results.
 
-## Project overview
-
-Modern AI-written kernels have a documented failure mode: the optimizer
-learns to beat the *timer* rather than the *task*. CUDA-L1's postmortem
-found 33% of its reinforcement-learned "solutions" timed work on a side
-stream the clock never saw; Sakana's optimizer edited its own evaluator.
-We therefore built the measurement system first and gave the kernel-writing
-agent no authority over it:
+The pieces:
 
 - **Pinned shapes.** The official script's defaults match none of the 14
   test shapes (defaults are batch 8, `d_model` 512, causal *off*). All 14
