@@ -1431,10 +1431,35 @@ class UserOptimizedTransformer(BaselineTransformer):
             )
             graph.replay()
             return static_out.clone()
-        if state["input_metadata"] != _sub_tensor_metadata(x):
+        # STORAGE OFFSET IS NOT A REPLAY INVARIANT, AND TREATING IT AS ONE WAS
+        # A BUG.
+        #
+        # A captured graph reads from `state["static_x"]`, a buffer this class
+        # owns. Every call copies the caller's tensor into it before replaying.
+        # A copy does not care where its SOURCE lives, so an input at a
+        # different storage offset is served correctly. What must match is what
+        # the copy and the captured kernels depend on: shape, dtype, device and
+        # layout. Stride is covered separately -- the fast path is gated on
+        # `x.is_contiguous()` above, so a non-contiguous input never reaches
+        # here at all.
+        #
+        # HOW IT WAS FOUND. `shape14_eval.py decomp-check` proves that running
+        # a batch as independent B=1 slices gives the same answer as running it
+        # whole, which is the claim shape 14's entire evidence rests on. It
+        # calls the model with x[0:1], then x[1:2], and so on. Those are the
+        # same shape, dtype, device and layout, and differ only in offset. The
+        # first slice captured the graph and the second was refused with
+        # "CUDA graph replay input metadata changed". The check could not run,
+        # so shape 14 could not be evaluated at all.
+        #
+        # The guard was refusing a case it was built to permit. `_sub_route_key`
+        # already excluded offset for the same reason and said so in its own
+        # comment; this site was simply never brought into line with it.
+        if state["input_metadata"][:5] != _sub_tensor_metadata(x)[:5] \
+                or state["input_metadata"][6:] != _sub_tensor_metadata(x)[6:]:
             raise RuntimeError(
                 "CUDA graph replay input metadata changed: exact shape, dtype, "
-                "device, stride, storage offset, and layout must match capture"
+                "device, stride, and layout must match capture"
             )
         if state["config_metadata"] != _sub_config_metadata(self.config):
             raise RuntimeError("CUDA graph replay configuration changed after capture")
