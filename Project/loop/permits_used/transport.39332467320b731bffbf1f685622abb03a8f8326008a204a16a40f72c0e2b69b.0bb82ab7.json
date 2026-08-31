@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788164570.4783385,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T15:37:50+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-c9e6f900152122327afc05c5.json",
+ "profile_record_id": "profile-c9e6f900152122327afc05c5",
+ "promotion_allowed": false,
+ "question": "Does splitting the causal attention loop into an unmasked stage and a diagonal stage and moving the online softmax to base-2 exponentials reduce _attn_heads device time below the 24.722 microseconds it takes in the shipped build on shape 1",
+ "request_id": "8309505e6e34d8ae1251b7414019c45e",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/39332467320b731bffbf1f685622abb03a8f8326008a204a16a40f72c0e2b69b.json",
+ "request_sha256": "39332467320b731bffbf1f685622abb03a8f8326008a204a16a40f72c0e2b69b",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "83fbbe3037a23e29b240e1556cff4eb67825c3c6fb9441dc013dba3c99e04da7",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

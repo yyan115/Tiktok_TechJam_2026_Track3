@@ -143,7 +143,7 @@ def official_case(otb, torch, config, device, seed):
         padding_ratio=0.0,
         input_scale=1.0,
     )
-    if mask.dtype != torch.bool or mask.device != device:
+    if mask.dtype != torch.bool or mask.device.type != device.type:
         raise AssertionError("official generator returned an invalid mask")
     if not bool(mask.all()):
         raise AssertionError("padding_ratio=0 must produce an all-true mask")

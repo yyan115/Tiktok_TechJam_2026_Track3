@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788177132.1090457,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T19:07:12+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-f1d7f9b7c0c65d29471227df.json",
+ "profile_record_id": "profile-f1d7f9b7c0c65d29471227df",
+ "promotion_allowed": false,
+ "question": "Baseline for the fp16 route lever: what is the current split of shape 8 device time between the two vendor GEMMs, the generic at native elementwise kernels that the fused route eliminated on every other shape, and our authored Triton kernels, measured on the current build",
+ "request_id": "348363a4ca161c005a7e3b3f828cb26b",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/470be39872d9149c80ab08999b9889c0307d2214ee8a2231b3d708af227e9bdd.json",
+ "request_sha256": "470be39872d9149c80ab08999b9889c0307d2214ee8a2231b3d708af227e9bdd",
+ "route": "fp16-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 8,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "39a3345396353cbd0d91beffbe01045b8b85c29ef911fc696b1d87157e6ff1f6",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

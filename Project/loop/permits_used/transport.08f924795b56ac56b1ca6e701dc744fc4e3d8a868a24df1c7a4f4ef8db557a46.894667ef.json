@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788184266.2942405,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T21:06:06+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-06e9aa4bf1fa14b0c75e620c.json",
+ "profile_record_id": "profile-06e9aa4bf1fa14b0c75e620c",
+ "promotion_allowed": false,
+ "question": "Counter evidence bound to the final artifact bytes for shape 11, sixteen heads at head dimension 8, confirming the forward path carries no host synchronisation and the split head path is taken",
+ "request_id": "97b43211bccd627e9ca90f8d4d2e9ce4",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/08f924795b56ac56b1ca6e701dc744fc4e3d8a868a24df1c7a4f4ef8db557a46.json",
+ "request_sha256": "08f924795b56ac56b1ca6e701dc744fc4e3d8a868a24df1c7a4f4ef8db557a46",
+ "route": "fused-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 11,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

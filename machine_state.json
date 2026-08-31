@@ -1,0 +1,18 @@
+{
+ "captured_at": "2026-08-31T08:55:15Z",
+ "capture_note": "Timestamp taken from build_submission.py verified_at, run immediately before the nvidia-smi queries below. Every other field is verbatim from the two allowlisted nvidia-smi queries, not estimated.",
+ "clock_regime": "locked",
+ "clock_lock_note": "Owner locked the card before this capture: nvidia-smi -pm 1, --lock-gpu-clocks=1665, --lock-memory-clocks=7001. 1665 is the rated boost clock, deliberately NOT the 2160 supported maximum, because locking above what the card can sustain under load lets it throttle below the lock and reintroduces the variance the lock exists to remove. All calibrations and measurements taken from this point are under this regime and are NOT comparable to anything measured before it.",
+ "sm_clock_mhz": 1665,
+ "mem_clock_mhz": 7001,
+ "temperature_c": 63,
+ "gpu_utilization": 1,
+ "power_draw_w": 46.58,
+ "gpu_memory_used_mib": 795,
+ "competing_processes": [
+  "2531, kwin_wayland, 74 MiB",
+  "3389, Mullvad VPN gpu-process, 47 MiB",
+  "261505, VS Code gpu-process, 674 MiB"
+ ],
+ "competing_process_note": "rustdesk (339 MiB) was present in the previous capture and is gone. gpu_memory_used_mib is the sum of the three compute apps listed; the earlier capture reported a larger total that included rustdesk."
+}

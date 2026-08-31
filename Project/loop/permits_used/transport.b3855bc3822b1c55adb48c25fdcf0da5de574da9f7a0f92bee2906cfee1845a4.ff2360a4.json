@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788165569.1564186,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T15:54:29+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-4a35814a9eb2f2a2521d5ec5.json",
+ "profile_record_id": "profile-4a35814a9eb2f2a2521d5ec5",
+ "promotion_allowed": false,
+ "question": "What is the shipped build device time split across the three fused kernels on shape 13, needed as the paired control for the k028 attention measurement of 571.813 microseconds taken on the same shape minutes earlier",
+ "request_id": "20b0bb7f9441d1891693857063668736",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/b3855bc3822b1c55adb48c25fdcf0da5de574da9f7a0f92bee2906cfee1845a4.json",
+ "request_sha256": "b3855bc3822b1c55adb48c25fdcf0da5de574da9f7a0f92bee2906cfee1845a4",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 13,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "9d7e67ab079caf0236e3b7278989924878e270d8818b632f05b47ddbf3dad519",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

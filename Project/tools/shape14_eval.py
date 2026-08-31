@@ -271,7 +271,7 @@ def official_case(otb, torch, cfg, device, seed):
         padding_ratio=0.0,
         input_scale=1.0,
     )
-    if mask.dtype != torch.bool or mask.device != device or not bool(mask.all()):
+    if mask.dtype != torch.bool or mask.device.type != device.type or not bool(mask.all()):
         raise AssertionError("official no-padding case must return an all-true CUDA mask")
     return x, mask
 

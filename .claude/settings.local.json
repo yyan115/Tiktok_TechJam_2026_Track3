@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 Project/harness/trusted_controller.py authorize:*)"
+    ]
+  },
+  "env": {
+    "AUDITOR_BACKEND": "codex"
+  }
+}

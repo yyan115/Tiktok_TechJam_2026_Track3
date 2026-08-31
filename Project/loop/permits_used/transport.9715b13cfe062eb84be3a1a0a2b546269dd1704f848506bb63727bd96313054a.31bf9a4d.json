@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788177639.0391867,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T19:15:39+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-ed5f96406a7038e2b2bcb9f2.json",
+ "profile_record_id": "profile-ed5f96406a7038e2b2bcb9f2",
+ "promotion_allowed": false,
+ "question": "Does passing the transposed qkv views straight into the stride-driven attention kernel, and writing its output in the layout the caller wants, remove the four per-layer contiguous copies that profile-5647640e2666da7fa9b20ea5 shows as 320 launches and 8.96 percent of device time",
+ "request_id": "f8024de4eee826905c3427a0b36eaf5a",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/9715b13cfe062eb84be3a1a0a2b546269dd1704f848506bb63727bd96313054a.json",
+ "request_sha256": "9715b13cfe062eb84be3a1a0a2b546269dd1704f848506bb63727bd96313054a",
+ "route": "fp16-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 8,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "33a4e9d0797bf20f7c6ebdb66460a8aa43f7bc63d58e45ed3aada9ce2afd06b6",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

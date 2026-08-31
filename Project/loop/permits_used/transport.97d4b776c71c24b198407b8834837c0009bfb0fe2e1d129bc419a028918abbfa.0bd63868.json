@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788166508.0480044,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T16:10:08+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-472861de887ab85e7666d3be.json",
+ "profile_record_id": "profile-472861de887ab85e7666d3be",
+ "promotion_allowed": false,
+ "question": "What is the device time split across the three fused kernels on shape 12 for the integrated attention artifact, needed as counter evidence bound to these bytes before the shape 12 board row can be measured",
+ "request_id": "226f7a26745c731ab33c476ebe01d965",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/97d4b776c71c24b198407b8834837c0009bfb0fe2e1d129bc419a028918abbfa.json",
+ "request_sha256": "97d4b776c71c24b198407b8834837c0009bfb0fe2e1d129bc419a028918abbfa",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 12,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

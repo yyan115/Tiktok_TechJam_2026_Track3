@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788166325.9532483,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T16:07:05+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-d01442dcff4b7181d27a6ab7.json",
+ "profile_record_id": "profile-d01442dcff4b7181d27a6ab7",
+ "promotion_allowed": false,
+ "question": "On shape 1 whose sequence length of 128 gives the attention kernel only one or two query tiles does the integrated causal loop split leave _sub_attn_heads unchanged against the 24.722 microseconds the shipped build took, confirming the change is neutral rather than harmful on the eleven short sequence shapes",
+ "request_id": "10324d6eeea2810aad3b4f3153f4129c",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/ddd60bdb0fe820268b2e41188f7c571130bec6a118b5d8bb4d4fd7c2bcb4d325.json",
+ "request_sha256": "ddd60bdb0fe820268b2e41188f7c571130bec6a118b5d8bb4d4fd7c2bcb4d325",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 1,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "6ae205fa9e996dea6155b92c93136e80552b603dca408b74630cb184ee68430b",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

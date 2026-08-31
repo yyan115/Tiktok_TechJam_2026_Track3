@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788166973.929706,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T16:17:53+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-c7fae1a6375638ac04a2dc3e.json",
+ "profile_record_id": "profile-c7fae1a6375638ac04a2dc3e",
+ "promotion_allowed": false,
+ "question": "Does shape 13 at seq_len 1024 still take the split path after the gate was added and keep the 571 microsecond attention kernel figure, confirming the gate did not accidentally disable the optimization on the one shape it helps",
+ "request_id": "eb4101308c246d6779318c3910d43e21",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/6f1371767e96fbd62e2c606164a14d3620cc5b7d8ba608f2f03c3a8f646873a4.json",
+ "request_sha256": "6f1371767e96fbd62e2c606164a14d3620cc5b7d8ba608f2f03c3a8f646873a4",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 13,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "7609fa17d750d791ad3bcea1bfe849c9fdd2fa923f9343028ea4c708522ac54e",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

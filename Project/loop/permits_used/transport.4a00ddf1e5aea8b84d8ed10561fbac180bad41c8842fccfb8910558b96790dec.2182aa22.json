@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788176755.1684177,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T19:00:55+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-31765b3624bc287cac16c754.json",
+ "profile_record_id": "profile-31765b3624bc287cac16c754",
+ "promotion_allowed": false,
+ "question": "On shape 2 the final norm kernel previously launched one CTA on a thirty eight SM card because its block size was hardcoded at one hundred twenty eight while the shape carries only one hundred twenty eight tokens, so does autotuning it and removing the graph input copy reduce device time on the most grid starved shape on the board",
+ "request_id": "573d73f06561e0dceae85051394025eb",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/4a00ddf1e5aea8b84d8ed10561fbac180bad41c8842fccfb8910558b96790dec.json",
+ "request_sha256": "4a00ddf1e5aea8b84d8ed10561fbac180bad41c8842fccfb8910558b96790dec",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 2,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "5bceadfed2f996ff4256a34726fb1926bd1062837c7f4b2ed3ffd4964cb7a1f2",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

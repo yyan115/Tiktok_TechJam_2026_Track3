@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788173905.1314442,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T18:13:25+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-732729ecf76df3cadf7a5df8.json",
+ "profile_record_id": "profile-732729ecf76df3cadf7a5df8",
+ "promotion_allowed": false,
+ "question": "Replicate 3 of 3 on identical bytes under locked GPU clocks: what is the run to run spread of per kernel device time on shape 12, read across the kernels that did not change, so the resolution floor under every later claim is measured rather than assumed",
+ "request_id": "6398e407d8ccf66e66285c3abc5b2b0e",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/bfa268cd110e786d6256a85a6116a5ad6862e8f7eceee95eb35933268e249bc7.json",
+ "request_sha256": "bfa268cd110e786d6256a85a6116a5ad6862e8f7eceee95eb35933268e249bc7",
+ "route": "fused",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 12,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "f462e320296ceab7f54f5f4f21a8f2bfc0b9df0111f939c18c100b42e2275cc9",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}

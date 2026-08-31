@@ -1,0 +1,43 @@
+{
+ "authority": "transport-only-not-a-permit",
+ "bottleneck_contract": {
+  "launch-overhead": {
+   "evidence_tools": [
+    "nsys",
+    "torch-profiler"
+   ],
+   "required_metrics": [
+    "kernel_launches"
+   ]
+  }
+ },
+ "campaign_id": "CAMP-FINAL",
+ "candidate_authorized": false,
+ "catalog_sha256": "e338aed1991c0a939c48d965c4c7bb0e88241b62120ad41025ac8a2d5322c0dc",
+ "expires_epoch": 1788184086.891665,
+ "impl_path": null,
+ "impl_sha256": null,
+ "issued": "2026-08-31T21:03:06+0800",
+ "ledger": null,
+ "ledger_namespace": "diagnostic",
+ "ledger_pre_lines": null,
+ "mode": "diagnostic",
+ "profile_output": "Project/loop/profile_evidence/profile-f60dee5bfec584de43fb72d2.json",
+ "profile_record_id": "profile-f60dee5bfec584de43fb72d2",
+ "promotion_allowed": false,
+ "question": "Counter evidence bound to the final artifact bytes for shape 7, the narrow head dimension case, confirming the forward path carries no host synchronisation and that the split head out projection path is the one taken",
+ "request_id": "9cdb9c9f88759dbec240e09a857a57f2",
+ "request_kind": "diagnostic",
+ "request_path": "Project/loop/requests/29ead9656f11b3b2c9bd67edf97b3f46aa72ad7e4d8d749a6cda8e53f44eb96f.json",
+ "request_sha256": "29ead9656f11b3b2c9bd67edf97b3f46aa72ad7e4d8d749a6cda8e53f44eb96f",
+ "route": "fused-stack",
+ "schema_version": 1,
+ "scientific_strike_eligible": false,
+ "shape": 7,
+ "supported_bottlenecks": [
+  "launch-overhead"
+ ],
+ "target_sha256": "630a456c6a3eeb6f8dc4832e53e6ce9bb3fa25813b0257ff11a674b9cee2f378",
+ "tool": "torch-profiler",
+ "verdict_lines": 81
+}
