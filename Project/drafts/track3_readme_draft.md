@@ -59,9 +59,9 @@ only the human owner holds.
 
 ```
   AI writes  ─▶  PERMIT      ─▶  LOCKED     ─▶  SANDBOX    ─▶  EVIDENCE     ┄▶  AUDIT
-  the kernel     one-use,        REFEREE        no network,    300 samples,     rival AI,
-  Triton/CUDA    bound to        29 files,      no home,       every trial,     GPT-5.6,
-                 its sha256      Ed25519        read-only      hash-chained     blind
+  the kernel     one-use,        REFEREE        no network,    300 samples,     GPT-5.6,
+  Triton/CUDA    bound to        29 files,      no home,       every trial,     packet only,
+                 its sha256      Ed25519        read-only      hash-chained     typed verdict
                      ▲
                      │ the owner signs ONE capability worth N runs; the system
                      │ spends it one permit at a time and stops dead at zero
@@ -91,10 +91,10 @@ The pieces:
   (The earlier rule was "commit to git before measuring"; our own auditor
   found that insufficient, because a packet could still cite the current
   source hash rather than the measured one.)
-- **A rival AI as auditor.** A new champion fires a blind audit by a
-  different model family (GPT-5.6 via Codex CLI) that sees only a neutral
-  evidence packet — no commentary from the optimizer — and returns a typed
-  verdict. Hard verdicts pause the machine; only the human owner can clear
+- **A second model as auditor.** A new champion fires an audit by a different
+  model family (GPT-5.6 via Codex CLI) that is given only the evidence packet —
+  no commentary from the optimizer, no knowledge of who wrote the code — and
+  returns a typed verdict. Hard verdicts pause the machine; only the human owner can clear
   them. **81 verdicts are in the ledger and 28 of them are rule violations
   against us** (see the tech report §4, which quotes two that changed the
   code).
@@ -597,8 +597,8 @@ code hash and harness version, so only like-for-like profiles are compared.
 
 - **Claude Code** (terminal agent) — Claude Fable 5, later Claude Opus 5:
   authored the kernels, the harness and the process machinery.
-- **OpenAI Codex CLI** — GPT-5.6, reasoning effort high/ultra: blind
-  champion audits and blind strategy reviews.
+- **OpenAI Codex CLI** — GPT-5.6, reasoning effort high/ultra: champion audits
+  and strategy reviews, each given only the evidence packet.
 - **PyTorch 2.12**, **Triton 3.7**, CUDA 13.0, VS Code, git.
 - No external datasets or APIs — the benchmark generates its own tensors.
 
