@@ -223,7 +223,7 @@
    "opened_epoch": 1788135426.7629273,
    "production_outcomes": [],
    "schema_version": 1,
-   "scientific_attempts": 38,
+   "scientific_attempts": 39,
    "score_scenarios": [
     "geomean-shapes-1-13"
    ],
@@ -874,13 +874,14 @@
    "closure_nonce": null,
    "exec_failures": 0,
    "nonstrike_budget": 2,
-   "scientific_attempts": 5,
+   "scientific_attempts": 6,
    "scratch_attempted_shas": [
     "9031f82b7a64000339547ee3abc6aeaadd8461111206ad236807938c45f59b40",
     "2b96a7c3fb42aab0a63236b8857fa208671bd6f561ea378d059e6a5ee2ba1911",
     "4da76db6b458042e434e00ed8129c4af04fc5a3d34b5d12c95b7c6066419dcc6",
     "54057a3389489e6cf7653727b3893bad6e10d88ae94381227b037431cc7086b2",
-    "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797"
+    "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
+    "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8"
    ],
    "strikes": 0
   },
@@ -2023,6 +2024,48 @@
     "launch-overhead"
    ],
    "target_sha256": "418952bf9610a86cd984e7152cd63da24147e9fd3a9ae65401de688e5e896797",
+   "tool": "torch-profiler"
+  },
+  "profile-520c2e30494601939a838b79": {
+   "artifact_path": "Project/loop/profile_evidence/profile-520c2e30494601939a838b79.json",
+   "artifact_sha256": "f53723ed4ce062f72c365cda49655eb474410681be9836162ff1c4a9d34ededc",
+   "created_epoch": 1788155083.29948,
+   "metrics": {
+    "catalog_source": "embedded-fallback",
+    "characterization_metric": 2.0,
+    "cuda_api_calls_by_name": {
+     "cudaGraphLaunch": 20,
+     "cudaLaunchKernel": 20
+    },
+    "device_activity_records": 320.0,
+    "gpu_busy_us": 10692.564453125,
+    "gpu_idle_fraction": 0.06726586441024207,
+    "gpu_span_us": 11463.6787109375,
+    "graph_launch_api_calls": 20.0,
+    "incumbent_speedup_source": "unavailable",
+    "kernel_instances": 14.0,
+    "kernel_instances_total": 280.0,
+    "kernel_launch_api_calls": 20.0,
+    "kernel_launches": 2.0,
+    "kernel_launches_definition": "CUDA launch + graph-launch API calls per profiled forward pass",
+    "kernel_launches_total": 40.0,
+    "machine_state_authority": "trusted-controller",
+    "measurement_window": "profiler-context (warmup excluded)",
+    "profiled_iterations": 20.0,
+    "route": "target-UserOptimizedTransformer",
+    "worker_machine_state_sha256": "7db00a284bc67e5b279b1cb783c66f18c27f2c3b8726b310339c924e2848c6a9",
+    "worker_notes": [
+     "controller: Read-only diagnosis. Emit counters and mechanism evidence only; timings under instrumentation are not performance numbers.",
+     "incumbent_speedup absent (the controller's diagnostic request does not carry one, by design); the gate takes the incumbent from its own durable champion state, not from this artifact"
+    ]
+   },
+   "profile_record_id": "profile-520c2e30494601939a838b79",
+   "reconciled_state_seq": 494,
+   "shape": 10,
+   "supported_bottlenecks": [
+    "launch-overhead"
+   ],
+   "target_sha256": "2778b747a3677acb4fa8606051a1f0e221cb024bc894fff52375b20c1b9c1cb8",
    "tool": "torch-profiler"
   },
   "profile-534b1fc3e850cc9f28bd999a": {
@@ -4103,7 +4146,9 @@
   "50e166a94b973e901810f2bc2c72a7c28d039e1482f3554409772b6baf941f91",
   "7f5080e6a6d0d3ba444ceef217bcfef65dc0df0e91f1a902efe36faf9384954f",
   "1713ba6e2c533d049c448a24a41baa161011a4bd50c3f85ff6748954dbd3afcc",
-  "104ebac705717a93dec45cf373cf25535e18f218cb695f1775f0155168e9f096"
+  "104ebac705717a93dec45cf373cf25535e18f218cb695f1775f0155168e9f096",
+  "236e6602b525a6b4384e2e680faddc8f6c54a302b2dd1c9915051d8f4405b3a5",
+  "5ba0eb1edea3efabb483e57d64ba5a8529e51f400a940d1aedb1c76e908dda27"
  ],
  "request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
@@ -4272,11 +4317,13 @@
   "bee335a9442a85932ad34f583cb56dc84dd397eb9c8a48638511ada2da245e25",
   "960700758ce546092c8a4b02df7c9e7719d1fb09cac39c861054f8f77189dd2f",
   "f17dbec6d487ab90bde4d622b378de1a1a436c58abea717b69dc2ddcc0e5c4b4",
-  "a1cb1e5163b7ea31b29ff33c6ad432ab4aa684c50779e2f6d42875908543b91f"
+  "a1cb1e5163b7ea31b29ff33c6ad432ab4aa684c50779e2f6d42875908543b91f",
+  "b4c734b36a3fea630b5a6cce8abbad74ced8aed9b936b30106d42e08f39b2387",
+  "3db3442bfa4c26f4bb27e5b2c1278fade95f62eacfb28b17ecb1d421693576f4"
  ],
- "research_cycle": 65,
+ "research_cycle": 66,
  "research_open": false,
- "seq": 491,
+ "seq": 497,
  "settled_request_shas": [
   "ccb9dbc898d225ccf7516fb118f66ae232d08dda349ead5c9f225d6efe3ded25",
   "4c4ca0ffed697e88d922f53eb740f5e7b38ecdfdf878f5f736b50e6af5d66482",
@@ -4444,6 +4491,8 @@
   "bee335a9442a85932ad34f583cb56dc84dd397eb9c8a48638511ada2da245e25",
   "960700758ce546092c8a4b02df7c9e7719d1fb09cac39c861054f8f77189dd2f",
   "f17dbec6d487ab90bde4d622b378de1a1a436c58abea717b69dc2ddcc0e5c4b4",
-  "a1cb1e5163b7ea31b29ff33c6ad432ab4aa684c50779e2f6d42875908543b91f"
+  "a1cb1e5163b7ea31b29ff33c6ad432ab4aa684c50779e2f6d42875908543b91f",
+  "b4c734b36a3fea630b5a6cce8abbad74ced8aed9b936b30106d42e08f39b2387",
+  "3db3442bfa4c26f4bb27e5b2c1278fade95f62eacfb28b17ecb1d421693576f4"
  ]
 }
