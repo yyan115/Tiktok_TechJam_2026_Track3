@@ -247,7 +247,7 @@ so in its own `limitation` field.
 ## Setup and installation
 
 ```bash
-git clone <repo-url> && cd Tiktok_TechJam_2026_Track3
+git clone https://github.com/yyan115/Tiktok_TechJam_2026_Track3.git && cd Tiktok_TechJam_2026_Track3
 
 # Kernels and benchmark.
 python3 -m pip install torch triton
