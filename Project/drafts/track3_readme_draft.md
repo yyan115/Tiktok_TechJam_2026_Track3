@@ -112,6 +112,11 @@ The kernels are what we are submitting. The system around them is the part we
 think is worth showing. We built it after a sibling track went wrong: the agent
 there controlled its own measurement, and we had to throw the numbers away.
 
+Link to the full project technical breakdown is here:
+**[`Project/TECHNICAL_BREAKDOWN.md`](Project/TECHNICAL_BREAKDOWN.md)** — how the
+signing, the permits, the sandbox, the gate and the audit actually work, with the
+file and line number for every claim.
+
 ## Results
 
 ### The shipped route
