@@ -1,3 +1,18 @@
+> **Historical — pre-LOCK operating notes.** Two things below are superseded.
+> The `runner.py` subcommands no longer exist: since the LOCK, `runner.py` is a
+> shim onto the trusted controller and refuses to time anything without a
+> single-use permit. And the rented ≥24 GB GPU was never used — shape 14 was
+> measured on the RTX 3060 Ti, at 88.7% of the card's peak.
+>
+> It stays in the repository because eight signed audit responses cite it by name,
+> and its hash is recorded in the owner-signed rules snapshot
+> (`Project/authority/rules_snapshot.json`). Nothing breaks if it is deleted —
+> the signatures still verify — but the citations would point at a file that no
+> longer exists. Correcting it in place keeps the trail intact.
+
+
+
+
 # RUNBOOK — how to operate this project (one page)
 
 ## Environment
