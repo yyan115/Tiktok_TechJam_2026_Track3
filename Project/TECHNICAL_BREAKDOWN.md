@@ -122,7 +122,7 @@ produces a distinct, unforgeable receipt per use.
 A capability authorises N runs. A **permit** authorises exactly one, and is
 welded to one specific file.
 
-The request has exactly eight fields (`authority.py:537-545`) and is checked hard
+The request has exactly seven fields (`authority.py:537-545`) and is checked hard
 (`authority.py:546-572`):
 
 - `request_sha256` must equal the hash of the request blob actually stored —

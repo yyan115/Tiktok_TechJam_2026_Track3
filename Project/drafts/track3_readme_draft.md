@@ -270,45 +270,52 @@ datacenter card, and autotuned configs from big GPUs will not run here.
 
 ## Steps to reproduce our results
 
+Run these from the repository root, in order. All five work on a fresh clone.
+
 ```bash
-# 1. The submission itself — the official script with ONLY the sanctioned
-#    UserOptimizedTransformer region replaced. Any shape's dials work.
+# 1. Run the submission. This is TikTok's own script with only the sanctioned
+#    UserOptimizedTransformer region replaced, so THEIR code does the timing
+#    and prints the speedup. These are shape 13's dials; every shape's dials
+#    are in Project/shapes.json.
 python3 Project/submission/torch_transformer_benchmark_submission.py \
         --batch-size 64 --seq-len 1024 --d-model 128 --heads 4 \
         --ffn-dim 128 --layers 4 --causal
 
-# 2. Prove that everything outside the replaced region is byte-identical
-#    to the official script.
+# 2. Prove everything outside that region is byte-identical to the official
+#    script. Prints "verified": true and the submission's sha256, which is the
+#    c2028c48... hash every number in this README is measured on.
 python3 Project/tools/build_submission.py --check-only
 
-#    And prove the measurement system itself was never edited: 29 files are
-#    hash-pinned under an Ed25519 signature whose private key only the owner
-#    holds. Prints "valid": true, "active": true.
+# 3. Prove the measurement system itself was never edited. 29 files are pinned
+#    by hash under an Ed25519 signature. Prints "valid": true, "active": true.
 python3 Project/harness/trusted_controller.py verify-lock
 
-# 3. Any shape through our frozen referee. NOTE: since the LOCK, runner.py is
-#    a shim onto the trusted controller and will NOT time anything without a
-#    one-use permit -- that refusal is the design, not a bug:
-#      error: the following arguments are required: --permit
-#    The full permitted sequence (request -> permit -> run) is in
-#    Project/RUNBOOK.md; the request step needs an owner-signed capability.
-python3 Project/harness/runner.py run --shape 13 \
-        --impl Project/kernels/k009_fused_tuned.py   # refuses, by design
+# 4. Run the lock's own test suite, including forged-signature and
+#    mutated-byte cases. Prints ALL GREEN.
+python3 Project/tools/tests/lock_manifest_test.py
 
-# 4. Regenerate the score-sensitivity board.
-python3 Project/tools/sensitivity_board.py        # -> Project/results_side/SENSITIVITY.md
-
-#    NOTE: `runner.py leaderboard` no longer exists -- the LOCK replaced runner.py
-#    with a shim onto the trusted controller, which has no such subcommand. The
-#    post-LOCK speedup board is NOT in Project/results/JOURNAL.jsonl; see below.
-
-# 5. The two shapes that don't fit in 8 GB. Their evaluators
-#    (Project/tools/shape6_local_eval.py, Project/tools/shape14_eval.py) are
-#    reachable only through the side-evaluator lane -- run_gate.py side-evaluate
-#    -> trusted_controller.py -- which, like the runner above, requires a
-#    one-use permit. Their evidence packets are in Project/results_side/, and
-#    their board rows cite the authority blobs listed in BOARD.md section 2.
+# 5. Regenerate the score-sensitivity board from the recorded evidence.
+#    Prints the path it wrote.
+python3 Project/tools/sensitivity_board.py
 ```
+
+Step 1 needs a CUDA GPU. Steps 2 to 5 run anywhere Python and `cryptography`
+are installed, including a machine with no GPU at all.
+
+**The referee will refuse you, and that is the point.** `Project/harness/runner.py`
+is a shim onto the trusted controller and will not time anything without a
+single-use permit:
+
+```
+$ python3 Project/harness/runner.py run --shape 13 --impl Project/kernels/k009_fused_tuned.py
+trusted_controller.py run: error: the following arguments are required: --permit
+```
+
+Issuing a permit needs an owner-signed capability, so nobody who clones this
+repository can produce one — which is exactly the property the whole design
+exists to have. The full sequence is in `Project/RUNBOOK.md`. Shapes 6 and 14
+are gated the same way, through `run_gate.py side-evaluate`; their evidence
+packets are already in `Project/results_side/`.
 
 **Where the published numbers actually live:**
 
