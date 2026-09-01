@@ -7,7 +7,125 @@
 
 ---
 
-## An AI agent that writes GPU kernels — and a referee it is not allowed to touch
+## Elevator pitch
+
+> An AI research and optimisation agent inside a cryptographically signed loop
+> that makes faking a result impossible.
+
+---
+
+# Project story
+
+*Paste target: the Devpost "About the project" field.*
+
+## What inspired us
+
+We tried a sibling track first, with an AI agent optimising in a loop. It
+produced good numbers and we threw all of them away, because the agent had been
+allowed to run its own measurements and we could not prove it hadn't drifted into
+measuring something easier than the real task.
+
+That turned out to be a known problem rather than our own incompetence. CUDA-L1's
+postmortem found that **a third of its reinforcement-learned "solutions" timed
+work on a side stream the clock never watched**. Sakana's optimizer edited its
+own evaluator. A score-seeking agent attacks the score when the score is easier
+to attack than the task, and neither of those teams asked for that behaviour.
+
+The most useful thing we read came from the sponsor's own research group:
+**CUDA Agent** (ByteDance Seed and Tsinghua). Their system reaches 2.11× geomean
+over `torch.compile`, and the part that mattered to us was not the kernels — it
+was that they had independently arrived at the same conclusion. Protected
+profiling scripts the agent cannot modify. Forbidden fallback calls. Measurement
+it cannot reach. If the people who do this professionally had to build those
+guardrails for a reinforcement-learning system, we were going to need them too.
+
+## How we built it
+
+**The referee came first, and the kernels second.** That order is the whole
+project.
+
+Twenty-nine files — the official benchmark, the harness, the shape definitions,
+the tools — are hashed, and the list of hashes is signed with a private key the
+agent has never had. Before every single run the controller re-hashes all
+twenty-nine and refuses everything on one mismatch.
+
+To run anything at all, the agent needs a permit. A human signs one capability
+worth N runs; the system spends it one permit at a time, each permit welded to
+the sha256 of one specific candidate file, each usable once. Over the campaign
+that came to **272 permits issued and 271 consumed**. The run itself happens in a
+sandbox with no network, no home directory and the source mounted read-only.
+
+Optimising was gated too. Before each attempt the agent had to cite at least two
+existing research notes and carry the current hash of the index, which proves it
+actually read them that cycle. Then a plan with a hypothesis, a numeric
+prediction and citations written as `file:line` — the gate looks each one up and
+copies the quoted text into the log, so a made-up citation does not get through.
+Then exactly one run, after which the gate shuts. Three attempts with no
+improvement closes off that approach and forces a written postmortem before
+anything else can start.
+
+Only then, the kernels: eight authored Triton kernels and a dispatcher, with the
+whole multi-layer forward pass captured as one CUDA graph.
+
+## What we learned
+
+**Our first provenance rule was not good enough, and our own auditor caught it.**
+The rule was "commit the candidate to git before measuring". The auditor pointed
+out that an evidence packet could still cite the *current* source hash rather
+than the one that was actually measured. We replaced it: the candidate is copied
+into a content-addressed blob at permit issue, and that hash goes into the
+permit, the request and the result packet.
+
+**An average across four different builds describes nothing.** One of our earlier
+boards drew its rows from four artifacts and reported a single geometric mean, as
+though some program had achieved it. None had. We withdrew it and re-measured
+every shape on one file.
+
+**Having a research base is not the same as using it.** Every plan cited one,
+because the gate refused otherwise. But CUDA Agent's loop profiles first and
+implements second, while ours planned first and profiled only when something
+looked wrong. We had the better paper on disk the whole time and took less from
+it than we should have.
+
+**And optimisation reasons are often wrong even when the optimisation works.** We
+split the attention head loop into its own grid dimension for more parallelism.
+The parallelism did almost nothing — every shape but one already filled the
+card's 38 SMs. The gain came from the side effect nobody predicted: with heads
+written into one buffer, the output projection runs at full width instead of once
+per head padded to Triton's 16-wide minimum. **+26.4%** on the two shapes with
+head width 8.
+
+## Challenges
+
+**Shape 14 does not fit anywhere.** 100,000 tokens at batch 32 needs roughly
+160 TB of attention matrix. TikTok's baseline cannot run it on any GPU, so there
+was nothing to be correct against. We wrote a streamed reference, then validated
+*that* against their real implementation at 1,024, 2,048 and 4,096 tokens where
+theirs still fits, at 1e-3 absolute — twice as strict as the competition's
+requirement. It now runs in 48.271 s at **88.7% of the card's physical maximum**.
+
+**The auditor never actually ran on the final board.** Our verdict schema uses
+`allOf`, which OpenAI's structured-output mode rejects, so the request fails with
+an HTTP 400 before the model ever sees the packet. Every other part of the
+machinery worked — the failure was written into the hash-chained audit journal
+three times and escalated correctly. Fixing it means editing a file the
+optimising agent is denied write access to, which is the correct arrangement, so
+it stayed broken and we labelled it.
+
+**Sub-millisecond shapes are genuinely hard to measure on a consumer card.** The
+worst case we recorded was byte-identical code measuring **13.2% apart minutes
+apart**. That is why every published row is the median of 300 paired samples
+inside one process, with no best-of and no dropped rounds, and why we locked the
+GPU clocks to the rated boost rather than the supported maximum.
+
+**We ran out of time on CUDA.** `k018`, `k023` and `k024` are hand-written CUDA
+kernels. None beat the Triton versions before the deadline, so none of them
+ships. We were still finding wins when the clock ran out — the last structural
+change landed a day before freeze.
+
+---
+
+## Cryptographically Signed Agent Loop for GPU Kernels
 
 **Geometric-mean 11.87× speedup on the organizers' own untouched benchmark
 script, on a consumer RTX 3060 Ti. All fourteen test shapes are measured on one
