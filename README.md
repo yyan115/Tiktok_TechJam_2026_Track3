@@ -272,7 +272,7 @@ datacenter card, and autotuned configs from big GPUs will not run here.
 
 ## Steps to reproduce our results
 
-Run these from the repository root, in order. All five work on a fresh clone.
+Run these from the repository root, in order. All four work on a fresh clone.
 
 ```bash
 # 1. Run the submission. This is TikTok's own script with only the sanctioned
@@ -295,13 +295,9 @@ python3 Project/harness/trusted_controller.py verify-lock
 # 4. Run the lock's own test suite, including forged-signature and
 #    mutated-byte cases. Prints ALL GREEN.
 python3 Project/tools/tests/lock_manifest_test.py
-
-# 5. Regenerate the score-sensitivity board from the recorded evidence.
-#    Prints the path it wrote.
-python3 Project/tools/sensitivity_board.py
 ```
 
-Step 1 needs a CUDA GPU. Steps 2 to 5 run anywhere Python and `cryptography`
+Step 1 needs a CUDA GPU. Steps 2 to 4 run anywhere Python and `cryptography`
 are installed, including a machine with no GPU at all.
 
 **The referee will refuse you, and that is the point.** `Project/harness/runner.py`
