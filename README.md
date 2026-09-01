@@ -309,10 +309,22 @@ $ python3 Project/harness/runner.py run --shape 13 --impl Project/kernels/k009_f
 trusted_controller.py run: error: the following arguments are required: --permit
 ```
 
-Issuing a permit needs an owner-signed capability, so nobody who clones this
-repository can produce one — which is exactly the property the whole design
-exists to have. The full sequence is in `Project/RUNBOOK.md`. Shapes 6 and 14
-are gated the same way, through `run_gate.py side-evaluate`; their evidence
+Issuing a permit needs a capability signed with the owner's private key, which is
+not in this repository and never was. So a stranger cannot add a row to our
+evidence chain — which is the point. If anyone could mint permits, the signature
+on our results would mean nothing.
+
+That does not lock the repo. Without any key you can still run the submission and
+get real numbers (step 1 above is TikTok's own script doing the timing), edit
+`dispatcher_region.py` and benchmark your own kernels the same way, and check
+every claim we make with steps 2 to 4. What you cannot do is produce a
+measurement that carries *our* authority.
+
+And you can become an owner of your own copy. `Project/tools/owner_lock_ceremony.py`
+has `keygen`, `sign-lock` and `mint-capability`: generate a keypair, sign a lock
+over your own files, mint your own capabilities, and the whole harness runs for
+you on your own chain. The full sequence is in `Project/RUNBOOK.md`. Shapes 6 and
+14 are gated the same way through `run_gate.py side-evaluate`; their evidence
 packets are already in `Project/results_side/`.
 
 **Where the published numbers actually live:**
